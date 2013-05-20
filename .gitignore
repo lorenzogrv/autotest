@@ -1,7 +1,5 @@
-node_modules/
-old-stuff/
-old-mods/
-iai-mods/
+node_modules
+iai-modules
 lib-cov
 *.seed
 *.log
