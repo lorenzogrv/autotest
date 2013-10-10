@@ -1,3 +1,6 @@
 [submodule "node_modules/iai-oop"]
 	path = node_modules/iai-oop
 	url = https://github.com/laconbass/iai-oop.git
+[submodule "node_modules/iai-util"]
+	path = node_modules/iai-util
+	url = https://github.com/laconbass/iai-util.git
