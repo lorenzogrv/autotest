@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+for file in test/*.js
+do
+  echo "> node $file"
+  node $file && echo && echo EXIT OK || echo EXIT FAIL
+done

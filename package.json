@@ -8,5 +8,8 @@
   },
   "repository": {
     "type": "git", "url": "https://github.com/laconbass/iai.git"
+  },
+  "scripts": {
+    "test": "./bin/test"
   }
 }
