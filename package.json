@@ -4,7 +4,7 @@
   "description": "@laconbass web development framework for node.js",
   "main": "iai",
   "dependencies": {
-    "iai-oop": ">= 0.0.3"
+    "iai-oop": "^2.0.0"
   },
   "repository": {
     "type": "git", "url": "https://github.com/laconbass/iai.git"
