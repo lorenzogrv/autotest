@@ -21,9 +21,9 @@ function Log( from ){
   }
 
   var instance = oop.create( this )
-    .hidden( 'filename', from )
-    .set( 'stdout', process.stdout )
-    .set( 'stderr', process.stderr )
+    .visible( 'filename', from )
+    .internal( 'stdout', process.stdout )
+    .internal( 'stderr', process.stderr )
     .o
   ;
 
@@ -34,7 +34,9 @@ function Log( from ){
 oop( Log ).hidden( 'cache', {} );
 
 // prepares a message as string
-Log.msg = function(){};
+Log.msg = function(){
+
+};
 
 // output functions (mostly for internal use)
 Log.out = function(){};

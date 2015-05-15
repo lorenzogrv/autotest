@@ -12,10 +12,27 @@ var oop = require('iai-oop');
 
 var exports = oop( exports );
 
-// the oop namespace is reserved (not writable) for the OOP standard API
+// the "oop" namespace is reserved (not writable) for the OOP standard API
 exports.visible('oop', oop);
 
-// the log namespace is reserved for accessing the log service
+// make it prettier than [object Object]
+exports.hidden('toString', function(){
+  return '|iai|';
+})
+
+// the "is" namespace is reserved for accessing the iai-is api
+var is;
+exports.accessor('is', function getIs( ){
+  // ternary operator with assignment to avoid repeating the require call
+  return is? is : is = require('iai-is');
+});
+
+// the "sources" namespace is reserved to TODO description
+exports.accessor('sources', function getIs( ){
+  return require('./api/sources');
+});
+
+// the "log" namespace is reserved for accessing the log api
 var log;
 exports.accessor('log', function getLog( ){
   // ternary operator with assignment to avoid repeating the require call
