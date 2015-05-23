@@ -26,9 +26,10 @@ if( !argv.length ){
   var name = require('path').basename(__filename);
   iai.log
     .info('')
-    .info('Usage: %s [--once] {filename} [optional argv]', name)
+    .info('Usage: %s [--once [--mute]] {filename} [optional argv]', name)
     .info('')
     .info('   --once: deactivates the file watcher (run filename only once)')
+    .info('   --mute: mute iai-test messages on stdout')
     .info('')
     .fatal('bad argument list')
   ;
@@ -39,6 +40,14 @@ if( once !== '--once' ){
   argv.unshift(once);
   once = '';
 }
+
+var silent = argv.shift();
+if( silent !== '--mute' ){
+  argv.unshift(silent);
+} else {
+  iai.log.mute = true;
+}
+
 var filename = path.resolve( process.cwd(), argv.shift() );
 argv.unshift( filename );
 var runner = 'node';

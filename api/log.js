@@ -26,6 +26,7 @@ function Log( from ){
 
   var instance = oop.create( this )
     .visible( 'filename', from )
+    .flag( 'mute', false )
     .flag( 'clean', false )
     .internal( 'stdout', process.stdout ) // TODO option to redirect stdout
     .internal( 'stderr', process.stderr ) // TODO option to redirect stderr
@@ -61,6 +62,7 @@ Log.msg = function( report, options ){
   msg +=((  color? ansi.reset : ''  ));
   msg +=((  this.clean? '' : (this+' ')  ));
   msg +=((  color? ansi[color] : ''  ));
+  // todo think if another option for "not prepending"
   msg +=((  this.clean? '' : (options.prepend||'')  ));
   msg +=((  format.apply(0, report).split('\n').join( '\n' + msg )  ));
   msg +=((  color? ansi.reset : ''  ));
@@ -71,6 +73,7 @@ Log.msg = function( report, options ){
 
 // output functions (mostly for internal use)
 Log.out = function( report, opts ){
+  if( this.mute ) return this;
   opts.stream = this.stdout; return this.msg( report, opts );
 };
 Log.err = function( report, opts ){
@@ -91,9 +94,9 @@ Log.warn = function( ){
   return this.err( arguments, { color: 'yellow', prepend: 'WARN: ' });
 };
 Log.info = function( ){
-  return this.out( arguments, { color: 'blue', prepend: 'INFO: ' });
+  return this.out( arguments, { color: 'blue', prepend: '' });
 };
 Log.verb = function( ){
-  return this.out( arguments, { color: 'gray' });
+  return this.out( arguments, { color: 'gray', prepend: 'DEBUG: ' });
 };
 

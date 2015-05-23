@@ -3,5 +3,5 @@
 for file in $(find test/*.js)
 do
   echo "> node $file"
-  ./bin/iai-test --once $file && echo "- OK" || exit 1
+  ./bin/iai-test --once --mute $file && echo "- OK" || exit 1
 done
