@@ -41,17 +41,7 @@ info('filename is', filename);
 var isModule = path.extname(filename) == '.js';
 
 if( isModule ){
-  log( 'seems a commonjs module, will run with node' );
-  try {
-    filename = require.resolve( filename );
-  } catch( err ){
-    ( err.code == 'MODULE_NOT_FOUND' )
-      && error( 'Fatal error: The file %s does not resolve', filename )
-      || error( 'Fatal error: The file %s thrown an error', filename )
-    ;
-    error( err.stack )
-    process.exit( 1 );
-  }
+  log( 'It seems a commonjs module, will run with node' );
 } else {
   warn('It seems a script, will run it directly');
   runner = argv.shift();
@@ -70,20 +60,39 @@ function main( ){
 
   if( isModule ){
     try {
-      log( 'Requiring module to research dependencies\n* v *' );
-      // Refresh require.cache before calling 'sources'
+      // Refresh require.cache requiring the file to research 'sources'
       delete require.cache[filename];
+
+      log( 'Requiring module to research its dependencies\n* v *' );
+
+      // warn if the file outputs something to stdout when required
+      var out_write = process.stdout.write;
+      process.stdout.write = function(){
+        iai.log.error( 'The module writes to stdout when required' );
+        process.stdout.write = out_write;
+        return out_write.apply( process.stdout, arguments );
+      };
+
       require( filename );
+
+      process.stdout.write = out_write;
+
       log( '* ^ *\nRequire completed' );
-      watcher( sources(require.main) );
+      watcher( iai.sources(require.main) );
     } catch( e ){
-      warn( "Error thrown while requiring module:" );
-      error( e.stack );
-      info( "will run again after any change is detected" );
+      if( e.code == 'MODULE_NOT_FOUND' ){
+        iai.log.error( 'The file %s does not resolve', filename )
+      } else {
+        iai.log
+          .error( "Error thrown while requiring module:" )
+          .error( e.stack )
+        ;
+      }
+      iai.log.info( "will run again after any change is detected" );
       return watcher([ filename, __filename ]);
     }
   } else {
-    watcher( sources(require.main).concat(filename) );
+    watcher( iai.sources(require.main).concat(filename) );
   }
 
   if( child ){
@@ -129,15 +138,6 @@ function handle( err ){
   error( 'Child process error', err.message );
 };
 
-function sources( mod ){
-  return []
-    .concat.apply( [], mod.children.map(sources) )
-    .concat( mod.filename )
-    // remove duplicates
-    .filter(function( name, pos, arr ){ return arr.indexOf(name) == pos; })
-  ;
-}
-
 function watcher( files ){
   info(
       'watching for changes on:\n  %s',
@@ -152,8 +152,8 @@ function watcher( files ){
     console.log( ansi.clear )
     info( 'watched a %s on %s', event, file );
     if( event == 'change' && file == __filename ){
-      warn( 'WARN: the test script implementation has changed' );
-      warn( '      stopping test script, please run it again' );
+      warn( 'the test script implementation has changed' );
+      warn( 'stopping test script, please run it again' );
       process.exit( 1 );
       // this creates 1 more main() execution each time is called
       // delete require.cache[ file ];
