@@ -17,5 +17,5 @@
     path = node_modules/iai-schema
     url = https://github.com/laconbass/iai-schema.git
 [submodule "doc"]
-	path = doc
+	path = wiki
 	url = https://github.com/laconbass/iai.wiki.git
