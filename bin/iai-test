@@ -84,14 +84,24 @@ function main( ){
       // warn if the file outputs something to stdout when required
       var out_write = process.stdout.write;
       process.stdout.write = function(){
-        iai.log.error( 'The module writes to stdout when required' );
         process.stdout.write = out_write;
+        iai.log.error( 'The module writes to stdout when required' );
         return out_write.apply( process.stdout, arguments );
+      };
+      // warn if the file outputs something to stderr when required
+      var err_write = process.stderr.write;
+      process.stderr.write = function(){
+        process.stderr.write = err_write;
+        // replace before or will start Infinite Loop
+        // ( iai.log.error calls process.stderr.write )
+        iai.log.error( 'The module writes to stderr when required' );
+        return err_write.apply( process.stderr, arguments );
       };
 
       require( filename );
 
       process.stdout.write = out_write;
+      process.stderr.write = err_write;
 
       iai.log.verb( '* ^ *\nRequire completed' );
       watcher( iai.sources(require.main) );
@@ -160,7 +170,7 @@ function handle( err ){
     });
     return;
   }
-  error( 'Child process error', err.message );
+  iai.log.fatal( 'Child process error', err.message );
 };
 
 function watcher( files ){

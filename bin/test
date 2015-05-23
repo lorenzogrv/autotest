@@ -2,6 +2,6 @@
 
 for file in $(find test/*.js)
 do
-  echo "> node $file"
-  ./bin/iai-test --once --mute $file && echo "- OK" || exit 1
+  echo "> iai-test --once --mute $file"
+  iai-test --once --mute $file && echo "- OK" || exit 1
 done
