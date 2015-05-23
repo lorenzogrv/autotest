@@ -16,17 +16,21 @@ var format = require('util').format;
 
 // UTILITIES
 var iai = require('iai');
+iai.log.clean = true;
 var ansi = require('iai-ansi');
 
 // ARGV
 // TODO better argv description
 var argv = process.argv.slice( 2 );
 if( !argv.length ){
+  var name = require('path').basename(__filename);
   iai.log
-    .info('Usage: test [--once] {filename} [optional argv]')
+    .info('')
+    .info('Usage: %s [--once] {filename} [optional argv]', name)
     .info('')
     .info('   --once: deactivates the file watcher (run filename only once)')
-    .fatal('unrecognized argument list')
+    .info('')
+    .fatal('bad argument list')
   ;
 }
 

@@ -26,12 +26,14 @@ function Log( from ){
 
   var instance = oop.create( this )
     .visible( 'filename', from )
+    .flag( 'clean', false )
     .internal( 'stdout', process.stdout ) // TODO option to redirect stdout
     .internal( 'stderr', process.stderr ) // TODO option to redirect stderr
     .o
   ;
 
-  Log.info('created log from', from);
+  // TODO log "depth" to disable, i.e., this message
+  // Log.info('created log from', from);
   return Log.cache[from] = instance;
 }
 
@@ -56,12 +58,12 @@ Log.msg = function( report, options ){
   var color = options.color;
 
   var msg = '';
-  msg +=(( color? ansi.reset : '' ));
-  msg +=(( this + ' ' ));
-  msg +=(( color? ansi[color] : '' ));
-  msg +=(( options.prepend || '' ));
-  msg +=(( format.apply(0, report).split('\n').join( '\n' + msg ) ));
-  msg +=(( color? ansi.reset : '' ));
+  msg +=((  color? ansi.reset : ''  ));
+  msg +=((  this.clean? '' : (this+' ')  ));
+  msg +=((  color? ansi[color] : ''  ));
+  msg +=((  this.clean? '' : (options.prepend||'')  ));
+  msg +=((  format.apply(0, report).split('\n').join( '\n' + msg )  ));
+  msg +=((  color? ansi.reset : ''  ));
 
   options.stream.write( msg + '\n' );
   return this;
