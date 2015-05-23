@@ -53,11 +53,13 @@ Log.toString = function( ){
 
 // outputs a report as string
 Log.msg = function( report, options ){
-  var msg = '', color = options.color;
+  var color = options.color;
 
+  var msg = '';
   msg +=(( color? ansi.reset : '' ));
   msg +=(( this + ' ' ));
   msg +=(( color? ansi[color] : '' ));
+  msg +=(( options.prepend || '' ));
   msg +=(( format.apply(0, report).split('\n').join( '\n' + msg ) ));
   msg +=(( color? ansi.reset : '' ));
 
@@ -77,19 +79,19 @@ Log.err = function( report, opts ){
 // Log-level accesors
 //
 Log.fatal = function( ){
-  this.error.apply( this, arguments );
+  this.error('FATAL ERROR!').error.apply( this, arguments );
   process.exit(1);
 };
 Log.error = function( ){
-  return this.err( arguments, { color: 'red' });
+  return this.err( arguments, { color: 'red', prepend: 'ERROR: ' });
 };
 Log.warn = function( ){
-  return this.err( arguments, { color: 'yellow' });
+  return this.err( arguments, { color: 'yellow', prepend: 'WARN: ' });
 };
 Log.info = function( ){
-  return this.out( arguments, { color: 'white' });
+  return this.out( arguments, { color: 'blue', prepend: 'INFO: ' });
 };
 Log.verb = function( ){
-  return this.out( arguments, { color: 'blue' });
+  return this.out( arguments, { color: 'gray' });
 };
 
