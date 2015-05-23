@@ -1,0 +1,166 @@
+#!/usr/bin/env node
+
+/**
+ * # iai-test
+ * executes a js file with NODE_ENV=test inmediately, and
+ * execs it again every time the file contents change.
+ */
+
+// DEPENDENCIES
+
+var spawn = require('child_process').spawn;
+var watch = require('chokidar').watch;
+var path = require('path');
+var fs = require('fs');
+var format = require('util').format;
+
+// UTILITIES
+var iai = require('iai');
+var ansi = require('iai-ansi');
+
+var log = iai.log.verb.bind(iai.log) //logger({ color: 'blue', clean: 1 })
+  , info = iai.log.info.bind(iai.log) //logger({ color: 'white', clean: 1 })
+  , error = iai.log.fatal.bind(iai.log) //logger({ color: 'red', clean: 1 })
+  , warn = iai.log.warn.bind(iai.log) // logger({ color: 'yellow', clean: 1 })
+;
+
+// ARGV
+// TODO better argv description
+var argv = process.argv.slice( 2 );
+if( !argv.length ){
+  console.log('Usage: test {filename} [optional argv]');
+  process.exit(1);
+}
+
+var filename = path.resolve( process.cwd(), argv.shift() );
+argv.unshift( filename );
+var runner = 'node';
+
+info('filename is', filename);
+
+var isModule = path.extname(filename) == '.js';
+
+if( isModule ){
+  log( 'seems a commonjs module, will run with node' );
+  try {
+    filename = require.resolve( filename );
+  } catch( err ){
+    ( err.code == 'MODULE_NOT_FOUND' )
+      && error( 'Fatal error: The file %s does not resolve', filename )
+      || error( 'Fatal error: The file %s thrown an error', filename )
+    ;
+    error( err.stack )
+    process.exit( 1 );
+  }
+} else {
+  warn('It seems a script, will run it directly');
+  runner = argv.shift();
+}
+
+info( 'ready to run the test with "%s"', runner );
+// TODO if colors disabled...
+//var log = info console.log; var error = console.error;
+
+// BOOTSTRAP
+
+var child = null;
+main();
+
+function main( ){
+
+  if( isModule ){
+    try {
+      log( 'Requiring module to research dependencies\n* v *' );
+      // Refresh require.cache before calling 'sources'
+      delete require.cache[filename];
+      require( filename );
+      log( '* ^ *\nRequire completed' );
+      watcher( sources(require.main) );
+    } catch( e ){
+      warn( "Error thrown while requiring module:" );
+      error( e.stack );
+      info( "will run again after any change is detected" );
+      return watcher([ filename, __filename ]);
+    }
+  } else {
+    watcher( sources(require.main).concat(filename) );
+  }
+
+  if( child ){
+    info( 'Killing child process to run again...' );
+    return child.kill( 'SIGUSR2' );
+  }
+  log( 'Spawn> %s %s\n* v *', runner, argv.join(' ') );
+  child = spawn( runner, argv, {
+    stdio: 'inherit',
+    env: { NODE_ENV: 'test' }
+  }).on( 'close', reboot ).on( 'error', handle );
+}
+
+function reboot( code, signal ){
+  log('* ^ *');
+  info( 'child exited with code %s and signal %s', code, signal );
+  child = null;
+  // re-run on SIGUSR2
+  if( signal == 'SIGUSR2' ){ return main(); }
+  return info( 'waiting for a change to run again...' );
+}
+
+function handle( err ){
+  /**
+    * Check if the script file is executable
+    * Use bitmasks to change permisions to make it executable
+    * See also:
+    *   http://www.perlmonks.org/bare/?node_id=323977
+    *   http://man7.org/linux/man-pages/man2/chmod.2.html
+    */
+  if( err && err.code == "EACCES" ){
+    warn( err.stack );
+    warn( 'File %s is not executable, making it executable', filename )
+    var stats = fs.statSync( filename );
+    fs.chmod( filename, stats.mode | 00400 | 00200 | 00100, function( err ){
+      if( err ){
+        return error( 'Error while making the file executable', err );
+      }
+      main();
+    });
+    return;
+  }
+  error( 'Child process error', err.message );
+};
+
+function sources( mod ){
+  return []
+    .concat.apply( [], mod.children.map(sources) )
+    .concat( mod.filename )
+    // remove duplicates
+    .filter(function( name, pos, arr ){ return arr.indexOf(name) == pos; })
+  ;
+}
+
+function watcher( files ){
+  info(
+      'watching for changes on:\n  %s',
+      files.join('\n  ').replace( RegExp( process.cwd(), 'g' ), '.' )
+  );
+  watch( files, {
+    ignored: /\.swp$/,
+    persistent: true,
+    ignoreInitial: true
+  }).on( 'all', function watcher( event, file ){
+    this.close();
+    console.log( ansi.clear )
+    info( 'watched a %s on %s', event, file );
+    if( event == 'change' && file == __filename ){
+      warn( 'WARN: the test script implementation has changed' );
+      warn( '      stopping test script, please run it again' );
+      process.exit( 1 );
+      // this creates 1 more main() execution each time is called
+      // delete require.cache[ file ];
+      // require( file );
+      // TODO defer a new test execution to another process, kill this one
+      // TODO or decouple the operation from the script that calls it
+    }
+    main();
+  });
+}

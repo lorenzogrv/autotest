@@ -1,4 +1,8 @@
+var relative = require('path').relative;
+var format = require('util').format;
+
 var oop = require('iai-oop');
+var ansi = require('iai-ansi');
 var callsite = require('./callsite');
 
 // EXPOSED OBJECT
@@ -22,30 +26,70 @@ function Log( from ){
 
   var instance = oop.create( this )
     .visible( 'filename', from )
-    .internal( 'stdout', process.stdout )
-    .internal( 'stderr', process.stderr )
+    .internal( 'stdout', process.stdout ) // TODO option to redirect stdout
+    .internal( 'stderr', process.stderr ) // TODO option to redirect stderr
     .o
   ;
 
+  Log.info('created log from', from);
   return Log.cache[from] = instance;
 }
 
+oop( Log )
 // cache object
-oop( Log ).hidden( 'cache', {} );
+.hidden( 'cache', {} )
+// default output streams
+.internal( 'stdout', process.stdout )
+.internal( 'stderr', process.stderr )
+;
 
-// prepares a message as string
-Log.msg = function(){
+Log.toString = function( ){
+  return '['
+    + relative( process.cwd(), this.filename || __filename )
+    + '@' + process.pid
+    +']'
+  ;
+}
 
+// outputs a report as string
+Log.msg = function( report, options ){
+  var msg = '', color = options.color;
+
+  msg +=(( color? ansi.reset : '' ));
+  msg +=(( this + ' ' ));
+  msg +=(( color? ansi[color] : '' ));
+  msg +=(( format.apply(0, report).split('\n').join( '\n' + msg ) ));
+  msg +=(( color? ansi.reset : '' ));
+
+  options.stream.write( msg + '\n' );
+  return this;
 };
 
 // output functions (mostly for internal use)
-Log.out = function(){};
-Log.err = function(){};
+Log.out = function( report, opts ){
+  opts.stream = this.stdout; return this.msg( report, opts );
+};
+Log.err = function( report, opts ){
+  opts.stream = this.stderr; return this.msg( report, opts );
+};
 
+//
 // Log-level accesors
-Log.fatal = function(){};
-Log.error = function(){};
-Log.warn = function(){};
-Log.info = function(){};
-Log.verb = function(){};
+//
+Log.fatal = function( ){
+  this.error.apply( this, arguments );
+  process.exit(1);
+};
+Log.error = function( ){
+  return this.err( arguments, { color: 'red' });
+};
+Log.warn = function( ){
+  return this.err( arguments, { color: 'yellow' });
+};
+Log.info = function( ){
+  return this.out( arguments, { color: 'white' });
+};
+Log.verb = function( ){
+  return this.out( arguments, { color: 'blue' });
+};
 

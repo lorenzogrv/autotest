@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-for file in $(find test/*.js example/*.js)
+for file in $(find test/*.js)
 do
   echo "> node $file"
-  node $file && echo "- OK" || exit
+  node $file && echo "- OK" || exit 1
 done
