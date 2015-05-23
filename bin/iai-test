@@ -178,7 +178,7 @@ function watcher( files ){
     iai.log.verb('asked to run only once');
     return false;
   }
-  iai.log.verb(
+  iai.log.info(
       'watching for changes on:\n  %s',
       files.join('\n  ').replace( RegExp( process.cwd(), 'g' ), '.' )
   );
