@@ -96,7 +96,7 @@ Log.warn = function( ){
 Log.info = function( ){
   return this.out( arguments, { color: 'blue', prepend: '' });
 };
-Log.verb = function( ){
-  return this.out( arguments, { color: 'gray', prepend: 'DEBUG: ' });
+Log.verb = Log.verbose = Log.debug = function( ){
+  return this.out( arguments, { color: '', prepend: 'DEBUG: ' });
 };
 
