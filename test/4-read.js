@@ -7,7 +7,6 @@ var read = iai.read;
 
 module.exports = TEST;
 if( require.main === module ){
-  var last = helper.resume();
   TEST();
 }
 
@@ -20,21 +19,23 @@ function TEST(){
 
 function emulateKeyboard( str, opts ){
   opts = opts || {};
-  opts.time = opts.time === 0? 0 : 1;
-  var wait = 1 * opts.time;
+  var wait = 1 * (opts.time||1);
   var debug = opts.debug || false;
+  debug && log.verb( 'KB EMULAT TIME', wait>1000? (wait/1000)+'s' : wait+'ms' );
+
   var input = new PassThrough();
   //if( !sleep ){ input.push( str ); return input(); }
-  var sequence = Array.prototype.slice.call(str).map(function( ch, c, str ){
+  var sequence = Array.prototype.slice.call(str).map(function( ch, c ){
     return function(){
-      debug && log.verb( 'KEYPRESS %s', JSON.stringify(ch) );
+      debug && log.verb( 'KB KEYPRESS %s', JSON.stringify(ch) );
       input.write(ch);
       if( sequence.length ){
-        debug && log.verb( 'SLEEP %s', wait>1000? (wait/1000)+'s' : wait+'ms' );
-        setTimeout( sequence.shift(), wait );
+        debug && log.verb( 'KB NEXT IN', wait );
+        setTimeout(sequence.shift(), wait );
       }
     };
   });
+  sequence.push(function(){ debug && log.verb('KB END', str); input.end(); });
   process.nextTick( sequence.shift() )
   return input;
 }
@@ -52,10 +53,12 @@ function TESTN1(){
 
     count++;
     assert.ok( count <= plan, 'expected less or' + plan );
-    if( count == plan ){
-      log.debug('read -n 1 OK');
-      TESTN2();
-    }
+  }).on( 'end', function(){
+    assert.equal( count, plan );
+    log.debug('read -n 1 OK');
+    setTimeout( TESTN2, 100 );
+  }).on( 'error', function(){
+    throw new Error("it shouldn't TIMEOUT");
   });
 }
 
@@ -69,8 +72,12 @@ function TESTN2(){
     assert.ok( data, 'expected some data' );
     assert.equal( data.length, 3, 'expected data length of 1');
     assert.equal( data, '\nab' );
-    log.debug('read -n 3 (ONCE) OK, WAIT 100ms');
+
+  }).on( 'end', function(){
+    log.debug('read -n 3 (ONCE) OK, WAIT 1s');
     setTimeout( TESTLINE, 100 );
+  }).on( 'error', function(){
+    throw new Error("it shouldn't TIMEOUT");
   });
 }
 
@@ -90,10 +97,12 @@ function TESTLINE(){
 
     count++;
     assert.ok( count <= plan, 'expected less or' + plan );
-    if( count == plan ){
-      log.debug('read OK, WAIT 100ms');
-      setTimeout( TESTLINE2, 100 );
-    }
+  }).on('end', function(){
+    assert.equal( count, plan );
+    log.debug('read OK, WAIT 500ms');
+    setTimeout( TESTLINE2, 100 );
+  }).on( 'error', function(){
+    throw new Error("it shouldn't TIMEOUT");
   });
 }
 
@@ -106,27 +115,89 @@ function TESTLINE2(){
     assert.ok( data, 'expected some data' );
     assert.equal( data, 'read this only' );
 
-    log.debug('read ONCE OK, WAIT 10ms');
-    setTimeout( TESTIMEOUT, 10 );
+    log.debug('read ONCE OK');
+    setTimeout( TESTIMEOUT, 100 );
   });
 }
 
 function TESTIMEOUT(){
-  var input = emulateKeyboard('12345678');
-  var sequence = iai.read( input, { t: 15 });
-
-  sequence.on('readable', function(){
-    throw new Error('it should not become readable');
-  });
+  var input = emulateKeyboard('12345', { time: 15 /*,debug: true/**/ });
 
   var to = setTimeout(function(){
     throw new Error('it should emit error on less than 30ms');
   }, 30);
 
-  sequence.on('error', function onError(){
-    clearTimeout(to);
-    assert.equal( sequence.read(), null, 'it should not pass through' );
-    log.debug('read --timeout ok');
-    setTimeout( process.exit, 10 );
+  iai.read( input, { t: 15 })
+    .on('readable', function(){
+      throw new Error('it should not become readable');
+    })
+    .on('error', function onError(){
+      clearTimeout(to);
+      assert.equal( this.read(), null, 'it should not pass through' );
+      log.debug('read --timeout ok');
+      setTimeout( TESTIMEOUT2, 100 );
+    })
+  ;
+}
+
+function TESTIMEOUT2(){
+  var input = emulateKeyboard('123', { /*debug: true/**/ });
+  var count = 0;
+
+  iai.read( input, { n: 1, t: 10 })
+    .on('error', function( err ){
+      console.error( err.stack );
+      log.fatal('it should not timeout');
+    })
+    .on('readable', function(){
+      assert.equal( this.read()+'', ++count );
+    }).on('end', function(){
+      assert.equal( count, 3 );
+      assert.ok( this.read() === null, 'no more data expected' );
+      log.debug('read --timeout (clear) ok');
+      setTimeout( TESTINTERRUPT, 100 );
+    })
+  ;
+}
+
+// TODO
+function TESTINTERRUPT(){
+  var input = emulateKeyboard('12\u0003abc', { /*debug: true/**/ });
+
+  var count = 0;
+  iai.read( input, { n: 1, t: 10 })
+    .on('error', function onError(){
+      throw new Error('it should not timeout');
+    })
+    .on('readable', function(){
+      assert.equal( this.read()+'', ++count );
+    })
+    .on('end', function(){
+      assert.equal( count, 2 );
+      assert.ok( this.read() === null, 'no more data expected' );
+      setTimeout( TESTSTDIN, 100 );
+    })
+  ;
+}
+
+// TODO test with stdin (check raw mode with SIGINT)
+function TESTSTDIN(){
+  var end = false;
+  iai.read( process.stdin, { n: 1, t: 1000 })
+    .on('error', function onError(){
+      throw new Error('it should not timeout');
+    })
+    .on('readable', function(){
+      throw new Error('it should not become readable');
+    })
+    .on('end', function(){
+      assert.ok( !process.stdin.isRaw, 'stdin raw mode should be false' );
+      end = true;
+    })
+  ;
+  process.on('exit', function( code ){
+    assert.ok( end, 'end should had emitted' );
+    process.exit(0);
   });
+  process.kill( process.pid, 'SIGINT' );
 }

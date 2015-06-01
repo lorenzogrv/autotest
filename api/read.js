@@ -11,29 +11,68 @@ module.exports = read;
 
 function read( stream, opts, callback ){
   opts = opts || {};
-  opts.t = opts.t || 100;
+  //opts.t = opts.t || 2000; //TODO use timeout by default?
   if( !opts.n ) opts.splitter = opts.splitter || '\n';
-  log.info( 'READ STREAM', opts );
+  log.info( 'READ STREAM', opts, 'Begin' );
 
   stream = stream || process.stdin;
-  stream.on( 'readable', _read );
-  //stream.setRawMode && stream.setRawMode(true);
+  if( opts.n && stream === process.stdin ){
+    stream.setRawMode(true);
+    log.info( 'READ STDIN', opts, 'raw mode enabled' );
+    process.on( 'exit', function( ){
+      stream.setRawMode(false)
+      output.emit('end');
+      log.debug( 'READ STDIN', opts, 'raw mode disabled' );
+    });
+    process.on('SIGINT', function( ){
+      log.info( 'READ STDIN', opts, 'Got SIGINT' );
+      process.exit(2);
+    });
+  }
   
   // TODO do not force encoding if none given (so reading n-bytes)¿?
   var decoder = new StringDecoder('utf8');
   var result = '';
+
   var output = new PassThrough();
+
+  stream.on( 'readable', _read );
+
+  if( opts.t ){
+    var to;
+    function forgiveTimeout(){ clearTimeout(to); }
+    function refreshTimeout(){
+      to && forgiveTimeout();
+      log.debug( 'READ', opts, 'Timeout in', opts.t );
+      to = setTimeout(function(){
+        var error = new Error('READ TIMEOUT');
+        error.code = 'READ_TIMEOUT';
+        log.warn( 'READ', opts, 'TIMEOUT!' );
+        output.emit( 'error', error );
+        output.end();
+      }, opts.t );
+    }
+    refreshTimeout();
+    stream.on( 'readable', refreshTimeout );
+    output.on( 'end', function(){
+      log.debug( 'READ', opts, 'Timeout stops' );
+      forgiveTimeout();
+      stream.removeListener('readable', refreshTimeout);
+    });
+  }
+
   callback && output.once('readable', function(){
     // read-once logic
-    stream.removeListener('readable', _read);
-    this.setEncoding('utf8');
-    callback( null, this.read() );
+    this.end();
+    callback( null, this.read().toString('utf8') );
   });
-  var to = setTimeout(function(){
+
+  stream.on( 'end', output.end.bind(output) );
+  output.on('end', function(){
     stream.removeListener('readable', _read);
-    log.warn( 'READ TIMEOUT', opts );
-    output.emit( 'error', new Error('READ TIMEOUT') );
-  }, opts.t);
+    log.info('READ STREAM', opts, 'End');
+  });
+
   return output;
 
   function _read(){
@@ -41,7 +80,7 @@ function read( stream, opts, callback ){
     while(  null  !==  (chunk = stream.read(opts.n))  ){
       // TODO do not force encoding if none given (so reading n-bytes)¿?
       var str = decoder.write(chunk);
-      // TODO ^C¿? if( indexOf === '\u0003' ){ return process.exit(1) }
+
       var remain = false;
       if( opts.n && opts.n >= (result.length + str.length) ){
         // read -n strategy: read by length
@@ -65,13 +104,17 @@ function read( stream, opts, callback ){
       }
       // this can be commented but it avoids uneccesary calls
       // TODO decide if empty result pushes as splitter
-      if( !result ){ continue; }
+      if( !result ){ log.debug('skiping empty splitter'); continue; }
+      // check for ^C
+      if( !!~result.indexOf('\u0003') ){
+        log.debug('READ', opts, 'Push null (^C)');
+        output.push(null);
+        return;
+      }
       // finish
-      log.debug( 'READ', opts, JSON.stringify(result) );
+      log.debug( 'READ', opts, 'Push', JSON.stringify(result) );
       output.push( result );
-      clearTimeout(to);
       result = '';
     }
   }
-  
 }
