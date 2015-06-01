@@ -21,8 +21,8 @@ function read( stream, opts, callback ){
     log.info( 'READ STDIN', opts, 'raw mode enabled' );
     process.on( 'exit', function( ){
       stream.setRawMode(false)
+      log.info( 'READ STDIN', opts, 'raw mode disabled' );
       output.emit('end');
-      log.debug( 'READ STDIN', opts, 'raw mode disabled' );
     });
     process.on('SIGINT', function( ){
       log.info( 'READ STDIN', opts, 'Got SIGINT' );
