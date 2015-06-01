@@ -23,7 +23,7 @@ exports.hidden('toString', function(){
 // the "is" namespace is reserved for accessing the iai-is api
 var is;
 exports.accessor('is', function getIs( ){
-  // ternary operator with assignment to avoid repeating the require call
+  // ternary operator with assignment to avoid repeating the require call?
   return is? is : is = require('iai-is');
 });
 
@@ -32,10 +32,17 @@ exports.accessor('sources', function getIs( ){
   return require('./api/sources');
 });
 
+exports.accessor('read', function getRead( ){
+  return require('./api/read');
+});
+
 // the "log" namespace is reserved for accessing the log api
 var log;
 exports.accessor('log', function getLog( ){
-  // ternary operator with assignment to avoid repeating the require call
+  // ternary operator with assignment to avoid repeating the require call?
+  // TODO this will cause callsite to be fetched always
+  // TODO so it's better only one iai.log per file
+  // TODO the catching behaviour should be here too?
   return (( log? log : log = require('./api/log') ))( getLog );
 });
 
