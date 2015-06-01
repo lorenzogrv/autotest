@@ -70,6 +70,7 @@ iai.log.info( 'ready to run the test with "%s"', runner );
 // BOOTSTRAP
 
 var child = null;
+var watch_instance = null;
 main();
 
 function main( ){
@@ -129,9 +130,11 @@ function main( ){
     return child.kill( 'SIGUSR2' );
   }
   iai.log.info( 'Spawn> %s %s', runner, argv.join(' ') ).verb('* v *');
+  var env = Object.create( process.env );
+  env.NODE_ENV = 'test';
   child = spawn( runner, argv, {
     stdio: 'inherit',
-    env: { NODE_ENV: 'test' }
+    env: env
   }).on( 'close', reboot ).on( 'error', handle );
 }
 
@@ -170,7 +173,8 @@ function handle( err ){
     });
     return;
   }
-  iai.log.fatal( 'Child process error', err.message );
+  iai.log.verb( err );
+  iai.log.fatal( 'Child process error', err.stack );
 };
 
 function watcher( files ){
@@ -178,11 +182,16 @@ function watcher( files ){
     iai.log.verb('asked to run only once');
     return false;
   }
+  if( watch_instance ){
+    iai.log.info('stopping watcher...');
+    watch_instance.close();
+    watch_instance = null;
+  }
   iai.log.info(
       'watching for changes on:\n  %s',
       files.join('\n  ').replace( RegExp( process.cwd(), 'g' ), '.' )
   );
-  watch( files, {
+  watch_instance = watch( files, {
     ignored: /\.swp$/,
     persistent: true,
     ignoreInitial: true
