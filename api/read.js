@@ -19,6 +19,8 @@ function read( stream, opts, callback ){
   if( opts.n && stream === process.stdin ){
     stream.setRawMode(true);
     log.info( 'READ STDIN', opts, 'raw mode enabled' );
+    // TODO Move this behaviour to a iai.cleanup function
+    // taken from http://stackoverflow.com/a/21947851/1894803
     process.on( 'exit', function( ){
       stream.setRawMode(false)
       log.info( 'READ STDIN', opts, 'raw mode disabled' );

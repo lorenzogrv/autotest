@@ -75,6 +75,14 @@ main();
 
 function main( ){
 
+  // TODO killing that process
+  // TODO think on PM2 package
+  // see also https://github.com/tj/commander.js/issues/409#issuecomment-106611413
+  if( child ){
+    iai.log.info( 'Killing child process to run again...' );
+    return child.kill( 'SIGUSR2' );
+  }
+
   if( isModule ){
     try {
       // Refresh require.cache requiring the file to research 'sources'
@@ -125,10 +133,6 @@ function main( ){
     watcher( iai.sources(require.main).concat(filename) );
   }
 
-  if( child ){
-    iai.log.info( 'Killing child process to run again...' );
-    return child.kill( 'SIGUSR2' );
-  }
   iai.log.info( 'Spawn> %s %s', runner, argv.join(' ') ).verb('* v *');
   var env = Object.create( process.env );
   env.NODE_ENV = 'test';
