@@ -83,9 +83,11 @@ Log.err = function( report, opts ){
 //
 // Log-level accesors
 //
-Log.fatal = function( ){
-  this.error('FATAL ERROR!').error.apply( this, arguments );
-  process.exit(1);
+Log.fatal = function( code ){
+  var hasCode = ( 'number' === typeof code );
+  this.error('FATAL ERROR%s!', hasCode? (' with exit code '+code||1) : '' );
+  this.error.apply( this, hasCode? [].slice.call(arguments, 1) : arguments );
+  process.exit( hasCode? code : 1 );
 };
 Log.error = function( ){
   return this.err( arguments, { color: 'red', prepend: 'ERROR: ' });

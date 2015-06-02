@@ -28,6 +28,10 @@ function read( stream, opts, callback ){
       log.info( 'READ STDIN', opts, 'Got SIGINT' );
       process.exit(2);
     });
+    process.on('uncaughtException', function( err ){
+      log.error( 'READ STDIN', opts, 'got uncaught exception' );
+      log.fatal( 99, err.stack );
+    });
   }
   
   // TODO do not force encoding if none given (so reading n-bytes)¿?

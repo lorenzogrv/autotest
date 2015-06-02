@@ -197,6 +197,7 @@ function TESTSTDIN(){
   ;
   process.on('exit', function( code ){
     assert.ok( end, 'end should had emitted' );
+    assert.equal( code, 2, 'code should be 2' );
     process.exit(0);
   });
   process.kill( process.pid, 'SIGINT' );

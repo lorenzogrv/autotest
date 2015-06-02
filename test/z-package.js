@@ -12,5 +12,10 @@ function TEST(){
     process.exit(1);
   }
 
+  try {
   assert.equal( iai.sources(module).length, 4, 'expected exactly 4 sources' );
+  } catch( err ){
+    console.log( iai.sources(module) );
+    throw err;
+  }
 }
