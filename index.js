@@ -46,3 +46,25 @@ exports.accessor('log', function getLog( ){
   return (( log? log : log = require('./api/log') ))( getLog );
 });
 
+// TODO this should be on iai-oop (or at api level related to modules)
+if( process.env.NODE_ENV === 'test' ){
+  var assert = require('assert');
+  var target = './api/sources';
+  var t = require( target );
+  var oldRequire = require;
+  var count = 0;
+  var require = function(){
+    count++;
+    return oldRequire.apply( oldRequire, arguments );
+  }
+  var mod;
+  function lazyLoad(){
+    return mod ||(  mod = require.apply(require, arguments)  );
+  }
+  assert.strictEqual( lazyLoad(target), t, 'load 1 should return exports' );
+  assert.strictEqual( lazyLoad(target), t, 'load 2 should return exports' );
+  assert.strictEqual( lazyLoad(target), t, 'load 3 should return exports' );
+  assert.equal( count, 1, 'require should be called only once' );
+  console.error( __filename, 'TESTED LAZY LOADING' );
+}
+
