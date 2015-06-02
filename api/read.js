@@ -51,6 +51,7 @@ function read( stream, opts, callback ){
       to && forgiveTimeout();
       log.debug( 'READ', opts, 'Timeout in', opts.t );
       to = setTimeout(function(){
+        forgiveTimeout();
         var error = new Error('READ TIMEOUT');
         error.code = 'READ_TIMEOUT';
         log.warn( 'READ', opts, 'TIMEOUT!' );
@@ -61,8 +62,8 @@ function read( stream, opts, callback ){
     refreshTimeout();
     stream.on( 'readable', refreshTimeout );
     output.on( 'end', function(){
-      log.debug( 'READ', opts, 'Timeout stops' );
       forgiveTimeout();
+      log.debug( 'READ', opts, 'Timeout stops' );
       stream.removeListener('readable', refreshTimeout);
     });
   }
