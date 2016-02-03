@@ -8,7 +8,7 @@ ready-to-use features.
 
 The name of the project has a deep [philosophical meaning].
 
-[philosophical meaning]: https://github.com/laconbass/iai/wiki#philosophy-behind-the-iai-term
+[philosophical meaning]: https://github.com/laconbass/iai/wiki/Concept#philosophy-behind-the-iai-term
 
 ## Status of the project
 
