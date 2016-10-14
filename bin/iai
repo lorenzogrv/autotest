@@ -1,0 +1,52 @@
+#! /bin/bash
+
+##
+# research the directory where this script is stored
+# see http://stackoverflow.com/a/246128/1894803
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+case "$1" in
+  "")
+    echo "123456789012345678901234567890123" # 3*10+3=36 cols
+    echo "----------------=----------------"
+    echo "----------=-----------=----------"
+    echo "--------=-------=-------=--------"
+    echo "----=----=---==---==---=----=----"
+    echo "ollo 0ll0 oVo  -*-  0v0 o11o 0110"
+    echo "ollo 0ll0 oVo  iai  0v0 o11o 0110"
+    echo "ollo 0ll0 oVo  -*-  0v0 o11o 0110"
+    echo "----=----=---==---==---=----=----"
+    echo "--------=-------=-------=--------"
+    echo "----------=-----------=----------"
+    echo "----------------=----------------"
+    exit 0
+  ;;
+  dir)
+    dirname $DIR && exit 0 || exit 1
+  ;;
+  date)
+    date --rfc-3339=date && exit 0 || exit 1
+  ;;
+  hora)
+    date --rfc-3339=seconds && exit 0 || exit 1
+  ;;
+  "-h"|"-?"|"--help"|"help")
+    echo "This is the help text"
+  ;;
+  *)# run command
+    CMD="$DIR/iai-$1"
+    if [ -x "$CMD" ];
+    then
+      $CMD $@
+    else
+      echo "(EE) miss cmd: $1"
+      exit 1
+    fi
+  ;;
+esac

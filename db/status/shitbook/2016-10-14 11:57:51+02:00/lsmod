@@ -1,0 +1,91 @@
+Module                  Size  Used by
+nls_iso8859_1          16384  0
+nls_cp437              20480  0
+vfat                   20480  0
+fat                    65536  1 vfat
+uas                    24576  0
+usb_storage            61440  1 uas
+fuse                   90112  3
+uvcvideo               86016  0
+videobuf2_vmalloc      16384  1 uvcvideo
+videobuf2_memops       16384  1 videobuf2_vmalloc
+videobuf2_v4l2         24576  1 uvcvideo
+videobuf2_core         32768  2 uvcvideo,videobuf2_v4l2
+v4l2_common            16384  1 videobuf2_v4l2
+joydev                 20480  0
+mousedev               20480  0
+videodev              147456  4 uvcvideo,v4l2_common,videobuf2_core,videobuf2_v4l2
+media                  20480  2 uvcvideo,videodev
+wl                   6299648  0
+acer_wmi               20480  0
+iTCO_wdt               16384  0
+iTCO_vendor_support    16384  1 iTCO_wdt
+sparse_keymap          16384  1 acer_wmi
+cfg80211              483328  1 wl
+coretemp               16384  0
+i915                 1146880  4
+psmouse               118784  0
+evdev                  24576  15
+input_leds             16384  0
+snd_hda_codec_realtek    69632  1
+snd_hda_codec_generic    69632  1 snd_hda_codec_realtek
+led_class              16384  2 acer_wmi,input_leds
+rfkill                 20480  4 cfg80211,acer_wmi
+drm_kms_helper        106496  1 i915
+snd_hda_intel          36864  5
+mac_hid                16384  0
+drm                   286720  6 i915,drm_kms_helper
+snd_hda_codec         106496  3 snd_hda_codec_realtek,snd_hda_codec_generic,snd_hda_intel
+i2c_i801               20480  0
+snd_hda_core           49152  4 snd_hda_codec_realtek,snd_hda_codec_generic,snd_hda_codec,snd_hda_intel
+syscopyarea            16384  1 drm_kms_helper
+snd_hwdep              16384  1 snd_hda_codec
+atl1c                  45056  0
+snd_pcm                86016  4 snd_hda_codec,snd_hda_intel,snd_hda_core
+sysfillrect            16384  1 drm_kms_helper
+lpc_ich                24576  0
+sysimgblt              16384  1 drm_kms_helper
+fb_sys_fops            16384  1 drm_kms_helper
+shpchp                 32768  0
+i2c_algo_bit           16384  1 i915
+snd_timer              28672  1 snd_pcm
+fjes                   28672  0
+snd                    65536  16 snd_hda_codec_realtek,snd_hwdep,snd_timer,snd_pcm,snd_hda_codec_generic,snd_hda_codec,snd_hda_intel
+fan                    16384  0
+thermal                20480  0
+soundcore              16384  1 snd
+battery                20480  0
+acpi_cpufreq           20480  1
+intel_agp              20480  0
+video                  36864  2 i915,acer_wmi
+tpm_tis                20480  0
+intel_gtt              20480  3 i915,intel_agp
+wmi                    20480  1 acer_wmi
+ac                     16384  0
+tpm                    36864  1 tpm_tis
+button                 16384  1 i915
+processor              32768  1 acpi_cpufreq
+sch_fq_codel           20480  3
+usbip_host             24576  0
+usbip_core             28672  1 usbip_host
+ip_tables              28672  0
+x_tables               28672  1 ip_tables
+ext4                  516096  2
+crc16                  16384  1 ext4
+mbcache                20480  1 ext4
+jbd2                   94208  1 ext4
+sd_mod                 36864  4
+serio_raw              16384  0
+atkbd                  24576  0
+libps2                 16384  2 atkbd,psmouse
+uhci_hcd               40960  0
+ahci                   36864  3
+libahci                28672  1 ahci
+libata                196608  2 ahci,libahci
+scsi_mod              151552  4 uas,usb_storage,libata,sd_mod
+ehci_pci               16384  0
+ehci_hcd               69632  1 ehci_pci
+usbcore               196608  7 uas,uhci_hcd,uvcvideo,usb_storage,ehci_hcd,ehci_pci,usbip_host
+usb_common             16384  2 usbip_core,usbcore
+i8042                  24576  1 acer_wmi
+serio                  20480  6 serio_raw,atkbd,i8042,psmouse
