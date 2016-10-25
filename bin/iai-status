@@ -1,9 +1,8 @@
 #!/bin/bash
        
 
-ME="$(basename ${BASH_SOURCE[0]} | sed 's/iai-//')"
-DB="$(iai dir)/db/$ME/$(hostname)/$(iai hora)"
-mkdir -p "$DB"
+DB="$(iai db "${BASH_SOURCE[0]}")"
+iai hora >> "$DB/last_update.date"
 
 push () {
   echo "$@" >> "$DB"

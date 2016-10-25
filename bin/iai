@@ -11,6 +11,18 @@ while [ -h "$SOURCE" ]; do
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
+##
+# log utils
+info () {
+  echo "(II)" "$@"
+}
+warn () {
+  echo "(WW)" "$@"
+}
+fail () {
+  echo "(EE)" "$@"
+}
+
 case "$1" in
   "")
     echo "123456789012345678901234567890123" # 3*10+3=36 cols
@@ -28,6 +40,19 @@ case "$1" in
     echo "-----------------------------lolo"
     exit 0
   ;;
+  id)
+    if [ -x $2 ]; then
+      echo "$(basename "$2" | sed 's/iai-//')"
+      exit 0
+    fi
+    fail "miss exec perms: '$2'"
+    exit 1
+  ;;
+  db)
+    DB="$(iai dir)/db/$(iai id "$2")/$(hostname)"
+    mkdir -p "$DB"
+    echo "$DB"
+  ;;
   dir)
     dirname $DIR || exit 1
   ;;
@@ -36,6 +61,10 @@ case "$1" in
   ;;
   hora)
     date --rfc-3339=seconds || exit 1
+  ;;
+  info|warn|fail)
+    $1 "${@:2}"
+    exit 0
   ;;
   "-h"|"-?"|"--help"|"help")
     echo "##"
@@ -48,9 +77,9 @@ case "$1" in
     CMD="$DIR/iai-$1"
     if [ -x "$CMD" ];
     then
-      $CMD $@
+      $CMD "${@:2}"
     else
-      echo "(EE) miss cmd: $1"
+      fail "miss cmd: $1"
       exit 1
     fi
   ;;
