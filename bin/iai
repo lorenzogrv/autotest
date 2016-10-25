@@ -70,8 +70,10 @@ case "$1" in
     echo "##"
     echo "# Here should be some help text"
     echo "##"
-    echo "> available cmds (\$1):"
+    echo "> available external cmds (\$1):"
     tree $DIR
+    echo "> built-in commands:"
+    echo "> id db dir date hora info warn fail"
   ;;
   *)# run command
     CMD="$DIR/iai-$1"
