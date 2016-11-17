@@ -11,18 +11,11 @@ while [ -h "$SOURCE" ]; do
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
-##
-# log utils
-info () {
-  echo "(II)" "$@"
-}
-warn () {
-  echo "(WW)" "$@"
-}
-fail () {
-  echo "(EE)" "$@"
-}
+source helper.bash
 
+iai () {
+  echo "running iai inside function"
+}
 case "$1" in
   "")
     echo "123456789012345678901234567890123" # 3*10+3=36 cols
@@ -75,9 +68,11 @@ case "$1" in
   ;;
   *)# run command
     CMD="$DIR/iai-$1"
-    if [ -x "$CMD" ];
+    if [ -x "$CMD" ]
     then
       $CMD "${@:2}"
+      # TODO ¿? should cmd run inside a subshell to protect global scope vars
+      # TODO => until they'r exported, subcommands seem to have no access to them
     else
       fail "miss cmd: $1"
       exit 1
