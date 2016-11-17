@@ -64,7 +64,7 @@ case "$1" in
   ;;
   info|warn|fail)
     $1 "${@:2}"
-    exit 0
+    exit $?
   ;;
   "-h"|"-?"|"--help"|"help")
     echo "##"
@@ -75,14 +75,16 @@ case "$1" in
     echo "> built-in commands:"
     echo "> id db dir date hora info warn fail"
   ;;
-  *)# run command
+  *)# run "external" command
     CMD="$DIR/iai-$1"
-    if [ -x "$CMD" ];
-    then
-      $CMD "${@:2}"
-    else
-      fail "miss cmd: $1"
-      exit 1
+    [[ ! -f "$CMD" ]] && fail "miss cmd: $1" && exit 1
+    # try auto fix when file-is-not-executable
+    if [ ! -x "$CMD" ]; then
+      warn "It seems likely command exists but has not exec perms:"
+      # TODO confirm before automatically making a file executable!!!!!!!! ehmmm why?
+      ls -l $CMD; echo -n "> Trying automatic 'chmod +x' fix ... "
+      chmod +x $CMD && info "succeed!" || fail ":( failed ;("
     fi
+    $CMD "${@:2}"
   ;;
 esac
