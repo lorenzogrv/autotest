@@ -1,0 +1,54 @@
+#!/bin/bash
+
+source "bash/assert.bash" || exit 1;
+
+# need assert_function to research when functions are declared
+type -t "assert_function" >/dev/null || fail "assert_function should be a function"
+
+##
+## NOTE: When assertions fail, they should call exit
+##       Run assertions inside a subshell to test false positives
+##
+
+##
+# assert_code checks
+assert_function "assert_code"
+# loop over every posible exit code. codes over 255 report a 256 modulo
+# see http://www.tldp.org/LDP/abs/html/exitcodes.html
+for (( n=0; n <=255; n++ )) do
+  # TODO codes over 255
+  (exit $n); (assert_code $n)\
+    || fail "after exit $n, assert_code $n should report success"
+  prev=$((n-1)) ; (exit $prev) ; (assert_code $n) 2>/dev/null\
+    && fail "after exit $((n-1)), assert_code $n should fail"
+  xcode=$?; expect=$((1+prev))
+  case "$prev" in
+    -1) expect=255 ;; # code -1 is invalid exit code, resulting in 255
+    256) expect=0  ;; # exit codes over 255 return a 256 modulo
+  esac
+  if test "$xcode" -ne "$expect"; then
+    fail "after exit $prev, assert_code $n should exit with $expect (actual=$xcode)"
+  fi
+done
+
+##
+# assert_returns checks
+assert_function "assert_1_returns_2"
+
+(assert_1_returns_2 'true' 0) || fail "true returns 0"
+(assert_1_returns_2 'false' 1) || fail "false returns 1"
+(assert_1_returns_2 'exit' 0) || fail "exit 7 returns 7"
+(assert_1_returns_2 'exit 7' 7) || fail "exit 7 returns 7"
+
+(assert_1_returns_2 'true' 1) &>/dev/null && fail "true returns 1 passed"
+(assert_1_returns_2 'false' 0) &>/dev/null && fail "false returns 0 passed"
+(assert_1_returns_2 'exit 7' 0) &>/dev/null && fail "exit7 returns 0 passed"
+
+##
+# assert_outputs checks
+assert_function "assert_1_outputs_2"
+
+assert_1_outputs_2 "echo foo" "foo" || fail "simple string"
+assert_1_outputs_2 'echo -e "foo\nbar"' "$(echo -e 'foo\nbar')" || fail "inc newline"
+
+#echo; echo "force failure"; exit 1

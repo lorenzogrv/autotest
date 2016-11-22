@@ -1,0 +1,16 @@
+#!/bin/bash
+
+source "test/bash/abc-basics" || exit
+
+(
+  source "bash/abc-basics.bash" || exit
+  basicfn=(eche _log)
+  func_test ${basicfn[@]}
+)
+tested '"abc-basics.bash" defines expected functions'
+(
+  echo -e "#################\n KEEP WORKING ON \n#################"
+  echo "${BASH_SOURCE[0]}"
+  exit 1
+)
+tested 'working on _log tests'

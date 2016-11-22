@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Can't use `-e`, or it's not possible to "catch" errors after they fire up
+set +e
+
+# TODO iterating over an array of filenames is a "bash-bad-practice"
+#      (it is done over an over here)
+
+##
+# test bash tools "abcs" are the first thing to check
+source "test/bash/abc" --test && tested 'test abc utils pass tests' || exit
+# Now it's safe to use the utils as usual
+
+
+##
+# bash lib tests are the next thing to check. iai needs that lib to work
+# TODO WTF are abc.bash tests? stop cowboy coding PLEASE!
+# TODO WTF are abc-call_trace.bash tests? stop cowboy coding PLEASE!
+# TODO Seems ideal to list bash/*.bash and check every lib file has a test file
+bashlibtests=("$(ls test/bash/bashlib-*)") || oops "list bashlib tests!"
+test "${#bashlibtests[@]}" -eq "0" && oops "found no bashlib tests!"
+for file in ${bashlibtests[@]}; do
+  # run test scripts within a subshell to avoid polluting env
+  ("./$file"); tested "bashlib test '$file'"
+done
+
+fail -e "#################\n KEEP WORKING ON \n#################"; exit 1;
+
+##
+# next procede with iai command line tools tests
+iaicmdtests=("$(ls test/bash/iaicmd-*)") || cant "list iaicmd tests!"
+test "${#iaicmdtests[@]}" -eq "0" && cant "find any iaicmd tests!"
+for file in ${iaicmdtests[@]}; do
+  "./$file"; tested "iaicmd test '$file'"
+done
+
+echo "######################"
+echo "! All tests were run !"
+echo "######################"
+echo "              good job :D"

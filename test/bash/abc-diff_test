@@ -1,0 +1,45 @@
+##
+# util to test that two sources output the same
+diff_test () {
+  test "$debug" == "yes" && echo "$FUNCNAME: args='$@'"
+  diff --color=always --suppress-common-lines\
+    --side-by-side --width=$(tput cols)\
+    <(cat ${1:?"missing source 1 (arguments='$@')"})\
+    <(cat ${2:?"missing source 2 (arguments='$@')"})
+}
+
+test "$1" == "--test" && {
+  # abc-basics are need working as expected to run this tests
+  source test/bash/abc-basics --test || exit
+  # so run their tests to be sure they are ok to procede
+  (
+    ( diff_test <(echo "foo") <(echo "bar") >/dev/null ); code=$?
+    test "$code" == "1" || oops "code should be 1 on failure"
+    ( diff_test <(echo "baz") <(echo "baz") ); code=$?
+    test "$code" == "0" || oops "code should be 0 on success"
+  )
+  tested "'diff_test' has code 1 when sources differ, 0 when match"
+  (
+    out="$( diff_test <(echo "foo") <(echo "bar") )" code=$?
+    test "$out" != "" || oops "should output something on failure"
+    out="$( diff_test <(echo "baz") <(echo "baz") )" code=$?
+    test "$out" == "" || oops "should output nothing on success"
+  )
+  tested "'diff_test' outputs nothing on success, something on failure"
+
+# the idea is writing tests as follows
+diff_test <(cat <<EXPECT
+#################
+ KEEP WORKING ON 
+#################
+EXPECT
+) <(
+  echo -e "#################\n KEEP WORKING ON \n#################"
+) 
+tested  "'diff_test' accepts input from two process substitutions"
+
+  cat <<TODOLIST >&2
+TODOs at file '${BASH_SOURCE[0]}':
+> tested "'diff_test' accepts input from a process substitution and a heredoc"
+TODOLIST
+} || true # force exit 0 when tests where not asked to run

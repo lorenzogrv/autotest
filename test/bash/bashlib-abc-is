@@ -1,0 +1,51 @@
+#!/bin/bash
+
+source 'bash/abc-is.bash'
+
+# TODO cleanup this ugly test file please
+
+##
+# tests for is_int
+is_int 0 || { echo "int zero fails"; exit 1; }
+is_int "" && { echo "int empty string fails (passes)"; exit 1; }
+unset notset; is_int $notset && { echo "int unset var fails (passes)"; exit 1; }
+
+##
+# tests for is_array
+a=()
+is_array a || { echo "empty array fails"; exit 1; }
+a=( "foo" "bar" )
+is_array a || { echo "string array fails"; exit 1; }
+# before reassigning to empty string, it's neccessary to unset
+# otherwise, the value will not change
+unset a; a=""
+is_array a && { echo "empty string fails (passes)"; exit 1; }
+a="foo bar baz"
+is_array a && { echo "words at string fails (passes)"; exit 1; }
+unset a; is_array a && { echo "unset variable fails (passes)"; exit 1; }
+
+
+##
+# tests for is_function
+somefunc () { echo "thing"; }
+is_function somefunc || { echo "defined function fails"; exit 1; }
+is_function notafunc && { echo "undefined function fails (passes)"; exit 1; }
+out=$(is_function somefunc)
+test -z "$out" || { echo "tested function should output nothing"; exit 1; }
+t=""; is_function t && { echo "empty string fails (passes)"; exit 1; }
+t="abc"; is_function t && { echo "string 'abc' fails (passes)"; exit 1; }
+t=0; is_function t && { echo "zero fails (passes)"; exit 1; }
+t=1; is_function t && { echo "one fails (passes)"; exit 1; }
+t=123456; is_function t && { echo "int fails (passes)"; exit 1; }
+t=(); is_function t && { echo "empty array fails (passes)"; exit 1; }
+t=(1 2 3 4 5); is_function t && { echo "int array fails (passes)"; exit 1; }
+t=("a b c d e"); is_function t && { echo "string array fails (passes)"; exit 1; }
+is_function /home && { echo "home directory fails (passes)"; exit 1; }
+is_function ls && { echo "ls command fails (passes)"; exit 1; }
+is_function echo && { echo "echo fails (passes)"; exit 1; }
+is_function ${BASH_SOURCE[0]} && { echo "echo fails (passes)"; exit 1; }
+# TODO more should-fail cases
+( is_function ) &>/dev/null && { echo "without params, it should fail"; exit 1; }
+
+
+exit 0 # if it get's executed, all tests passed

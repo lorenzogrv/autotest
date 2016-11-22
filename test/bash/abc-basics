@@ -1,0 +1,65 @@
+##
+# the very-basic utilities to write bash tests
+# - this file does not depend on external sources
+# - the tools provided here are tested here too
+# - tests for tools run only when this file is sourced with $1=='--test'
+
+##
+# util to notify test results
+tested () {
+  local code=$? title="$@"; (( code ))\
+    && echo "TEST FAILED (code $code): $title" && exit $code\
+    || echo "TEST PASSED: $title"
+}
+
+##
+# util to output a message to stdout and exit
+oops () { echo "$@"; exit 3; }
+
+##
+# util to test the 'type' of a name reference ($1)
+# - expected type ($2) defaults to 'function'
+type_test () {
+  local ref=${1:?'$FUNCNAME: missing argument 1'}
+  local out=${2:-'function'}
+  test "$(type -t $ref)" == "$out"
+}
+
+##
+# tests every argument to be a defined function
+func_test () {
+  basicfn=(eche _log)
+  # test every expected "basic" function to be defined
+  for funcname in "$@"; do
+    (type_test "$funcname"); tested "function '$funcname' should be defined"
+  done
+}
+
+test "$1" == "--test" && {
+  (
+    out=$( (exit 1); tested foo &>/dev/null; echo "$expect" )
+    test "$out" == "" || oops "'$out' should be '' if test fails"
+    out=$( (exit 0); tested bar &>/dev/null; echo "$expect" )
+    test "$out" == "$expect" || oops "'$out' should be '$expect' if test passes"
+    # cannot use tested if this subshell fails
+  ) && tested "'tested' utility exits if last code failed, continue if passes"\
+    || { echo "OMG! tested utility is broken o_O?"; exit 1; }
+  (
+    expect='some msg outputed';
+    out=$( oops $expect ); code=$?
+    test "$code" == "3" || { echo "code should be 3 but is $code"; exit 1; }
+    test "$out" == "$expect" || { echo "'$out' should be '$expect'"; exit 1; }
+  )
+  tested "'oops' exits with code 3, outputing given args to stdout"
+  (
+    type_test 'undefined' && oops 'passes for undefined'
+    type_test 'type_test' || opps 'fails for a defined function'
+  )
+  tested "'type_test' fails for notdefined, passes for defined"
+  (
+    functions=(tested oops type_test func_test)
+    func_test ${functions[@]}
+  )
+  tested "'func_test' with array input"
+} || true # force exit 0 when tests where not asked to run
+

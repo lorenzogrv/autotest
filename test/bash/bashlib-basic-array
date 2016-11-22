@@ -1,0 +1,10 @@
+#!/bin/bash
+
+source "bash/basic-array.bash" || { echo "can't source basic-array"; exit 1; }
+
+# tests for array_join
+a=("foo" "bar" "baz"); join="$(array_join a)"
+test "$join" == "foo,bar,baz" || { echo "bad join: '$join'"; exit 1; }
+
+echo "all basic-array tests pass"
+

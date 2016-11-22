@@ -1,0 +1,19 @@
+#!/bin/bash
+
+source "bash/abc.bash" || exit 1
+source "bash/check.bash" || cant "source check.bash"
+
+# tests for iai-check
+check that iai-check works
+  check that 'which' is a command
+  check that 'echo hola' outputs 'hola'
+  check that returns feature works
+    check that 'true' returns 0;
+    check that 'false' returns 1;
+  check end
+  check that returns feature catches returns expected codes
+    check that 'check that "exit 7" returns 7' returns 0
+    check that 'check that "exit 8" returns 9' returns 1
+  check end
+check end
+

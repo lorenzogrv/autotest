@@ -1,0 +1,55 @@
+#!/bin/bash
+
+source "bash/basic-str.bash" || { echo "can't source basic-str"; exit 1; }
+
+# tests for str_repeat
+(
+  result="$(str_repeat a 4)"
+  test "$result" == "aaaa" || { echo "bad repeat: '$result'"; exit 1; }
+  result="$(str_repeat '- ' 2)"
+  test "$result" == "- - " || { echo "bad repeat: '$result'"; exit 1; }
+  result="$(str_repeat ' ' 3)"
+  test "$result" == "   " || { echo "bad repeat: '$result'"; exit 1; }
+  result="$(str_repeat 'asdf' 0)"
+  test "$result" == "" || { echo "bad repeat: '$result'"; exit 1; }
+) || { echo "str_repeat tests do not pass"; exit 1; }
+
+
+# TODO maybe this tests should depend on a smaller tool
+source "bash/check.bash" || { echo "can't source check.bash"; exit 1; }
+
+##
+# string1 contains 2
+check that string_1_contains_2 works
+  #check that string_1_contains_2 is a function
+  check that all true cases pass
+    check that 'string_1_contains_2 "abc" "a"' returns 0
+    check that 'string_1_contains_2 "abc" "b"' returns 0
+    check that 'string_1_contains_2 "abc" "c"' returns 0
+    check that 'string_1_contains_2 "abc" "ab"' returns 0
+    check that 'string_1_contains_2 "abc" "bc"' returns 0
+    check that 'string_1_contains_2 "abc" "abc"' returns 0
+  check end
+  check that all false cases fail
+    check that 'string_1_contains_2 "abc" "z"' returns 1
+    check that 'string_1_contains_2 "abc" ""' returns 1
+    #will it fail? check that 'string_1_contains_2 "abc" "\\"' returns 1
+    check that 'string_1_contains_2 "abc" "ca"' returns 1
+    check that 'string_1_contains_2 "abc" "ac"' returns 1
+  check end
+check end
+
+##
+# is flag enabled
+_was_set=yes
+if ! string_1_contains_2 "$-" "b"; then set -b; _was_set=no; fi
+check that 'is_flag_enabled "b"' returns 0
+set +b; check that 'is_flag_enabled "b"' returns 1
+if test "$_was_set" == "yes"; then set -b; fi
+unset -v _was_set
+check that 'is_flag_enabled "a" "abC"' returns 0
+check that 'is_flag_enabled "b" "abC"' returns 0
+check that 'is_flag_enabled "C" "abC"' returns 0
+check that 'is_flag_enabled "c" "abC"' returns 1
+check that 'is_flag_enabled "" "abC"' returns 1
+
