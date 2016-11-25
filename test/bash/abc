@@ -1,8 +1,0 @@
-
-# test "abcs" are included at once with this file
-# TODO iterating over an array of filenames is a "bash-bad-practice"
-abctests=("$(ls test/bash/abc-*)") || exit
-test "${#abctests[@]}" -eq "0" && { echo "found no abc tests!"; exit 1; }
-for file in ${abctests[@]}; do source "$file" "$1" || exit; done
-# pass them $1 to request --test when asked for
-

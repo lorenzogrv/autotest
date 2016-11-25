@@ -12,15 +12,25 @@
 # - dlog: echoes the name action to use for verbose messages?
 # - noop: empty function that does nothing
 # - verbosity levels (V0 to V9), VV = all
+# - deprecate cant¿?
 info () { _log II $@; }
 warn () { _log WW $@; }
 emsg () { _log EE $@; }
 cant () { _log EE "Can't $@"; exit 1; }
 
-##
+####
+# # Helper function to [fail early](http://stackoverflow.com/a/2807375/1894803)
+# `fail` allows [fail early] "exit code catchs" like:
+#     `( false ) || { echo "error description"; exit 1; }`
+#     `(exit -1) || { code=$?; echo "catched code $code"; exit $code; }`
+# as:
+#     `( false ) || fail "error description"`
+#     `(exit -1) || fail "catched code $?"`
+#
+# Aditionally adds a call trace.
 # TODO optional exit status code?
-# trace allways start at the callsite preceding the fail call
-fail () { emsg $@; call_trace 2 >&2; exit 1; }
+####
+fail () { emsg $@; call_trace 0 >&2; exit 1; }
 
 ##
 # abc sources by default abc-*.bash

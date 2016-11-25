@@ -1,16 +1,25 @@
 #!/bin/bash
 
-source "test/bash/abc-basics" || exit
+source "bash/tested.bash" || exit
 
-(
-  source "bash/abc-basics.bash" || exit
-  basicfn=(eche _log)
-  func_test ${basicfn[@]}
-)
-tested '"abc-basics.bash" defines expected functions'
-(
-  echo -e "#################\n KEEP WORKING ON \n#################"
-  echo "${BASH_SOURCE[0]}"
-  exit 1
-)
-tested 'working on _log tests'
+source "bash/abc-basics.bash" || exit
+tested "abc-basics can be sourced"
+
+out=$(eche "some text")
+err=$(eche "some text" 2>&1 1>/dev/null)
+test -z "$out" && test "$err" == "some text"
+tested "eche outputs nothing to stdout and given args to stderr"
+
+# TODO _log tests
+cat <<TODO
+###########################################################
+# TODO at file ${BASH_SOURCE[0]}
+###########################################################
+                    KEEP WORKING ON
+                       _log tests
+###########################################################
+TODO
+# tested 'working on _log tests'
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

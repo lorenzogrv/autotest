@@ -7,9 +7,11 @@ set +e
 #      (it is done over an over here)
 
 ##
-# test bash tools "abcs" are the first thing to check
-source "test/bash/abc" --test && tested 'test abc utils pass tests' || exit
-# Now it's safe to use the utils as usual
+# tested tool is the first thing to check for
+source "bash/tested.bash" && tested--test || {
+  echo "CANT START TESTS"
+  exit 1
+}
 
 
 ##
@@ -17,6 +19,9 @@ source "test/bash/abc" --test && tested 'test abc utils pass tests' || exit
 # TODO WTF are abc.bash tests? stop cowboy coding PLEASE!
 # TODO WTF are abc-call_trace.bash tests? stop cowboy coding PLEASE!
 # TODO Seems ideal to list bash/*.bash and check every lib file has a test file
+#test $(find test/bash -name "bashlib-*" | wc -l) -gt 0
+#tested "there are at least 1 bash test"
+#find test/bash -name "bashlib-*" -exec './{}' \;
 bashlibtests=("$(ls test/bash/bashlib-*)") || oops "list bashlib tests!"
 test "${#bashlibtests[@]}" -eq "0" && oops "found no bashlib tests!"
 for file in ${bashlibtests[@]}; do
@@ -38,3 +43,6 @@ echo "######################"
 echo "! All tests were run !"
 echo "######################"
 echo "              good job :D"
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */
