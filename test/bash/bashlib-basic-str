@@ -1,6 +1,7 @@
 #!/bin/bash
 
-source "bash/basic-str.bash" || { echo "can't source basic-str"; exit 1; }
+source "bash/tested.bash" || exit
+source "bash/basic-str.bash" || exit
 
 # tests for str_repeat
 (
@@ -14,14 +15,30 @@ source "bash/basic-str.bash" || { echo "can't source basic-str"; exit 1; }
   test "$result" == "" || { echo "bad repeat: '$result'"; exit 1; }
 ) || { echo "str_repeat tests do not pass"; exit 1; }
 
+# tests for str_ansifilter
+(
+  print_details () {
+    echo "- - - INPUT - - -"; printf '%q\n' "$input"
+    echo "- - - RESULT - - -"; printf '%q\n' "$result"
+    echo "- - - EXPECT (within ^ and $) - - -"; printf '^%s$\n' "$expect"
+    echo "- - - RESULT (hexdump) - - -"; hexdump -C <<<"$result"
+    false # designed to be used for test failures
+  }
+  input=$'\E[47m\E[30m  ^ GO WHITESPACE\E[43m \E[42m\E[47m\E[30m$     \E(B\E[m\n'
+  expect='  ^ GO WHITESPACE $     '
+  result="$(str_ansifilter "$input")"
+  test "$result" == "$expect" || print_details
+  tested 'str_ansifilter preserves trailing whitespace'
+)
 
 # TODO maybe this tests should depend on a smaller tool
-source "bash/check.bash" || { echo "can't source check.bash"; exit 1; }
+source "bash/check.bash" || exit
 
 ##
 # string1 contains 2
 check that string_1_contains_2 works
-  #check that string_1_contains_2 is a function
+  
+#check that string_1_contains_2 is a function
   check that all true cases pass
     check that 'string_1_contains_2 "abc" "a"' returns 0
     check that 'string_1_contains_2 "abc" "b"' returns 0

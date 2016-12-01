@@ -1,4 +1,5 @@
 source "bash/abc.bash"
+source "bash/basic-str.bash"
 
 ##
 # General use assert-failed action: Use "fail" to report error and exit
@@ -57,6 +58,59 @@ assert_function () {
 }
 
 ##
+# util to test that two sources output the same
+# diff quick reference:  `diff --help`
+# TODO refactor the ansi thing.
+BASHIDO_ASSERT_RESET=""  # "reset attributes" to default
+BASHIDO_ASSERT_BEGIN=""  # signals a literal value display start
+BASHIDO_ASSERT_TRAIL=""  # signals a literal value display finish
+BASHIDO_ASSERT_ACTUAL="" # part of "actual" value that was not expected
+BASHIDO_ASSERT_EXPECT="" # part of "expected" value not found within actual
+BASHIDO_ASSERT_FCOLOR=""
+BASHIDO_ASSERT_BCOLOR=""
+diff_test () {
+  local source1="${1:?"$FUNCNAME: missing source 1 (arg='$@')"}"
+  local source2="${2:?"$FUNCNAME: missing source 2 (arg='$@')"}"
+cat <<DEBUG >/dev/null
+  $FUNCNAME (called at $(caller 0))
+	source1=$source1
+	source2=$source2
+DEBUG
+  # side-by-side mode is not enough to ease viewing trailing spaces
+	# TODO side-by-side ignores colorizing.
+	# Consider alternatives, see http://stackoverflow.com/questions/8800578/colorize-diff-on-the-command-line
+	# when sources are files, use cat -A to ease viewing non-printing characters
+	if [ -a "$source1" ] && { [ -a "$source2" ] || test "$source2" == "-"; }
+	then
+		#local dlf="%c'^'%l%c'$'%c'\012'" # diff line format
+		local old="$(tput setab 3)"
+		local new="$(tput setab 2)"
+		local clr="$(tput sgr0)"
+		local all="$(tput setab 7)$(tput setaf 0)"
+		local w=$(tput cols) bar="|"
+		if ! (( w % 2 )); then bar="||"; fi # TODO configurable bar means if bar is odd too
+		w=$(( (w - ${#bar}) / 2 )) # odd column number requires an odd-lengthed bar
+		local n=0 prev=""
+		while IFS= read line; do
+			if (( ++n % 2 )); then prev="$line"; continue; fi
+			# at even lines, $line is expected (new), $prev is actual (old)
+			local c=0; while test $c -lt ${#line}; do
+				test "${prev:$c:1}" != "${line:$c:1}" && break
+				((c++))
+			done
+			printf -v actual '^%s%b%s%b' "${prev:0:$c}" "$old" "${prev:$c}" "$all"
+			local wa="$(str_ansifilter "$actual")"; wa=$(( w + ${#actual} - ${#wa} ))
+			printf -v expect '%s%b%s%b$' "${line:0:$c}" "$new" "${line:$c}" "$all"
+			local we="$(str_ansifilter "$expect")"; we=$(( w + ${#expect} - ${#we} ))
+			printf "%b%${wa}s%b%s%b%-${we}s%b\n" "$all" "$actual" "$clr" "$bar" "$all" "$expect" "$clr"
+			# seems better using diff to 
+		done	< <(diff --unchanged-line-format='' "$source1" "$source2")
+		test $n -eq 0; return $?
+	fi
+	fail "$FUNCNAME: assert equality for non-files not implemented yet"
+}
+
+##
 # assertion helpers for TDD (should not been used for implementations)
 
 ##
@@ -91,3 +145,6 @@ assert_1_outputs_2 () {
 # - should use --suppress-common-lines too?
   diff --width=$(tput cols) --color=always <(eval $1) <(echo "$2")
 }
+##
+# vim modeline
+# /* vim: set filetype=sh shiftwidth=2 ts=2: */

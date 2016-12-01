@@ -8,6 +8,13 @@ is_array () {
   return 1
 }
 
+# TODO
+# http://stackoverflow.com/questions/911168/how-to-detect-if-my-shell-script-is-running-through-a-pipe
+is_tty () {
+  echo >&2 "$FUNCNAME: I'm not implemented neither tested"
+  exit 1
+}
+
 ##
 # Tells whenever given value ($1) is an integer
 # basics taken from http://stackoverflow.com/a/3951175/1894803

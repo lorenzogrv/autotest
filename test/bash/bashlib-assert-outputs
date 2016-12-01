@@ -1,0 +1,120 @@
+#!/bin/bash
+
+source bash/tested.bash || exit
+source bash/assert.bash || exit
+source bash/basic-str.bash || exit
+
+##
+# assert_outputs checks
+assert_function "assert_1_outputs_2"
+tested "assert_1_outputs_2 is a function"
+
+(assert_1_outputs_2 "echo foo" "foo")
+tested "'echo foo' outputs 'foo'"
+(assert_1_outputs_2 'echo -e "foo\nbar"' "$(echo -e 'foo\nbar')")
+tested "assert_1_outputs_2 includes newlines"
+
+(assert_1_outputs_2 "echo foo" "bar") &>/dev/null && false || true
+tested "echo foo outputs bar does not pass assertion"
+
+##
+# diff_test checks
+assert_function "diff_test"
+tested "diff_test is a function"
+
+outOK=$( diff_test <(echo "baz") <(echo "baz") ); codeOK=$?
+outKO=$( diff_test <(echo "foo") <(echo "bar") ); codeKO=$?
+test "$codeOK" == "0" && test "$codeKO" == "1" || {
+  echo "return code (success) was $codeOK"
+  echo "return code (failure) was $codeKO"
+	false
+}
+tested "'diff_test' returns code 0 when sources match, code 1 when differ"
+test -z "$outOK" && test -n "$outKO" || {
+  echo "out (success): '$outOK'"
+  echo "out (failure): '$outKO'"
+  false
+}
+tested "'diff_test' outputs nothing on success, something on failure"
+
+#linenum 1 2  3  4 5  6  7  8  9 10 11
+source1="1\n#\n#\n\n#\n2\n#\n#\n3\n#\n4"
+source2="X\n#\n#\n\n#\nX\n#\n#\nX\n#\nX"
+out="$(diff_test <(echo -e $source1) <(echo -e $source2))"
+errors=() n=0
+while IFS= read line; do
+	(( n++ ))
+  [[ "$line" =~ ^[[:cntrl:]]\[ ]] || {
+	  errors+=("  $((${#errors[@]}+1))) line $n start is not a [ctrl sequence]")
+  }
+  [[ "$line" =~ $n ]] || {
+	  errors+=("  $((${#errors[@]}+1))) line $n does not contain actual value")
+  }
+	[[ "$line" =~ [[:cntrl:]]\[m'|'{1,2}[[:cntrl:]]\[ ]] || {
+	  errors+=("  $((${#errors[@]}+1))) line $n separator is not within reset/ctrl seq")
+	}
+  [[ "$line" =~ X ]] || {
+	  errors+=("  $((${#errors[@]}+1))) line $n does not contain expected value")
+  }
+  [[ "$line" =~ [[:cntrl:]]\[m$ ]] || {
+	  errors+=("  $((${#errors[@]}+1))) line $n end is not 'reset sequence'")
+  }
+done <<<"$out"
+(
+  print_details () {
+		echo "- - - DISPLAY (${#out} lines) - - -"; printf "%s\n" "${out}"
+		echo "- - - ERRORS (${#errors[@]} found) - - -"; printf "%s\n" "${errors[@]}"
+		echo "- - - CONTENT (${#output[@]} lines) - - -"; printf "%q\n" "${output[@]}"
+		false
+	}
+	test "${#errors[@]}" -eq "0" || print_details
+	tested "diff_test output eases viewing line ends"
+	test $(wc -l <<<"$out") -eq 4 || print_details
+	tested "diff_test outputs 4 lines total when there are 4 lines that differ"
+)
+
+
+out="$(diff_test <(cat <<ACTUAL
+##############################
+ OOPS! NO TRAILING WHITESPACE 
+##############################
+ACTUAL
+) <(cat <<EXPECT
+##############################
+ OOPS! NO TRAILING WHITESPACE
+##############################
+EXPECT
+))"
+test $? -eq 1
+tested 'diff_test reports differences even for a single trailing whitespace'
+test $(wc -l <<<"$out") -eq 1
+tested "diff_test outputs 1 lines total when there are 1 line that differs"
+(
+	function print_details(){
+
+		echo "- - - DISPLAY - - -"; echo "$out"
+		echo "- - - CONTENT - - -"; printf "%q\n" "$out"
+		false # designed to provide details after a known failure
+	}
+	[[ "$out" =~ '^ OOPS! NO TRAILING WHITESPACE'[[:cntrl:]]\[ ]] || print_details
+	tested "line displays the 'actual' characters being expected without format"
+	[[ "$out" =~ [[:cntrl:]]\[m'|'{1,2}[[:cntrl:]]\[ ]] || print_details
+	tested "actual/expected divisor is between a reset and a control sequence"
+	[[ "$out" =~ ' OOPS! NO TRAILING WHITESPACE' ]] || print_details
+	tested "line preserves whole expected line with the same format"
+	[[ "$out" =~ [[:cntrl:]]\[m$ ]] || print_details
+	tested "line ends with a control sequence resetting atributes"
+
+	printable="$(str_ansifilter "$out")"
+	test ${#printable} -eq $(tput cols) || {
+		print_details
+		echo "- - - PRINTABLE - - -"; echo "^$printable$"
+		echo "line size is ${#printable}, while tty columns are $(tput cols)"
+		false
+	}
+	tested "line size matches the tty's column number"
+)
+
+##
+# vim modeline
+# /* vim: set filetype=sh shiftwidth=2 ts=2: */

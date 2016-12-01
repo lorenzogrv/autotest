@@ -2,24 +2,56 @@
 
 source "bash/tested.bash" || exit
 
-source "bash/abc-basics.bash" || exit
-tested "abc-basics can be sourced"
+source "bash/abc.bash" || exit
+tested "bashlib 'abcs' can be sourced"
 
-out=$(eche "some text")
+out=$(eche "some text" 2>/dev/null)
 err=$(eche "some text" 2>&1 1>/dev/null)
 test -z "$out" && test "$err" == "some text"
 tested "eche outputs nothing to stdout and given args to stderr"
 
 # TODO _log tests
+# tested 'working on _log tests'
+
+(
+	msg='some-msg-with-error-description'
+	test--fail () {
+		code=$?
+		local expect=${1:?"$FUNCNAME: missing expected exit code"}
+		shift
+		test $code -eq $expect
+		tested "'fail' exit code is $expect when ran after '$@' (code was $code)"
+		[[ ! "$out" =~ continues$ ]]
+		tested "'fail' exits when ran after '$@'"
+		[[ "$out" =~ $msg ]]
+		tested "'fail' stderr ('$out') contains ('$msg') after '$@'"
+  }
+
+	#out="$( true; fail $msg; echo continues; 2>&1 )"
+	#test--fail 255 "true"
+	out="$( { false; fail $msg; echo continues; } 2>&1 )"
+	test--fail 1 "false"
+	#out="$( (exit 0); fail $msg; echo continues; 2>&1 )"
+	#test--fail 255 "(exit 0)"
+	#out="$( { (exit -1); fail $msg; echo continues; } 2>&1 )"
+	#test--fail 255 "(exit -1)"
+
+	#for (( n=1 ; n <= 255 ; n++ ));	do
+	#	out="$( { (exit $n); fail $msg; echo continues; } 2>&1 )"
+	#	test--fail $n "(exit $n)"
+	#done
+)
+
 cat <<TODO
 ###########################################################
 # TODO at file ${BASH_SOURCE[0]}
 ###########################################################
                     KEEP WORKING ON
                        _log tests
+                       fail tests
 ###########################################################
 TODO
-# tested 'working on _log tests'
+
 ##
 # vim modeline
 # /* vim: set filetype=sh ts=2 shiftwidth=2: */
