@@ -28,7 +28,11 @@ info () { _out II $@; }
 warn () { _out WW $@; }
 emsg () { _out EE $@; }
 # TODO too ugly
-source "bash/call_trace.bash" || { emsg "could not source call_trace"; exit 1; }
+source "bash/abc-call_trace.bash" || {
+  emsg "could not source call_trace"
+  emsg "  pwd=$(pwd)"
+  exit 1
+}
 fail () { _out EE $@; call_trace; exit 1; } # TODO optional exit status code
 
 ##
