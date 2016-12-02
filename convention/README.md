@@ -1,0 +1,1 @@
+It's not clear yet the name of the dir neither the place it should belong to, but is clear that will contain convention literals, file parts for each source code file type that should match the content specified here. Data stored here could be though as a kind of *Single Resource Of Truth*, in some way.

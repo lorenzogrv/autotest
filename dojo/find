@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# TODO iai find should do something similar, extra-filtering with given argument list
+
 # -O2 enables Optimization Level 2 (see man find)
 find -O2 . \
   -path "./.git*" -exec 'echo' igit '{}' \; -prune -o\

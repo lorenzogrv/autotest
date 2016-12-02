@@ -16,3 +16,11 @@ At least, forgive that tests for a while. It adds complexity. **KISS please**.
 - On the while, bash code meant to be `source`'d, goes here.
 - Use a path resolver (like `iai dir` or so) to research paths to the source files.
 - That way, at future, will be easier to re-arrange this directory and its contents.
+
+> vie dic  2 14:53:59 CET 2016
+
+- While it's too early to stablish directory structure, it's not to stablish a
+  minimal name convention to name bash source files inside this directory.
+- The main rule is: given a **sorted** list of the file names, any file can
+  depend upon code from files sorted above, but can not depend on those sorted
+  below.

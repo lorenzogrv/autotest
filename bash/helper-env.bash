@@ -1,3 +1,4 @@
+# bash internals: https://www.gnu.org/software/bash/manual/html_node/Bash-Variables.html
 ##
 # Tools to research about the parent process of process specified by pid.
 # When no pid is specified, `$1` defaults tocurrent process pid (`$$`)

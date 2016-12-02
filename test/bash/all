@@ -49,11 +49,12 @@ run_tests_for () {
 		#   to count the minimum expected times that `tested` should be called
 
 		echo -en "> Running test '$(basename "$file")'...\n  " # pad reports
+		SECONDS=0 # Crude time calc from http://stackoverflow.com/a/8903280/1894803
 		("./$file") &>/dev/null # hide both output streams
-		tested "running $file in a subshell returns 0" # test $? -eq 0 implicit
+		tested "running $file in a subshell returns 0 (${SECONDS}s)"
 		# running in a subshell avoids env pollution and unexpected exits
 
-		# TODO measure the time spent by each test
+		# TODO measure the time spent by each test better, consider `time`
 		# TODO dot animation while running?
 		# TODO progress could be `echo .` for each tested call?
 		# TODO both outs were hidden because working with a test fail implies isolating
@@ -80,32 +81,11 @@ run_tests_for "iaicmd"
 # TODO discovering things to be done: find files cowboy-coded
 # TODO discovering things to be done: find TODO comments and display them nicely
 
-cat <<TODOS >&2
-TODOs at file '${BASH_SOURCE[0]}':
-#2 tool to write todos like this one
-  - 'testodo' seems a nice name
-  - seems easy to implement but
-  WRITE TESTS FIRST with diff_test
-  - stop fucking cowboy coding
-  - use caller to get filename and signal a "workinghere" msg
-  ##
-  # Extra tests for better _developer experience_
-  # TODO test that utilities ease debugging
-  # - 'diff_test' utility wraps lines within vertical bars
-  # - 'tested' utility outputs call trace
-  # TODO test that utilities ease developing
-  # - each source file ends with vim modeline
-#4 Integrate a code coverage tool, i.e. https://simonkagstrom.github.io/kcov/
-TODOS
-
-echo -e "#################\n KEEP WORKING ON \n#################"
-
-
 cat <<DONE
-######################
-! All tests were run !
-######################
-              good job :D
+#################################################
+            ! All tests were run !
+#################################################
+                  good job :D
 
 Now continue with TDD and write more test scripts.
 Don't enter cowboy coding mode please!
