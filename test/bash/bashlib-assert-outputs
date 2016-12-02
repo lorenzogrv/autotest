@@ -72,6 +72,7 @@ done <<<"$out"
 	test $(wc -l <<<"$out") -eq 4 || print_details
 	tested "diff_test outputs 4 lines total when there are 4 lines that differ"
 )
+tested "diff_test outputs only the lines that differ the expected value"
 
 
 out="$(diff_test <(cat <<ACTUAL
@@ -114,6 +115,30 @@ tested "diff_test outputs 1 lines total when there are 1 line that differs"
 	}
 	tested "line size matches the tty's column number"
 )
+tested "diff_test emphatizes the non-expected output of a line"
+
+out="$(diff_test <( echo -e "1-\n2-\n3-" ) <<EXPECT
+1-
+2-
+3-
+EXPECT
+)"
+(
+	test $? -eq 0
+	tested "returns 0 when actual value equals data received through stdin"
+	test "$out" == ""
+	tested  "outputs nothing to stdout when both sources are equal"
+)
+tested  "'diff_test' accepts input from a process substitution and a heredoc"
+
+out="$( diff_test <( echo "some text" ) <<<"some text" )"
+(
+	test $? -eq 0
+	tested "returns 0 when actual value equals data received through stdin"
+	test "$out" == ""
+	tested  "outputs nothing to stdout when both sources are equal"
+)
+tested  "'diff_test' accepts input from a process substitution and a herestring"
 
 ##
 # vim modeline

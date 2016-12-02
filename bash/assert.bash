@@ -5,7 +5,7 @@ source "bash/basic-str.bash"
 # General use assert-failed action: Use "fail" to report error and exit
 #TODO descriptive exit codes?
 assert_e () {
-  ! is_int $1 && fail "assertion error: $@";
+  ! is_int "$1" && fail "assertion error: $@";
   local c=$1; shift; emsg "assertion error: $@"; exit $c
 }
 
@@ -17,15 +17,27 @@ assert_str () { [[ -n "$1" ]] || assert_e "'$1' must be an string"; }
 
 ##
 # Integer assertions
-assert_int () { is_int $1 || assert_e "'$1' must be an integer"; }
+assert_int () { is_int "$1" || assert_e "'$1' must be an integer"; }
 # Asserts $1 is an even integer. From http://stackoverflow.com/q/15659848/1894803
-# NOTE: Observe aritmetic expression has exit status 1 if result = 0. Learn: `help "(("`
+# NOTE: aritmetic expressions have exit status 1 when equal to 0, see `help "(("`
 assert_int_par () { { ! (( ${1} % 2 )); } || assert_e "'$1' must be an even integer"; }
 assert_int_odd () { (( ${1} % 2 )) || assert_e "'$1' must be an odd integer"; }
 
-assert_e_ENOENT () { assert_e  "'$@' does not exist"; }
-assert_dir_exists () { [[ -d "$1" ]] || assert_e_ENOENT "$1"; }
-assert_file_exists () { [[ -f "$1" ]] || assert_e_ENOENT "$1"; }
+##
+# filesystem assertions
+# `test` quick ref: `help test` or `help [`
+# `test` reference: http://wiki.bash-hackers.org/commands/classictest
+# meaningof ENOENT: http://stackoverflow.com/a/19902850/1894803
+##
+# cause an assertion error due to a no existing directory entry
+# "entries" can be directories, regular files, symlinks, sockets, pipes, ...
+assert_e_ENOENT () { assert_e  "Entry '$@' does not exist"; }
+
+assert_ent_exists () { test -e "$1" || assert_e_ENOENT "$1"; }
+assert_dir_exists () { test -d "$1" || assert_e_ENOENT "$1"; }
+#TODO deprecate file_exists
+# "file" is not exclusive describing a regular file, so not a good name
+assert_file_exists () { test -f "$1" || assert_e_ENOENT "$1"; }
 
 ##
 # Asserts global variable scope is writable ($BASH_SUBHELL=0)
@@ -69,45 +81,41 @@ BASHIDO_ASSERT_EXPECT="" # part of "expected" value not found within actual
 BASHIDO_ASSERT_FCOLOR=""
 BASHIDO_ASSERT_BCOLOR=""
 diff_test () {
-  local source1="${1:?"$FUNCNAME: missing source 1 (arg='$@')"}"
-  local source2="${2:?"$FUNCNAME: missing source 2 (arg='$@')"}"
-cat <<DEBUG >/dev/null
-  $FUNCNAME (called at $(caller 0))
-	source1=$source1
-	source2=$source2
-DEBUG
-  # side-by-side mode is not enough to ease viewing trailing spaces
-	# TODO side-by-side ignores colorizing.
-	# Consider alternatives, see http://stackoverflow.com/questions/8800578/colorize-diff-on-the-command-line
-	# when sources are files, use cat -A to ease viewing non-printing characters
-	if [ -a "$source1" ] && { [ -a "$source2" ] || test "$source2" == "-"; }
-	then
-		#local dlf="%c'^'%l%c'$'%c'\012'" # diff line format
-		local old="$(tput setab 3)"
-		local new="$(tput setab 2)"
-		local clr="$(tput sgr0)"
-		local all="$(tput setab 7)$(tput setaf 0)"
-		local w=$(tput cols) bar="|"
-		if ! (( w % 2 )); then bar="||"; fi # TODO configurable bar means if bar is odd too
-		w=$(( (w - ${#bar}) / 2 )) # odd column number requires an odd-lengthed bar
-		local n=0 prev=""
-		while IFS= read line; do
-			if (( ++n % 2 )); then prev="$line"; continue; fi
-			# at even lines, $line is expected (new), $prev is actual (old)
-			local c=0; while test $c -lt ${#line}; do
-				test "${prev:$c:1}" != "${line:$c:1}" && break
-				((c++))
-			done
-			printf -v actual '^%s%b%s%b' "${prev:0:$c}" "$old" "${prev:$c}" "$all"
-			local wa="$(str_ansifilter "$actual")"; wa=$(( w + ${#actual} - ${#wa} ))
-			printf -v expect '%s%b%s%b$' "${line:0:$c}" "$new" "${line:$c}" "$all"
-			local we="$(str_ansifilter "$expect")"; we=$(( w + ${#expect} - ${#we} ))
-			printf "%b%${wa}s%b%s%b%-${we}s%b\n" "$all" "$actual" "$clr" "$bar" "$all" "$expect" "$clr"
-			# seems better using diff to 
-		done	< <(diff --unchanged-line-format='' "$source1" "$source2")
-		test $n -eq 0; return $?
-	fi
-	fail "$FUNCNAME: assert equality for non-files not implemented yet"
+	test $# -gt 0 -a $# -lt 3 || fail "$FUNCNAME: expected 1 or 2 args, $# given"
+
+  local source1="${1}" source2="${2:--}" # source 2 defaults to stdin
+
+  test -e "$source1" || fail "$FUNCNAME: source 1 ($source1) is not a file"
+	test "$source2" == "-"\
+	 -o	-e "$source2" || fail "$FUNCNAME: source 2 ($source2) is not a file"
+
+  # diff seems the right tool to get "only lines that differ"
+	# diff side-by-side (-y) is not configurable enough, so customized output
+	# TODO Consider alternatives, see http://stackoverflow.com/questions/8800578/colorize-diff-on-the-command-line
+	local old="$(tput setab 3)"
+	local new="$(tput setab 2)"
+	local clr="$(tput sgr0)"
+	local all="$(tput setab 7)$(tput setaf 0)"
+	local w=$(tput cols) bar="|"
+	if ! (( w % 2 )); then bar="||"; fi # TODO configurable bar means if bar is odd too
+	w=$(( (w - ${#bar}) / 2 )) # odd column number requires an odd-lengthed bar
+	local n=0 prev=""
+	while IFS= read line; do
+		if (( ++n % 2 )); then prev="$line"; continue; fi
+		# at even lines, $line is expected (new), $prev is actual (old)
+		local c=0; while test $c -lt ${#line}; do
+			test "${prev:$c:1}" != "${line:$c:1}" && break
+			((c++))
+		done
+		printf -v actual '^%s%b%s%b' "${prev:0:$c}" "$old" "${prev:$c}" "$all"
+		local wa="$(str_ansifilter "$actual")"; wa=$(( w + ${#actual} - ${#wa} ))
+		printf -v expect '%s%b%s%b$' "${line:0:$c}" "$new" "${line:$c}" "$all"
+		local we="$(str_ansifilter "$expect")"; we=$(( w + ${#expect} - ${#we} ))
+		printf "%b%${wa}s%b%s%b%-${we}s%b\n" "$all" "$actual" "$clr" "$bar" "$all" "$expect" "$clr"
+		# seems better using diff to 
+	done	< <(diff --unchanged-line-format='' "$source1" "$source2")
+	test $n -eq 0 || echo >&2 "read no lines"
+	test $n -eq 0 # implicit return $?
 }
 
 ##

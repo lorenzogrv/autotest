@@ -24,21 +24,14 @@ source "bash/tested.bash" && tested--test || {
 bashlibtests=("$(ls test/bash/bashlib-*)") || oops "list bashlib tests!"
 test "${#bashlibtests[@]}" -eq "0" && oops "found no bashlib tests!"
 for file in ${bashlibtests[@]}; do
+	echo "Running test $(basename "$file")... "
   # run test scripts within a subshell to avoid polluting env
-  ("./$file") >/dev/null; tested "bashlib test '$file'"
+  ("./$file") &>/dev/null # hide both output streams
+	tested "bashlib test '$file'"
 done
 
-cat <<TODOLIST >&2
+cat <<TODOS >&2
 TODOs at file '${BASH_SOURCE[0]}':
-#1 redirecting a heredoc in diff_test directly, or even a herestring
-  diff_test <( echo -e "1-\n2-\n3-" ) <<EXPECT
-  1-
-  2-
-  3-
-  EXPECT
-  tested  "'diff_test' accepts input from a process substitution and a heredoc"
-  diff_test <( echo "some text" )\ <<<"some text"
-  tested  "'diff_test' accepts input from a process substitution and a herestring"
 #2 tool to write todos like this one
   - 'testodo' seems a nice name
   - seems easy to implement but
@@ -53,9 +46,10 @@ TODOs at file '${BASH_SOURCE[0]}':
   # - 'tested' utility outputs call trace
   # TODO test that utilities ease developing
   # - each source file ends with vim modeline
-TODOLIST
+TODOS
 
-fail -e "#################\n KEEP WORKING ON \n#################" || exit 1
+echo -e "#################\n KEEP WORKING ON \n#################"
+exit 1
 
 ##
 # next procede with iai command line tools tests
