@@ -1,0 +1,12 @@
+#!/bin/bash
+
+source "bash/tested.bash" || exit
+
+echo "WORKING HERE!! $BASH_SOURCE"
+
+false
+tested "nothing, but it's need to test something"
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

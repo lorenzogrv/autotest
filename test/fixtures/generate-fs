@@ -1,0 +1,4 @@
+# TODO this script should generate a test/fixtures/fs directory
+# TODO test/fixtures/fs should be populated with files and dirs
+#      having all posible combinations of filesystem permisions,
+#      to be used by tests that require them to perform checks.
