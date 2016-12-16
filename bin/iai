@@ -98,7 +98,7 @@ case "$1" in
   ;;
   *)# run "external" command
     CMD="$DIR/iai-$1"
-    [[ ! -f "$CMD" ]] && fail "command '$1' does not exist" && exit 1
+    [[ ! -f "$CMD" ]] && fail "iai command '$1' does not exist" && exit 1
     # try auto fix when file-is-not-executable
     if [ ! -x "$CMD" ]; then
       warn "It seems likely command exists but has not exec perms:"
