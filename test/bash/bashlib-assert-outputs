@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source bash/tested.bash || exit
+source bash/autotest.bash || exit
 source bash/assert.bash || exit
 source bash/basic-str.bash || exit
 
@@ -92,7 +92,6 @@ test $(wc -l <<<"$out") -eq 1
 tested "diff_test outputs 1 lines total when there are 1 line that differs"
 (
 	function print_details(){
-
 		echo "- - - DISPLAY - - -"; echo "$out"
 		echo "- - - CONTENT - - -"; printf "%q\n" "$out"
 		false # designed to provide details after a known failure
@@ -117,6 +116,74 @@ tested "diff_test outputs 1 lines total when there are 1 line that differs"
 )
 tested "diff_test emphatizes the non-expected output of a line"
 
+out="$(diff_test <(cat <<ACTUAL
+*******************************
+###############################
+#OOPS! MULTI-LINE IS NOT EMPTY#
+###############################
+*******************************
+ACTUAL
+) <(echo) )"
+(
+	test $? -eq 1
+	tested 'diff_test reports differences when line lengths differ'
+	
+	print_details () {
+		echo "- - - DISPLAY - - -"; echo "$out"
+	  echo "- - - FILTERD - - -"; echo "$(str_ansifilter "$out")"
+		echo "- - - CONTENT - - -"; printf "%q\n" "$out"
+		false # designed to provide details after a known failure
+	}
+
+	test $(wc -l <<<"$out") -eq 5 || print_details
+	tested "diff_test outputs 5 lines total when there are 5 lines that differs"
+	n=0; while IFS= read line; do
+		case "$((++n))" in
+			1|5) thing="*******************************" ;;
+			2|4) thing="###############################" ;;
+			3)   thing="#OOPS! MULTI-LINE IS NOT EMPTY#" ;;
+			*) echo "expected 5 lines at most"; exit 1 ;;
+		esac
+		[[ "$(str_ansifilter "$line")" =~ '^'"$thing"'|'{1,2}'$' ]] || print_details
+		tested "line $n contains expected visible output"
+	done <<<"$out"
+)
+tested "diff_test works even when source1 has more lines than source2"
+
+out="$(diff_test <(echo) <(cat <<EXPECT
+*******************************
+###############################
+#OOPS! MULTI-LINE IS NOT EMPTY#
+###############################
+*******************************
+EXPECT
+))"
+(
+	test $? -eq 1
+	tested 'diff_test reports differences when line lengths differ'
+	
+	print_details () {
+		echo "- - - DISPLAY - - -"; echo "$out"
+	  echo "- - - FILTERD - - -"; echo "$(str_ansifilter "$out")"
+		echo "- - - CONTENT - - -"; printf "%q\n" "$out"
+		false # designed to provide details after a known failure
+	}
+
+	test $(wc -l <<<"$out") -eq 5 || print_details
+	tested "diff_test outputs 5 lines total when there are 5 lines that differs"
+	n=0; while IFS= read line; do
+		case "$((++n))" in
+			1|5) thing="*******************************" ;;
+			2|4) thing="###############################" ;;
+			3)   thing="#OOPS! MULTI-LINE IS NOT EMPTY#" ;;
+			*) echo "expected 5 lines at most"; exit 1 ;;
+		esac
+		[[ "$(str_ansifilter "$line")" =~ '^''|'{1,2}"$thing"'$' ]] || print_details
+		tested "line $n contains expected visible output"
+	done <<<"$out"
+)
+tested "diff_test works even when source1 has less lines than source2"
+
 out="$(diff_test <( echo -e "1-\n2-\n3-" ) <<EXPECT
 1-
 2-
@@ -139,6 +206,58 @@ out="$( diff_test <( echo "some text" ) <<<"some text" )"
 	tested  "outputs nothing to stdout when both sources are equal"
 )
 tested  "'diff_test' accepts input from a process substitution and a herestring"
+
+print_details () {
+	echo "code was $code"
+	echo "- - - DISPLAY - - -"; echo "$out"
+	echo "- - - CONTENT - - -"; printf "%q\n" "$out"
+	false # designed to provide details after a known failure
+}
+
+unset out code empty; empty=""
+out=$( diff_test <( echo ) <<<"$empty" ); code=$?
+test $code -eq 0 || print_details
+tested "returns 0 when actual is newline and stdin is empty"
+test -z "$out" || print_details
+tested "outputs nothing when actual is newline and stdin is empty"
+
+unset out code
+out=$( diff_test <( echo "some text" ) <<<"$empty" ); code=$?
+test $code -eq 1 || print_details
+tested "returns 1 when actual value is 'some text' and stdin is empty"
+test -n "$out" || print_details
+tested "outputs something when actual is 'some text' and stdin is empty"
+
+unset out code
+out=$( diff_test <(echo "$empty") <<<"some text" ); code=$?
+test $code -eq 1 || print_details
+tested "returns 1 when actual is empty and stdin is 'some text'"
+test -n "$out" || print_details
+tested "outputs something when actual is empty and stdin is 'some text'"
+
+unset out code
+out=$( diff_test <( eval "echo something" ) <<<"$empty" ); code=$?
+test $code -eq 1 || print_details
+tested "returns 1 when actual is 'something' and stdin is empty"
+test -n "$out" || print_details
+tested "outputs something when actual is empty and stdin is 'some text'"
+
+unset out code
+out=$( diff_test <( eval "echo" ) <<<"$empty" ); code=$?
+test $code -eq 0 || print_details
+tested "returns 0 when actual is output of 'eval echo' and stdin is empty"
+test -z "$out" || print_details
+tested "outputs nothing when actual is empty and stdin is empty"
+
+unset out code
+# observe that `cat /dev/null` != `cat <<<""`
+out=$( diff_test /dev/null <<<"$empty" ); code=$?
+test $code -eq 1 || print_details
+tested "returns 1 when actual is /dev/null and stdin is empty"
+test -n "$out" || print_details
+tested "outputs something when actual is /dev/null and stdin is empty"
+[[ "$(str_ansifilter "$out")" =~ '^''|'{1,2}'\n$' ]] || print_details
+tested "output has \n as expected when actual is /dev/null and stdin is empty"
 
 ##
 # vim modeline

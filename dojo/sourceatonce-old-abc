@@ -8,6 +8,9 @@ else # source each file indepently
 # TODO
 # - iterating over an array of filenames is a "bash-bad-practice", use find
 # - research a command to source files indepently without looping over them
+# - It seems not posible to source indepently without looping
+#   see http://stackoverflow.com/q/1964671/1894803
+#   and maybe use `for file in *.sh; do source "$file"; done`
   files=("$( find test/bash -name 'abc-*' -exec echo {} \; )")
 
   test "${#files[@]}" -ne 0

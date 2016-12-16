@@ -8,9 +8,9 @@ set +e
 # TODO testodo <<<"tool to report tests pending to write"
 testools=(tested teskip)
 
-for tool in ${testools[@]}; do source "bash/$tool.bash"; done
+for tool in ${testools[@]}; do source "bash/autotest-$tool.bash"; done
 
-report="$( for tool in ${testools[@]}; do ${tool}--test || exit; done )" || {
+report="$( for tool in ${testools[@]}; do ${tool}--test "$tool" || exit; done )" || {
   echo "###################################"
   echo "- - - check bash errors above - - -"
   echo "             = = = = =             "
@@ -24,13 +24,33 @@ report="$( for tool in ${testools[@]}; do ${tool}--test || exit; done )" || {
 	exit 1
 }
 
+####
+# Capturing any command's stderr and stdout separately
+# TODO should this be at autotest-testrun.bash ?
+#
+## Reference
+# Basis found at http://stackoverflow.com/q/11027679/1894803
+# the working (and ugly) aproach is using `eval` and `typeset -p` (`declare`)
+# it's well explained at http://stackoverflow.com/a/26827443/1894803
+# but as seen at http://stackoverflow.com/a/28796214/1894803
+# it can be refactored ussing a helper function and `printf -v`
+#
+## Example
+# eval "$(declare_results 'commandline with argument list')"
+# echo "stdout is: |$stdout| stderr is: |$stderr| return code is: |$exited|"
+declare_stdin_as () { printf -v "$1" "%s" "$(cat)"; typeset -p "$1"; }
+declare_results () {
+	local cmd="$@"
+	("$cmd") 2> >(declare_stdin_as stderr) 1> >(declare_stdin_as stdout)
+	declare_stdin_as exited <<<"$?"
+}
+
 # TODO Could be better checking for test filenames based on code filenames?
 # TODO for example, list bash/*.bash and check every lib file has tests
 # TODO it would ease pending test identify
 #test $(find test/bash -name "bashlib-*" | wc -l) -gt 0
 #tested "there are at least 1 bash test"
 #find test/bash -name "bashlib-*" -exec './{}' \;
-
 run_tests_for () {
 	local prefix="${1:?"$FUNCNAME: argument must be specified (prefix)"}"
 
@@ -48,11 +68,23 @@ run_tests_for () {
 		# ex: `grep -c "[ ;]tested[ ]" test/bash/bashlib-assert-code`
 		#   to count the minimum expected times that `tested` should be called
 
-		echo -en "> Running test '$(basename "$file")'...\n  " # pad reports
+		local basename="$(basename "$file")"
+		echo "> Running test file '$file'..." # pad reports
 		SECONDS=0 # Crude time calc from http://stackoverflow.com/a/8903280/1894803
-		("./$file") &>/dev/null # hide both output streams
-		tested "running $file in a subshell returns 0 (${SECONDS}s)"
-		# running in a subshell avoids env pollution and unexpected exits
+		eval "$(declare_results "./$file")"
+		(( exited )) && {
+		  echo "  ./$file exited with code $exited"
+			if test -n "$stdout"; then
+				echo "  - - stdout - -"; echo "$stdout"; echo "  - - * ** * - -"
+			fi
+			if test -n "$stderr"; then
+				echo "  - - stderr - -"; echo "$stderr"; echo "  - - * ** * - -"
+			fi
+	  }
+		test $exited -eq 0
+		tested "running $basename in a subshell returns 0 (${SECONDS}s)"
+		# exec file in a subshell avoids env pollution and unexpected exits
+		# declare_results actually execs command line within a subshell
 
 		# TODO measure the time spent by each test better, consider `time`
 		# TODO dot animation while running?

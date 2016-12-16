@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "bash/tested.bash" || exit
+source "bash/autotest.bash" || exit
 
 source "bash/abc.bash" || exit
 tested "bashlib 'abcs' can be sourced"
@@ -24,7 +24,7 @@ tested "eche outputs nothing to stdout and given args to stderr"
 		[[ ! "$out" =~ continues$ ]]
 		tested "'fail' exits when ran after '$@'"
 		[[ "$out" =~ $msg ]]
-		tested "'fail' stderr ('$out') contains ('$msg') after '$@'"
+		tested "'fail' stderr ('$out') contains ('$msg') when ran after '$@'"
   }
 
 	#out="$( true; fail $msg; echo continues; 2>&1 )"

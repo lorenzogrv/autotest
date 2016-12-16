@@ -1,9 +1,6 @@
 ####
 # #
 # Finishises a test, like `tested`, but without exiting when code was > 0
-# writed as-is intentionally, although it could be also
-#     `(( $? )) && { echo FAIL; exit; } ; echo PASS`
-# and too much other refactors, just picked a explicit one
 teskip () {
 	echo "TEST SKIPED (code $?): $@"
 }
@@ -14,7 +11,7 @@ teskip () {
 teskip--test () {
   local func=${1:-teskip}
 	(
-	  source "bash/tested.bash"
+	  source "bash/autotest-tested.bash" || exit
 
 		test_code_0_and_continues () {
 			test $? -eq 0              ;tested "$cmd returns code 0"

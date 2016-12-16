@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "bash/tested.bash" || exit
+source "bash/autotest.bash" || exit
 source "bash/basic-str.bash" || exit
 
 # tests for str_repeat

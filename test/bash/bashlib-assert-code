@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "bash/tested.bash" || exit
+source "bash/autotest.bash" || exit
 
 source "bash/assert.bash" || exit
 tested 'bash/assert.bash can be sourced'

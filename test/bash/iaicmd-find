@@ -1,11 +1,48 @@
 #!/bin/bash
 
-source "bash/tested.bash" || exit
+source "bash/autotest.bash" || exit
+source "bash/assert.bash" || exit
 
-echo "WORKING HERE!! $BASH_SOURCE"
+REPO_DIR=$(git rev-parse --show-toplevel)
 
+line="command line to eval"
+code="expected return code"
+data="expected output (stdout)"
+check_code_and_output () {
+	local cmd="$line" out="$data"
+	# TODO don't know why line clears out when not stored locally
+
+	( eval "$cmd" ) 1>/dev/null
+	( assert_code $code )
+	tested "running '$cmd' returns '$code'"
+
+	if test -z "$data"; then
+		test "$( eval "$cmd" )" == ""
+		tested "running '$cmd' outputs nothing"
+	else
+		diff_test <( eval "$cmd" ) <<<"$out"
+		tested "running '$cmd' outputs expected data"
+	fi
+}
+
+line="iai find --help >/dev/null"
+code=0
+data=''
+check_code_and_output
+
+line="iai find"
+code=0
+data=''
+check_code_and_output
+
+line="iai find -type d -name 'test'"
+code=0
+data="$REPO_DIR/test"
+check_code_and_output
+
+
+echo "WORKING @ $BASH_SOURCE"
 false
-tested "nothing, but it's need to test something"
 
 ##
 # vim modeline
