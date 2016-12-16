@@ -1,0 +1,23 @@
+#!/bin/bash
+
+
+[[ "$@" =~ "--help" ]] && {
+  echo "here should be some help text"
+	exit 0
+}
+
+test $# -eq 0 && exit
+
+verb () { echo >&2 "$BASH_SOURCE: $@"; }
+verb "arguments=$@"
+
+# -O2 enables Optimization Level 2 (see man find)
+find -O2 /home/lolo/Proxectos/iai \
+  -path "./.git*" -prune -o\
+  -path "./node_modules/*" ! -name "iai*" -prune -o\
+  -exec test -e "{}/.git" \; ! -name . -prune -o\
+  "$@" -print
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */
