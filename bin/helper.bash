@@ -64,7 +64,7 @@ call_trace () {
 ##
 # General use assert-failed action: Use "fail" to report error and exit
 #TODO descriptive exit codes?
-assert_e () { fail "assertion error: $@\nTrace:" "$(call_trace 1)"; }
+assert_e () { echoerr -e "assertion error: $@\nTrace:" "$(call_trace 1)"; exit 1; }
 
 #TODO assert_var_set: http://stackoverflow.com/questions/3601515/how-to-check-if-a-variable-is-set-in-bash
 assert_str () { [[ -n "$1" ]] || assert_e "'$1' must be an string"; }
