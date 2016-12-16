@@ -4,9 +4,13 @@
   "description": "@laconbass web development framework for node.js",
   "main": "iai",
   "dependencies": {
-    "iai-oop": "^2.0.0"
+    "iai-oop": "^2.0.0",
+    "bashido": "^1.0.0"
   },
   "repository": {
     "type": "git", "url": "https://github.com/laconbass/iai.git"
+  },
+  "scripts": {
+    "test": "./test/bash/all"	  
   }
 }

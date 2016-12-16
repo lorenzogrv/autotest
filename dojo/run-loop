@@ -1,0 +1,21 @@
+#!/bin/bash
+
+test $# -eq 0 && cat <<HELP
+$(basename $BASH_SOURCE): runs a command line over and over again
+
+  Usage: $BASH_SOURCE [--help] [command]
+
+if no arguments are given, this help text is displayed
+HELP
+
+exit 1;
+
+(
+  { (sleep 2) & }
+  echo "first sleep runs with pid $!"
+)
+# (while true; do ({ cat "hola" || exit 1 | less || exit 1) && continue || echo -e "\nless failed" && read -s -n 1 && echo && continue || exit; done)
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

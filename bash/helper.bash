@@ -11,13 +11,13 @@ echoerr () { >&2 echo "$@"; }
 _log () { echoerr "[$$] bashelpr: $@"; }
 _logn () { echoerr -n "[$$] bashelpr: $@"; }
 
+# [Built-in replace rocks, forget sed](http://wiki.bash-hackers.org/syntax/pe#search_and_replace)
 # TODO test it is working as expected
 # TODO support multiple flags on same call. Actually only 1 flag (per call) is supported
 _out () {
   local stamp="[$$] (${1:-'¿?'}): " flags="" args="${@:2}"
   if [[ $2 == '-n' ]]; then flags="-n "; args="${@:3}"; fi
   # re-format multiline messages to maintain visual consistency
-  # Built-in replace rocks, forget sed, see http://wiki.bash-hackers.org/syntax/pe#search_and_replace
   # Reformating multiline outputs is NOT NECCESARY if -e is not set
   if [[ $2 == '-e' ]]; then flags="-e "; args="${@:3}"; args=${args//\n/\n${stamp}+i: }; fi
   # TODO pretty formating with asscii for multiline (instead '+i: ')
@@ -27,6 +27,12 @@ _out () {
 info () { _out II $@; }
 warn () { _out WW $@; }
 emsg () { _out EE $@; }
+# TODO too ugly
+source "bash/abc-call_trace.bash" || {
+  emsg "could not source call_trace"
+  emsg "  pwd=$(pwd)"
+  exit 1
+}
 fail () { _out EE $@; call_trace; exit 1; } # TODO optional exit status code
 
 ##
@@ -37,29 +43,6 @@ local w=${1:-20} # column width
 printf "%11s%-11s" `echo $STR | cut -c 1-$((${#STR}/2))` `echo $STR | cut -c $((${#STR}/2+1))-${#STR}`
 }
 
-##
-# Print a call stack trace to stdout, meant to be read by an human
-# - arg $1: callsite to begin the trace. Defaults to 1
-# - example: `echo -e "OMG! WTF? call stack:\n$(call_site)\n Fatal error! see above."`
-# - Awesome: 'Read columns from input through herestring redirection'
-#   - Learn "here strings": http://wiki.bash-hackers.org/syntax/redirection#here_strings
-#   - Learn "caller" and "read": `help read; help caller`
-# - Learn amazing tables with printf format: `man printf; man 3 printf`
-# - TEST: (source helper.bash; first(){ sec; }; sec(){ third; }; third(){ quad; }; quad(){ call_trace; }; first)
-# TODO better output format ?
-call_trace () {
-  local n=${1:-0} below=$(printf 'v%.0s' {1..20}) above=$(printf '^%.0s' {1..20})
-  # not elegant, but working "repeat char n times" - from http://stackoverflow.com/a/5349842/1894803
-  printf "$below TRACE BELOW $below\n"
-  printf "call%20s %-3s /path/to/file\n" "routine name" "line"
-  while callsite=$(caller $n); do
-#	  {  echo "${#callsite[@]} elements on '${callsite}'"; }
-    read line fn file <<< "$callsite"
-    printf " %-2s %20s %-3s %s\n" "$n" "$fn" "$line" "${file/main/main (${BASH_SOURCE[0]}})"
-    (( n++ ))
-  done
-  printf "$above TRACE ABOVE $above\n"
-}
 
 ##
 # General use assert-failed action: Use "fail" to report error and exit
@@ -106,6 +89,7 @@ which_test () {
 # - usage: `research_source "${BASH_SOURCE[0]}"` (From the script file)
 # - see: http://stackoverflow.com/a/246128/1894803
 research_source () {
+  # TODO echo $(caller 0)
     local DIR="" SOURCE=$1; while [ -h "$SOURCE" ]; do
       DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
       SOURCE="$(readlink "$SOURCE")"
@@ -170,6 +154,6 @@ kill_orphans () {
 # Trap EXIT and ERR independently
 exit_cb=()
 on_exit () { exit_cb+=("$@"); } 
-trap 'for (( i=${#exit_cb[@]}-1; i>=0 ; i-- )) ; do ${exit_cb[i]}; done; _log "LAST KILL TRY!"; kill_orphans' EXIT
+trap 'for (( i=${#exit_cb[@]}-1; i>=0 ; i-- )) ; do ${exit_cb[i]}; done;' EXIT
 trap 'echo && echo User Interrupt && exit 1' SIGINT
 #trap 'kill_orphans SIGTERM "cleanup for err event"' ERR; _log "orphan murder trap set for ERR"

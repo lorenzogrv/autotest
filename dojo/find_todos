@@ -1,0 +1,1 @@
+grep -ci "TODO" test/bash/*

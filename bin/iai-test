@@ -1,0 +1,6 @@
+#!/bin/bash
+
+cd $(iai dir)
+
+echo "Running all bash tests..."
+./test/bash/all |& less -R

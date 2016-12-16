@@ -1,0 +1,48 @@
+####
+# Here are the very-basic utilities to write bash tests
+# - this file does not depend on external sources
+# - the tools provided here are tested here too
+# - autotests run when this file is sourced with $1=='--test'
+
+echo "this shit was called at $(caller)"
+
+##
+# tests every argument to be a defined function
+api_defined () {
+	test "$#" -gt 0 || oops "$FUNCNAME argument list is empty"
+  for funcname in "$@"; do
+    test "$(type -t "$funcname")" == "function" || return 1
+  done
+	tested "'$@' are defined functions"
+}
+# TODO x_x! º·º ·_* ollo OwO oiO? ºiºU ·z·Z oiO!
+# (-_-)U...
+# (-_-).z·Z
+# (º¬º)@#!%
+# (o¬O)?...
+
+(
+	noop () { true; }
+	api_defined noop; tested 'returns 0 for a defined function'
+
+	functs=(tested oops noop api_defined)
+	api_defined ${functs[@]} || oops 'fails for multiple functions'
+
+  unset noop
+	api_defined noop && oops 'passes for undefined'
+
+	api_defined 2>/dev/null && oops 'passes when argument list is empty'
+	api_defined 2>/dev/null "" && oops 'passes for empty string'
+	api_defined 1234 && oops 'passes for integer 1234'
+
+	exit 0
+)
+tested "'api_defined' fails if some argument is not a function name"
+
+thisfile="${BASH_SOURCE[0]}"
+(source "$thisfile") && oops "api was already defined"
+tested "$thisfile can't be sourced when the api is already set"
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# TODO iai find should do something similar, extra-filtering with given argument list
+
+# -O2 enables Optimization Level 2 (see man find)
+find -O2 . \
+  -path "./.git*" -exec 'echo' igit '{}' \; -prune -o\
+  -path "./node_modules/*" ! -name "iai*" -exec 'echo' ignode '{}' \; -prune -o\
+  -exec test -e "{}/.git" \; ! -name . -exec 'echo' igrepo: {} \; -prune -o\
+  -type f -print

@@ -1,8 +1,12 @@
-#! /bin/bash
+#!/bin/bash
+
+# NOTE: `set -e` impedes try-catching commands
 
 ##
-# research the directory where this script is stored
-# see http://stackoverflow.com/a/246128/1894803
+# research absolute paths to this script file and its directory
+# - see http://stackoverflow.com/a/246128/1894803
+# TODO
+# - is this only related to iai root?
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do
   DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
@@ -11,16 +15,22 @@ while [ -h "$SOURCE" ]; do
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
-##
-# log utils
-info () {
-  echo "(II)" "$@"
+# Until iai is loaded, can't use `iai dir`
+# TODO seems lighter not sourcing until something is need
+source $(dirname "$DIR")/bash/helper.bash
+
+iai () {
+  echo "running iai inside function"
 }
-warn () {
-  echo "(WW)" "$@"
-}
-fail () {
-  echo "(EE)" "$@"
+
+iai-path () {
+  printf "%s" $(dirname $DIR)
+  if test $# -gt 0; then
+    # Quoting is neccessary to correctly parse arguments
+    # Ex: local args=("$@"); for arg in "$@"; do echo >&2 "arg=$arg"; done
+    printf "%s" "${@/#//}"
+  fi
+  printf "\n" # could use echo but wanted to be more explicit
 }
 
 case "$1" in
@@ -40,21 +50,32 @@ case "$1" in
     echo "-----------------------------lolo"
     exit 0
   ;;
+  ##
+  # outputs the directory where iai code resides (iai root)
+  # - this command is built-in (there is no iai-root script)
+  # - It's probably the most basic operation besides the "artistic" bare `iai`
+  # TODO
+  # - should `dir` be deprecated favouring `root`? Seems more descriptive
+  root|dir)  dirname "$DIR"; exit ;;
   id)
-    if [ -x $2 ]; then
+    if test -x $2; then
       echo "$(basename "$2" | sed 's/iai-//')"
       exit 0
     fi
     fail "miss exec perms: '$2'"
     exit 1
   ;;
+  ##
+  # TODO
+  # - This should not be a built-in, sure
   db)
     DB="$(iai dir)/db/$(iai id "$2")/$(hostname)"
     mkdir -p "$DB"
     echo "$DB"
   ;;
-  dir)
-    dirname $DIR || exit 1
+  path) 
+    shift;
+    iai-path "$@" # Quoting is neccessary, otherwise quoted args are splitted
   ;;
   date)
     date --rfc-3339=date || exit 1
@@ -77,13 +98,13 @@ case "$1" in
   ;;
   *)# run "external" command
     CMD="$DIR/iai-$1"
-    [[ ! -f "$CMD" ]] && fail "miss cmd: $1" && exit 1
+    [[ ! -f "$CMD" ]] && fail "iai command '$1' does not exist" && exit 1
     # try auto fix when file-is-not-executable
     if [ ! -x "$CMD" ]; then
       warn "It seems likely command exists but has not exec perms:"
       # TODO confirm before automatically making a file executable!!!!!!!! ehmmm why?
-      ls -l $CMD; echo -n "> Trying automatic 'chmod +x' fix ... "
-      chmod +x $CMD && info "succeed!" || fail ":( failed ;("
+      ls -l "$CMD"; echo -n "> Trying automatic 'chmod +x' fix ... "
+      chmod +x "$CMD" && info "succeed!" || fail ":( failed ;("
     fi
     $CMD "${@:2}"
   ;;
