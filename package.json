@@ -1,10 +1,9 @@
 {
   "name": "iai",
-  "version": "0.0.1-alpha",
-  "description": "@laconbass web development framework for node.js",
+  "version": "1",
+  "description": "@laconbass' development framework",
   "main": "iai",
   "dependencies": {
-    "iai-oop": "^2.0.0",
     "bashido": "^1.0.0"
   },
   "repository": {
