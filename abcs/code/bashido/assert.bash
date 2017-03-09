@@ -58,7 +58,9 @@ assert_global_scope () {
 # Asserts previous command exit code ($?) was '$1'
 # - exit codes with special meanings http://www.tldp.org/LDP/abs/html/exitcodes.html
 assert_code () {
-  local xcode=$?; if test "$xcode" -eq "$1"; then return 0; fi
+  local xcode=$?
+	assert_int $1
+	if test "$xcode" -eq "$1"; then return 0; fi
   local ecode=$((xcode+1));
   case "$xcode" in 255) ecode=$xcode ;; esac
   assert_e $ecode "exit code was $xcode, while expecting $1."

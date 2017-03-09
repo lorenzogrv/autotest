@@ -6,17 +6,20 @@
 	exit 0
 }
 
-test $# -eq 0 && exit
+#test $# -eq 0 && exit
 
-verb () { echo >&2 "$BASH_SOURCE: $@"; }
+verb () { echo >&2 "$0: $@"; }
 verb "arguments=$@"
 
-# -O2 enables Optimization Level 2 (see man find)
-find -O2 /home/lolo/Proxectos/iai \
-  -path "./.git*" -prune -o\
-  -path "./node_modules/*" ! -name "iai*" -prune -o\
-  -exec test -e "{}/.git" \; ! -name . -prune -o\
-  "$@" -print
+iai-find () {
+	# -O2 enables Optimization Level 2 (see `man find`)
+	find -O2 "$(iai root)" \
+		-path "*/.git/*" -prune -o\
+		-path "*/node_modules/*" ! -name "iai*" -prune -o\
+		-exec test -e /"{}/.git" \; ! -path "$(iai root)" -prune -o\
+		"$@" -print
+}
+iai-find $@
 
 ##
 # vim modeline
