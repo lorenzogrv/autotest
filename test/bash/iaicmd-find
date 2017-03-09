@@ -5,42 +5,45 @@ source "bash/assert.bash" || exit
 
 REPO_DIR=$(git rev-parse --show-toplevel)
 
-line="command line to eval"
-code="expected return code"
-data="expected output (stdout)"
-check_code_and_output () {
-	local cmd="$line" out="$data"
-	# TODO don't know why line clears out when not stored locally
-
-	( eval "$cmd" ) 1>/dev/null
-	( assert_code $code )
-	tested "running '$cmd' returns '$code'"
-
-	if test -z "$data"; then
-		test "$( eval "$cmd" )" == ""
-		tested "running '$cmd' outputs nothing"
-	else
-		diff_test <( eval "$cmd" ) <<<"$out"
-		tested "running '$cmd' outputs expected data"
-	fi
+test_cmd () {
+	local line="$1" cmd="$2" val="$3"
+	case "$cmd" in
+		--code-is)
+			( eval "$line" ) 1>/dev/null
+			( assert_code $val )
+			tested "running '$line' returns '$val'"
+			;;
+		--outputs)
+			if test "$val" == "nothing"; then
+				test "$( eval "$line" )" == ""
+				tested "running '$line' outputs nothing"
+			else
+				diff_test <( eval "$line" ) <<<"$val"
+				tested "running '$line' outputs expected data"
+			fi
+			;;
+		*)
+			echo "test_cmd: unknown action '$cmd'"
+	esac
 }
 
 line="iai find --help >/dev/null"
-code=0
-data=''
-check_code_and_output
+test_cmd "$line" --code-is 0
+test_cmd "$line" --outputs nothing
 
 line="iai find"
-code=0
-data=''
-check_code_and_output
+test_cmd "$line" --code-is 0
+#test_cmd "$line" --outputs nothing
 
-line="iai find -type d -name 'test'"
-code=0
-data="$REPO_DIR/test"
-check_code_and_output
+line="iai find -samefile ."
+test_cmd "$line" --code-is 0
+test_cmd "$line" --outputs "$REPO_DIR"
 
+line="iai find -type d -name test"
+test_cmd "$line" --code-is 0
+test_cmd "$line" --outputs "$REPO_DIR/test"
 
+iai working
 echo "WORKING @ $BASH_SOURCE"
 false
 
