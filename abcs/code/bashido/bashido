@@ -1,0 +1,23 @@
+#!/bin/bash
+
+bashido () {
+	# research bashido's root directory and print it out
+	SOURCE="${BASH_SOURCE[0]}"
+	while [ -h "$SOURCE" ]; do
+		DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+		SOURCE="$(readlink "$SOURCE")"
+		[[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+	done
+	cd -P "$( dirname "$SOURCE" )" && pwd
+}
+
+(( $# )) || { bashido; exit; }
+	
+find "$(bashido)" -name "$1.bash"
+
+# TODO when there are multiple arguments?
+#find "$bashido" -name "abc-*.bash" -exec cat {} +
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

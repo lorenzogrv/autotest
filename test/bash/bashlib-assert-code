@@ -1,8 +1,8 @@
 #!/bin/bash
 
-source "bash/autotest.bash" || exit
+source "$(bashido autotest)" || exit
 
-source "bash/assert.bash" || exit
+source "$(bashido assert)" || exit
 tested 'bash/assert.bash can be sourced'
 
 # need assert_function to research when functions are declared

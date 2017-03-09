@@ -8,7 +8,7 @@ set +e
 # TODO testodo <<<"tool to report tests pending to write"
 testools=(tested teskip)
 
-for tool in ${testools[@]}; do source "bash/autotest-$tool.bash"; done
+for tool in ${testools[@]}; do source "$(bashido autotest-$tool)"; done
 
 report="$( for tool in ${testools[@]}; do ${tool}--test "$tool" || exit; done )" || {
   echo "###################################"

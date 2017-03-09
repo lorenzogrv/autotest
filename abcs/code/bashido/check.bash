@@ -5,11 +5,11 @@ if test "$1" != "--no-alias"; then check () { iai-check "$@"; }; fi
 
 ##
 # TODO this is a really ugly way to declare dependencies
-source "bash/abc.bash" || { echo "need abc.bash to work!"; exit 1; }
-source "bash/basic-array.bash" || { echo "need basic-array.bash to work!"; exit 1; }
-source "bash/basic-str.bash" || { echo "need basic-str.bash to work!"; exit 1; }
-source "bash/math.bash" || { echo "need math.bash to work!"; exit 1; }
-source "bash/checkdb.bash" || { echo "need checkdb.bash to work!"; exit 1; }
+source "$(bashido abc)" || { echo "need abc.bash to work!"; exit 1; }
+source "$(bashido basic-array)" || { echo "need basic-array.bash to work!"; exit 1; }
+source "$(bashido basic-str)" || { echo "need basic-str.bash to work!"; exit 1; }
+source "$(bashido math)" || { echo "need math.bash to work!"; exit 1; }
+source "$(bashido checkdb)" || { echo "need checkdb.bash to work!"; exit 1; }
 
 ##
 # provides an expressive interface to write tests

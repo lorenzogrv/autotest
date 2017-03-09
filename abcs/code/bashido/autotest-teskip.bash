@@ -11,7 +11,7 @@ teskip () {
 teskip--test () {
   local func=${1:-teskip}
 	(
-	  source "bash/autotest-tested.bash" || exit
+		source "$(bashido autotest-tested)" || exit
 
 		test_code_0_and_continues () {
 			test $? -eq 0              ;tested "$cmd returns code 0"

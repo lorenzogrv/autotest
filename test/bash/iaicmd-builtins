@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "bash/check.bash" || exit 1
+source "$(bashido check)" || exit 1
 
 check that iai is a command # functionally equivalent to the next line
 check that "iai is a command (again)"; (which iai iai &>/dev/null); check end

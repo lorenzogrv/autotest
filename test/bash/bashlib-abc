@@ -1,8 +1,8 @@
 #!/bin/bash
 
-source "bash/autotest.bash" || exit
+source "$(bashido autotest)" || exit
 
-source "bash/abc.bash" || exit
+source "$(bashido abc-log)" || exit
 tested "bashlib 'abcs' can be sourced"
 
 out=$(eche "some text" 2>/dev/null)

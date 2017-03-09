@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source 'bash/abc-is.bash'
+source "$(bashido abc-is)"
 
 # TODO cleanup this ugly test file please
 

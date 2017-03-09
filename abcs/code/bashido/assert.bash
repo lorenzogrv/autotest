@@ -1,5 +1,5 @@
-source "bash/abc.bash"
-source "bash/basic-str.bash"
+source "$(bashido abc)"
+source "$(bashido basic-str)"
 
 ##
 # General use assert-failed action: Use "fail" to report error and exit

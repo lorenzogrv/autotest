@@ -3,11 +3,13 @@
 
 # autotest-* files are sourced at once with this file
 # TODO `find .bash`... ejem...
-source <( find bash -name "autotest-*" -exec cat {} + )
+source <( find "$(bashido)" -name "autotest-*" -exec cat {} + )
 
 # Ugly check to ensure tools were sourced
 test "$(type -t 'tested')" == "function" || {
-  echo "tested is not a function"
+  >&2 echo "tested is not a function"
+  source "$(bashido abc-call_trace)"
+	call_trace
 	exit 1
 }
 

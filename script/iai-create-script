@@ -1,0 +1,23 @@
+#!/bin/bash
+
+script_name="${1:?"Missing argument 1 (script name)"}"
+script_path="$(iai path script "$script_name")"
+
+if test -a "$script_path"; then
+	echo >&2 "script file '$script_path' already exists"
+	exit 1
+fi
+
+templates="$(iai path db convention)"
+cat "$templates/bash-head" "$templates/bash-tail" > "$script_path"
+echo >&2 "created script file '$script_path'"
+
+echo >&2 "press any key to vim it"; read -n 1
+vim "$script_path"
+
+echo >&2 "press any key to make it executable"; read -n 1
+chmod +x "$script_path"
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

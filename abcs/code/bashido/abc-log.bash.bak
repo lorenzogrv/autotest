@@ -46,9 +46,3 @@ emsg () { _log EE $@; }
 ####
 fail () { emsg $@; call_trace 0 >&2; exit 1; }
 
-##
-# abc sources by default abc-*.bash
-# TODO ugly hardcoded source calls. Fix and use glob pattern
-# ls -l bash/*.bash
-source "bash/abc-call_trace.bash" || exit
-source "bash/abc-is.bash" || exit

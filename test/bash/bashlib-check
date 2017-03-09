@@ -1,7 +1,7 @@
 #!/bin/bash
 
-source "bash/abc.bash" || exit 1
-source "bash/check.bash" || cant "source check.bash"
+source "$(bashido abc)" || exit 1
+source "$(bashido check)" || cant "source check.bash"
 
 # tests for iai-check
 check that iai-check works

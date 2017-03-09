@@ -1,8 +1,8 @@
 #!/bin/bash
 
-source bash/autotest.bash || exit
-source bash/assert.bash || exit
-source bash/basic-str.bash || exit
+source "$(bashido autotest)" || exit
+source "$(bashido assert)" || exit
+source "$(bashido basic-str)" || exit
 
 ##
 # assert_outputs checks

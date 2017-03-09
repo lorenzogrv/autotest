@@ -3,28 +3,115 @@
 # NOTE: `set -e` impedes try-catching commands
 
 ##
-# research absolute paths to this script file and its directory
-# - see http://stackoverflow.com/a/246128/1894803
-# TODO
-# - is this only related to iai root?
-SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do
-  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-  SOURCE="$(readlink "$SOURCE")"
-  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
-done
-DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+# SCRIPT DEPENDENCIES
+# ===================
+# - seems lighter not sourcing until something is need
+# - an error may happen when the path can't be sourced 
+# - should depend only on bashido?
+##
+# source $(dirname "$DIR")/bash/helper.bash
+type -t bashido >/dev/null || { echo >&2 "FATAL: missing bashido"; exit 1; }
+source "$(bashido abc-call_trace)" || exit
+source "$(bashido abc-log)" || exit
 
-# Until iai is loaded, can't use `iai dir`
-# TODO seems lighter not sourcing until something is need
-source $(dirname "$DIR")/bash/helper.bash
-
+##
+# MAIN COMMAND
+# ============
+# `iai` acts as an accessor to sub-commands.
+# When it's run without arguments, outputs some ascii art.
+##
 iai () {
-  echo "running iai inside function"
+  if test $# -eq 0
+	then
+		cat "$(iai-path db artii 0110)"
+    exit 0
+	fi
+
+	local cmd="iai-$1"
+  verb "running 'iai $@' as '$cmd'"
+
+	case "$(type -t "$cmd")" in
+		"")
+			fail "there is nothing named '$1'"
+			;;
+		"function")
+			shift
+			verb "running built-in '$cmd $@'"
+			$cmd "$@" || exit
+			;;
+		"file")
+			verb "running script '$cmd'"
+			shift
+			$cmd "$@" || exit
+			;;
+		*)
+			warn "'$1' is known to be a '$(type -t "$cmd")'"
+			fail "I don't know what to do now"
+			exit 1
+			;;
+	esac
 }
 
+##
+# BUILT-IN COMMANDS
+# =================
+# The commands built-in are defined as bash funcions hereafter.
+# Built-in commands don't have a script file (there is no iai-command script).
+# This is because they are essential, or enought simple.
+##
+
+##
+# `iai help` outputs useful information about iai's command-line usage
+##
+iai-help () {
+  info <<HEREDOC
+##
+# Here should be some help text
+##
+> built-in commands:
+> id db dir date hora info warn fail
+TODO research functions within this file named 'iai-*'
+> available scripts (\$1):
+HEREDOC
+	info <<<$(tree "$(iai-path script)")
+}
+
+##
+# `iai date` and `iai hora` standarize the date and time formats
+##
+iai-date () { date --rfc-3339=date || exit 1; }
+iai-hora () { date --rfc-3339=seconds || exit 1; }
+
+##
+# `iai root` outputs the directory where iai resides (the "iai root").
+# It's probably the most basic operation besides the "artistic" bare `iai`,
+# and the `iai help` commands.
+# LINK
+# - http://stackoverflow.com/a/246128/1894803
+# : research absolute paths to this script file and its directory
+##
+iai-root () {
+	local SOURCE="${BASH_SOURCE[0]}" DIR=""
+	while [ -h "$SOURCE" ]; do
+		DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+		SOURCE="$(readlink "$SOURCE")"
+		[[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+	done
+	DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+	dirname $DIR
+}
+
+##
+# `iai dir` is an alias for `iai root`
+# TODO: should `dir` be deprecated favouring `root`? Seems more descriptive
+##
+iai-dir () { iai-root; }
+
+##
+# `iai-path` joins each argument to `iai-root` with slashes between.
+##
 iai-path () {
-  printf "%s" $(dirname $DIR)
+  printf "%s" $(iai-root)
   if test $# -gt 0; then
     # Quoting is neccessary to correctly parse arguments
     # Ex: local args=("$@"); for arg in "$@"; do echo >&2 "arg=$arg"; done
@@ -33,30 +120,33 @@ iai-path () {
   printf "\n" # could use echo but wanted to be more explicit
 }
 
+##
+# `iai test` runs the whole iai test suite
+##
+iai-test () { "$(iai-path test bash all)"; }
+
+##
+# MAIN ROUTINE
+# ============
+iai "$@"
+exit
+
+old-iai () {
 case "$1" in
-  "")
-    echo "123456789012345678901234567890123" # 3*10+3=36 cols
-    echo "----------------=----------------"
-    echo "----------=-----------=----------"
-    echo "--------=-------=-------=--------"
-    echo "----=----=---==---==---=----=----"
-    echo "ollo 0ll0 oVo  -*-  0v0 o11o 0110"
-    echo "ollo 0ll0 oVo  iai  0v0 o11o 0110"
-    echo "ollo 0ll0 oVo  -*-  0v0 o11o 0110"
-    echo "----=----=---==---==---=----=----"
-    echo "--------=-------=-------=--------"
-    echo "----------=-----------=----------"
-    echo "----------------=----------------"
-    echo "-----------------------------lolo"
-    exit 0
+  "")  iai; exit ;;
+  "-h"|"-?"|"--help"|"help") iai-help; exit ;;
+  date)  iai-date; exit ;;
+	hora)  iai-hora; exit ;;
+  # TODO deprecate dir
+  root|dir)  iai-root; exit ;;
+  path) 
+    shift;
+    iai-path "$@" # Quoting is neccessary, otherwise quoted args are splitted
   ;;
+	"test")  iai test; exit ;;
   ##
-  # outputs the directory where iai code resides (iai root)
-  # - this command is built-in (there is no iai-root script)
-  # - It's probably the most basic operation besides the "artistic" bare `iai`
   # TODO
-  # - should `dir` be deprecated favouring `root`? Seems more descriptive
-  root|dir)  dirname "$DIR"; exit ;;
+  # - This should not be a built-in, sure
   id)
     if test -x $2; then
       echo "$(basename "$2" | sed 's/iai-//')"
@@ -65,38 +155,17 @@ case "$1" in
     fail "miss exec perms: '$2'"
     exit 1
   ;;
-  ##
-  # TODO
-  # - This should not be a built-in, sure
   db)
     DB="$(iai dir)/db/$(iai id "$2")/$(hostname)"
     mkdir -p "$DB"
     echo "$DB"
   ;;
-  path) 
-    shift;
-    iai-path "$@" # Quoting is neccessary, otherwise quoted args are splitted
-  ;;
-  date)
-    date --rfc-3339=date || exit 1
-  ;;
-  hora)
-    date --rfc-3339=seconds || exit 1
-  ;;
   info|warn|fail)
     $1 "${@:2}"
     exit $?
   ;;
-  "-h"|"-?"|"--help"|"help")
-    echo "##"
-    echo "# Here should be some help text"
-    echo "##"
-    echo "> available external cmds (\$1):"
-    tree $DIR
-    echo "> built-in commands:"
-    echo "> id db dir date hora info warn fail"
-  ;;
   *)# run "external" command
+		# TODO move this inside iai function
     CMD="$DIR/iai-$1"
     [[ ! -f "$CMD" ]] && fail "iai command '$1' does not exist" && exit 1
     # try auto fix when file-is-not-executable
@@ -109,3 +178,7 @@ case "$1" in
     $CMD "${@:2}"
   ;;
 esac
+}
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

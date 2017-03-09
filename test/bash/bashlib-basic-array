@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "bash/basic-array.bash" || { echo "can't source basic-array"; exit 1; }
+source "$(bashido basic-array)" || { echo "can't source basic-array"; exit 1; }
 
 # tests for array_join
 a=("foo" "bar" "baz"); join="$(array_join a)"
