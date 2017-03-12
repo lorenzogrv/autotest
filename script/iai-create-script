@@ -1,6 +1,6 @@
 #!/bin/bash
 
-script_name="${1:?"Missing argument 1 (script name)"}"
+script_name="iai-${1:?"Missing argument 1 (script name)"}"
 script_path="$(iai path script "$script_name")"
 
 if test -a "$script_path"; then

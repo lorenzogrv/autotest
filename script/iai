@@ -28,7 +28,7 @@ iai () {
 	fi
 
 	local cmd="iai-$1"
-  verb "running 'iai $@' as '$cmd'"
+	verb <<<"running 'iai $@' as '$cmd' (from $(caller))"
 
 	case "$(type -t "$cmd")" in
 		"")
@@ -38,6 +38,7 @@ iai () {
 			shift
 			verb "running built-in '$cmd $@'"
 			$cmd "$@" || exit
+			# Quoting is neccessary, otherwise quoted args are splitted
 			;;
 		"file")
 			verb "running script '$cmd'"
@@ -133,15 +134,10 @@ exit
 
 old-iai () {
 case "$1" in
-  "")  iai; exit ;;
   "-h"|"-?"|"--help"|"help") iai-help; exit ;;
-  date)  iai-date; exit ;;
-	hora)  iai-hora; exit ;;
-  # TODO deprecate dir
-  root|dir)  iai-root; exit ;;
   path) 
     shift;
-    iai-path "$@" # Quoting is neccessary, otherwise quoted args are splitted
+    iai-path "$@"
   ;;
 	"test")  iai test; exit ;;
   ##

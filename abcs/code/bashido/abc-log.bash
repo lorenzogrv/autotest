@@ -1,18 +1,35 @@
 
+
 ##
-# "log" api: helper functions that write to stderr
+# "log" api
+# =========
+# The log api is a bunch of helper functions that write to stderr.
+# They are designed to allow reading from standard input if need.
+# TODO document the usage
+
+# logs a message ($1) to stderr with desired level mark ($2 or ??)
+log () {
+  local line fn file n
+  read line fn file <<<"$(caller 0)"
+  test "$fn" != "loog"; n=$(( 1 + $? ))
+  read line fn file <<<"$(caller $n)"
+
+  eche "[$$]#$BASH_SUBSHELL@$fn:$line (${2:-??}):" "$1"
+}
+
 # same as `echo` but output to stderr
 eche () { >&2 echo "$@"; }
-# logs a message ($") to stderr with desired level mark ($2 or ??)
-log () { eche "[$$]#$BASH_SUBSHELL (${2:-??}):" "$1"; }
+
 # follows each input line to 'log' with desired level mark ($1)
 loog () { while read line; do log "$line" "$1"; done < <(cat); }
+
 # logs messages with an error level mark (EE)
 emsg () { if (($#)); then log "$@" EE; else <&0 loog EE; fi; }
 # logs messages with an info level mark (II)
 info () { if (($#)); then log "$@" II; else <&0 loog II; fi; }
 # logs messages with a verbose level mark (VV)
 verb () { if (($#)); then log "$@" VV; else <&0 loog VV; fi; }
+
 # helper to [fail fast](http://www.martinfowler.com/ieeeSoftware/failFast.pdf)
 # Aditionally adds a call trace.
 fail () { emsg "$@"; call_trace 1; exit ${ERR:1}; }

@@ -44,8 +44,6 @@ test_cmd "$line" --code-is 0
 test_cmd "$line" --outputs "$REPO_DIR/test"
 
 iai working
-echo "WORKING @ $BASH_SOURCE"
-false
 
 ##
 # vim modeline
