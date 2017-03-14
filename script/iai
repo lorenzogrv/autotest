@@ -13,6 +13,7 @@
 type -t bashido >/dev/null || { echo >&2 "FATAL: missing bashido"; exit 1; }
 source "$(bashido abc-call_trace)" || exit
 source "$(bashido abc-log)" || exit
+source "$(bashido assert-basic)" || exit
 
 ##
 # MAIN COMMAND
@@ -28,22 +29,16 @@ iai () {
 	fi
 
 	local cmd="iai-$1"
-	verb <<<"running 'iai $@' as '$cmd' (from $(caller))"
 
 	case "$(type -t "$cmd")" in
 		"")
-			fail "there is nothing named '$1'"
+			fail "there is nothing named '$cmd'"
 			;;
 		"function")
-			shift
-			verb "running built-in '$cmd $@'"
-			$cmd "$@" || exit
-			# Quoting is neccessary, otherwise quoted args are splitted
-			;;
+			;; # no action need
 		"file")
-			verb "running script '$cmd'"
-			shift
-			$cmd "$@" || exit
+			verb "loading command '$cmd'"
+			source "$cmd" || fail "Unexpected exit status $? while sourcing '$cmd'"
 			;;
 		*)
 			warn "'$1' is known to be a '$(type -t "$cmd")'"
@@ -51,6 +46,10 @@ iai () {
 			exit 1
 			;;
 	esac
+
+	verb <<<"running 'iai $@' as '$cmd' (from $(caller))"
+	# Quoting is neccessary, otherwise quoted args are splitted
+	shift; $cmd "$@" || exit
 }
 
 ##
@@ -124,11 +123,12 @@ iai-path () {
 ##
 # `iai test` runs the whole iai test suite
 ##
-iai-test () { "$(iai-path test bash all)"; }
+iai-test () { cd "$(iai-root)"; ./test/bash/all; }
 
 ##
 # MAIN ROUTINE
 # ============
+PATH="$PATH:"$(iai-path abc command)""
 iai "$@"
 exit
 

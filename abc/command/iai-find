@@ -1,17 +1,11 @@
-#!/bin/bash
-
-
-[[ "$@" =~ "--help" ]] && {
-  echo "here should be some help text"
-	exit 0
-}
-
-#test $# -eq 0 && exit
-
-verb () { echo >&2 "$0: $@"; }
-verb "arguments=$@"
+assert_function iai || exit
 
 iai-find () {
+	[[ "$@" =~ "--help" ]] && {
+		echo "here should be some help text"
+		exit 0
+	}
+
 	# -O2 enables Optimization Level 2 (see `man find`)
 	find -O2 "$(iai root)" \
 		-path "*/.git/*" -prune -o\
@@ -19,8 +13,6 @@ iai-find () {
 		-exec test -e /"{}/.git" \; ! -path "$(iai root)" -prune -o\
 		"$@" -print
 }
-iai-find $@
-
 ##
 # vim modeline
 # /* vim: set filetype=sh ts=2 shiftwidth=2: */
