@@ -11,7 +11,6 @@ BASHIDO_ASSERT_ACTUAL="" # part of "actual" value that was not expected
 BASHIDO_ASSERT_EXPECT="" # part of "expected" value not found within actual
 BASHIDO_ASSERT_FCOLOR=""
 BASHIDO_ASSERT_BCOLOR=""
-verb () { printf "$@" >&2; }
 diff_str () {
 	local actual="$(printf %s "$1")" expect="$(printf %s "$2")"
 

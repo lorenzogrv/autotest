@@ -9,11 +9,20 @@
 # - an error may happen when the path can't be sourced 
 # - should depend only on bashido?
 ##
-# source $(dirname "$DIR")/bash/helper.bash
-type -t bashido >/dev/null || { echo >&2 "FATAL: missing bashido"; exit 1; }
-source "$(bashido abc-call_trace)" || exit
-source "$(bashido abc-log)" || exit
-source "$(bashido assert-basic)" || exit
+
+iai-dependencies () {
+	type -t bashido >/dev/null || { echo >&2 "FATAL: missing bashido"; exit 1; }
+	source "$(bashido abc-call_trace)" || exit
+	source "$(bashido abc-log)" || exit
+	source "$(bashido assert-basic)" || exit
+	logs () {
+		# return 0 # uncomment this line for max amount of verbosity
+		#echo "logs $@"
+		test "$2" != "iai"
+	}
+	iai-dependencies () { true; }
+  info "loaded iai dependencies"
+}
 
 ##
 # MAIN COMMAND
@@ -28,6 +37,7 @@ iai () {
     exit 0
 	fi
 
+	iai-dependencies || exit
 	local cmd="iai-$1"
 
 	case "$(type -t "$cmd")" in
@@ -37,19 +47,21 @@ iai () {
 		"function")
 			;; # no action need
 		"file")
-			verb "loading command '$cmd'"
+    	test -x "$cmd" && warn "command '$cmd' definition file is executable"
+			verb "loaded command '$cmd'"
 			source "$cmd" || fail "Unexpected exit status $? while sourcing '$cmd'"
 			;;
 		*)
-			warn "'$1' is known to be a '$(type -t "$cmd")'"
+			warn "type -t '$cmd' reports '$(type -t "$cmd")'"
 			fail "I don't know what to do now"
 			exit 1
 			;;
 	esac
 
-	verb <<<"running 'iai $@' as '$cmd' (from $(caller))"
+	shift;
+	verb "running '$cmd $@' (from $(caller))"
 	# Quoting is neccessary, otherwise quoted args are splitted
-	shift; $cmd "$@" || exit
+	$cmd "$@" || exit
 }
 
 ##
@@ -71,9 +83,9 @@ iai-help () {
 > built-in commands:
 > id db dir date hora info warn fail
 TODO research functions within this file named 'iai-*'
-> available scripts (\$1):
+> available commands (\$1):
 HEREDOC
-	info <<<$(tree "$(iai-path script)")
+	info <<<$(tree "$(iai-path abc)")
 }
 
 ##
@@ -103,9 +115,9 @@ iai-root () {
 
 ##
 # `iai dir` is an alias for `iai root`
-# TODO: should `dir` be deprecated favouring `root`? Seems more descriptive
+# TODO: `dir` is deprecated favouring `root` at it's more descriptive
 ##
-iai-dir () { iai-root; }
+iai-dir () { warn "iai-dir is deprecated, use iai-root instead"; iai-root; }
 
 ##
 # `iai-path` joins each argument to `iai-root` with slashes between.
@@ -121,60 +133,12 @@ iai-path () {
 }
 
 ##
-# `iai test` runs the whole iai test suite
-##
-iai-test () { cd "$(iai-root)"; ./test/bash/all; }
-
-##
 # MAIN ROUTINE
 # ============
 PATH="$PATH:"$(iai-path abc command)""
 iai "$@"
 exit
 
-old-iai () {
-case "$1" in
-  "-h"|"-?"|"--help"|"help") iai-help; exit ;;
-  path) 
-    shift;
-    iai-path "$@"
-  ;;
-	"test")  iai test; exit ;;
-  ##
-  # TODO
-  # - This should not be a built-in, sure
-  id)
-    if test -x $2; then
-      echo "$(basename "$2" | sed 's/iai-//')"
-      exit 0
-    fi
-    fail "miss exec perms: '$2'"
-    exit 1
-  ;;
-  db)
-    DB="$(iai dir)/db/$(iai id "$2")/$(hostname)"
-    mkdir -p "$DB"
-    echo "$DB"
-  ;;
-  info|warn|fail)
-    $1 "${@:2}"
-    exit $?
-  ;;
-  *)# run "external" command
-		# TODO move this inside iai function
-    CMD="$DIR/iai-$1"
-    [[ ! -f "$CMD" ]] && fail "iai command '$1' does not exist" && exit 1
-    # try auto fix when file-is-not-executable
-    if [ ! -x "$CMD" ]; then
-      warn "It seems likely command exists but has not exec perms:"
-      # TODO confirm before automatically making a file executable!!!!!!!! ehmmm why?
-      ls -l "$CMD"; echo -n "> Trying automatic 'chmod +x' fix ... "
-      chmod +x "$CMD" && info "succeed!" || fail ":( failed ;("
-    fi
-    $CMD "${@:2}"
-  ;;
-esac
-}
 ##
 # vim modeline
 # /* vim: set filetype=sh ts=2 shiftwidth=2: */

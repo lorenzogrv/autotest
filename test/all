@@ -1,0 +1,38 @@
+#!/bin/bash
+
+assert_function iai || exit
+assert_function tested || exit
+
+
+
+run_tests_for "abstract"
+
+##
+# bash lib tests are the next thing to check. iai cmds depend on it
+# TODO WTF are abc.bash tests? stop cowboy coding PLEASE!
+# TODO WTF are abc-call_trace.bash tests? stop cowboy coding PLEASE!
+run_tests_for "bashido"
+
+##
+# next checkup iai command tests, iai interactive cli depends on it
+run_tests_for "command"
+
+# TODO iai interactive commands (cmds that expect stdin interaction)
+
+##
+# TODO discovering things to be done: find files cowboy-coded
+# TODO discovering things to be done: find TODO comments and display them nicely
+
+cat <<DONE
+#################################################
+            ! All tests were run !
+#################################################
+                  good job :D
+
+Now continue with TDD and write more test scripts.
+Don't enter cowboy coding mode please!
+DONE
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

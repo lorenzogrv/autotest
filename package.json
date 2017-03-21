@@ -1,6 +1,6 @@
 {
   "name": "iai",
-  "version": "1",
+  "version": "1.0.0",
   "description": "@laconbass' development framework",
   "main": "iai",
   "dependencies": {
@@ -10,6 +10,6 @@
     "type": "git", "url": "https://github.com/laconbass/iai.git"
   },
   "scripts": {
-    "test": "./test/bash/all"	  
+    "test": "./script/iai test" 
   }
 }
