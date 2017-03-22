@@ -4,7 +4,10 @@ ansi () {
 	local id="${1:?provide a sequence id}"
 	local varname="BASHIDO_ANSI_${id//\./_}"
 	varname="${varname^^}" # capitalizes each letter
-	test -n "${!varname}" || 2> echo "$FUNCNAME: no sequence named $varname"
+	test -n "${!varname}" || {
+	  >&2 echo "$FUNCNAME: no sequence named $varname"
+		exit 1
+	}
 	printf '%b' ${!varname}
 }
 
@@ -32,7 +35,7 @@ BASHIDO_ANSI_LOG_BEGIN="$(ansi fg.purple)"
 BASHIDO_ANSI_LOG_TRAIL="$(ansi reset)"
 BASHIDO_ANSI_LOG_VV="$(ansi fg.gray)"
 BASHIDO_ANSI_LOG_II="$(ansi fg.blue)"
-BASHIDO_ANSI_LOG_WW="$(ansi fg.yellow)"
+BASHIDO_ANSI_LOG_WW="$(ansi fg.orange)"
 BASHIDO_ANSI_LOG_EE="$(ansi fg.red)"
 
 ##

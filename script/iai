@@ -16,7 +16,7 @@ iai-dependencies () {
 	source "$(bashido abc-log)" || exit
 	source "$(bashido assert-basic)" || exit
 	logs () {
-		# return 0 # uncomment this line for max amount of verbosity
+		return 0 # uncomment this line for max amount of verbosity
 		#echo "logs $@"
 		test "$2" != "iai"
 	}
@@ -37,29 +37,31 @@ iai () {
     exit 0
 	fi
 
-	iai-dependencies || exit
 	local cmd="iai-$1"
+	local typ="$(type -t "$cmd")"
 
-	case "$(type -t "$cmd")" in
-		"")
-			fail "there is nothing named '$cmd'"
-			;;
-		"function")
-			;; # no action need
-		"file")
-    	test -x "$cmd" && warn "command '$cmd' definition file is executable"
-			verb "loaded command '$cmd'"
+	if test "$typ" != "function"; then
+		# when cmd is function, it's either builtin or an already sourced file
+		iai-dependencies || exit
+		# when command is a file, it's assumed to be its function source file
+		if test "$typ" = "file"; then
+			test -x "$cmd" && warn "command '$cmd' definition file is executable"
 			source "$cmd" || fail "Unexpected exit status $? while sourcing '$cmd'"
-			;;
-		*)
-			warn "type -t '$cmd' reports '$(type -t "$cmd")'"
-			fail "I don't know what to do now"
+			verb "loaded command '$cmd'"
+		else
+			if test -n "$typ"; then
+				warn "type -t '$cmd' reports '$typ'"
+			else
+				warn "there is nothing named '$cmd'"
+				iai-help
+			fi
+			emsg "unknown command line '$@'"
 			exit 1
-			;;
-	esac
+		fi
+	fi
 
+	type -t verb >/dev/null && verb "running 'iai-$@' (from $(caller))"
 	shift;
-	verb "running '$cmd $@' (from $(caller))"
 	# Quoting is neccessary, otherwise quoted args are splitted
 	$cmd "$@" || exit
 }
@@ -76,16 +78,17 @@ iai () {
 # `iai help` outputs useful information about iai's command-line usage
 ##
 iai-help () {
-  info <<HEREDOC
-##
-# Here should be some help text
-##
-> built-in commands:
-> id db dir date hora info warn fail
-TODO research functions within this file named 'iai-*'
-> available commands (\$1):
-HEREDOC
-	info <<<$(tree "$(iai-path abc)")
+  iai-dependencies || exit
+  info <<HELP
+	##
+	# Here should be some help text
+	##
+	> built-in commands:
+	> id db dir date hora info warn fail
+	TODO research functions within this file named 'iai-*'
+	> available commands (\$1):
+	$(tree "$(iai-path abc command)")
+HELP
 }
 
 ##
@@ -117,7 +120,11 @@ iai-root () {
 # `iai dir` is an alias for `iai root`
 # TODO: `dir` is deprecated favouring `root` at it's more descriptive
 ##
-iai-dir () { warn "iai-dir is deprecated, use iai-root instead"; iai-root; }
+iai-dir () {
+  iai-dependencies || exit
+  warn "iai-dir is deprecated, use iai-root instead"
+	iai-root
+}
 
 ##
 # `iai-path` joins each argument to `iai-root` with slashes between.
