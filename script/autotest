@@ -26,7 +26,7 @@ DIR=$(iai path abc autotest)
 # TODO testodo <<<"tool to report tests pending to write"
 (( $# )) || {
   find "$DIR" -name "*.bash" -type f -exec cat '{}' +
-  exit # implicit exit with code > 0 when cat fails
+  exit # implicit exit with code > 0 when find fails
 }
 
 case "$1" in

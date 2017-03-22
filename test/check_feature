@@ -44,6 +44,13 @@ check_feature () {
 		# TODO both outs were hidden because working with a test fail implies isolating
 		# TODO interactively allow developer at this tty (if it's a tty) to do so?
 		# TODO maybe save report=$(./$file) and print it if failed?
+
+		test -n "$stdout" && (
+		  info "test report (stdout) after running '$testfile'"
+			info "  - - test report - -"
+			echo "$stdout"
+			info "  - - - ** * ** - - -"
+		) | less -R
 		
 		# TODO content convention tests
 		local headfile="db/convention/bash-head"
