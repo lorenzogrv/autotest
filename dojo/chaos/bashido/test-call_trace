@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "$(iai path bash/abc-call_trace.bash)"
+source "$(bashido abc-call_trace)"
 
 # emulates some call_traces with hops to test log machinery
 a-trace(){ b; }; b(){ c; }; c(){ call_trace; }

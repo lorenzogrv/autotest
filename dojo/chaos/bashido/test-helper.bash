@@ -13,7 +13,7 @@ tcase () {
   [[ $status == $expect_status ]] && echo "OK" || { echo "NOT OK (expected $expect_status)"; exit 1; }
 }
 
-source helper.bash;
+source "$(bashido abc)";
 
 tcase "exit with code 4" 4 'exit 4'
 tcase "a test case expecting code 4 but receiving 3" 1 'tcase foo 4 "exit 3" &>/dev/null'
@@ -21,7 +21,7 @@ tcase "a test case expecting code 0 but receiving 1" 1 'tcase foo 0 "exit 1" &>/
 
 
 tcase "a 4 function chain that ends with call_trace" 0 'while read $l; do $l; done' <<CODE
-  first(){ sec; }; sec(){ third; }; third(){ quad; }; quad(){ call_trace; }; first
+  first(){ sec; }; sec(){ third; }; third(){ quad; }; quad(){ call_trace; };
 CODE
 
 #echo; echo "let's see a colored diff or something"; (  t(){ assert_e "AHH"; }; diff --color=always <( t )\ <( assert_e "AHH" )); echo "exit code was $?"
