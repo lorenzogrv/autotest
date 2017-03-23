@@ -1,8 +1,0 @@
-#!/bin/bash
-##
-
-source "$(bashido abc)"
-fail "YOU WERE WORKING HERE"
-
-# vim modeline
-# /* vim: set filetype=sh ts=2 shiftwidth=2: */

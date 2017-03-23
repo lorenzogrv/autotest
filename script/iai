@@ -141,6 +141,14 @@ iai-path () {
 }
 
 ##
+# `iai-working` intentionally fails to signal a place you were working at
+##
+iai-working () {
+  iai-dependencies || exit
+	fail "You were working @ $(caller)"
+}
+
+##
 # MAIN ROUTINE
 # ============
 PATH="$PATH:"$(iai-path abc command)""
