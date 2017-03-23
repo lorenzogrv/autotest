@@ -18,9 +18,30 @@ check_feature () {
 		assert_reg_perm_r "$file"
 
 		local basename="${file##*/}"
-		local codename="${basename%%.*}"
+		local codename="${basename%%.*}" # NOTE hidden files have no codename
 		local testfile="test/$feature/$codename"
-		assert_reg_perm_x "$testfile"
+		(assert_reg_perm_x "$testfile")
+		tested "$feature's '$basename', codenamed '$codename', has a test file"
+
+		# TODO content convention tests
+		local headfile="db/convention/bash-head"
+		assert_head_equal "$testfile" "$headfile"
+		tested "file '$testfile' head is '$headfile'"
+		local tailfile="db/convention/bash-tail"
+		assert_tail_equal "$testfile" "$tailfile"
+		tested "file '$testfile' tail is '$tailfile'"
+
+		# TODO generate stats to calculate progress ¿or even introspection?
+		# ex: `grep -c "[ ;]tested[ ]" test/bash/bashlib-assert-code`
+		#   to seek tested calls and check the code style for them
+		#   to count the minimum expected times that `tested` should be called
+		local tcount=$(grep -c "tested" "$testfile")
+		local tskips=$(grep -c "teskip" "$testfile")
+		info "found $(( $tcount + $tskips )) tests in '$testfile'"
+		(( $tcount )) || (( $tskips ))
+		tested "there is at least 1 test call in '$testfile'"
+
+		(( $tskips )) && warn "$tskips skiped tests in '$testfile'"
 
 		info "running test file '$testfile'..."
 		SECONDS=0 # Crude time calc from http://stackoverflow.com/a/8903280/1894803
@@ -45,31 +66,6 @@ check_feature () {
 		# TODO interactively allow developer at this tty (if it's a tty) to do so?
 		# TODO maybe save report=$(./$file) and print it if failed?
 
-		test -n "$stdout" && (
-		  info "test report (stdout) after running '$testfile'"
-			info "  - - test report - -"
-			echo "$stdout"
-			info "  - - - ** * ** - - -"
-		) | less -R
-		
-		# TODO content convention tests
-		local headfile="db/convention/bash-head"
-		assert_head_equal "$testfile" "$headfile"
-		tested "file '$testfile' head is '$headfile'"
-		local tailfile="db/convention/bash-tail"
-		assert_tail_equal "$testfile" "$tailfile"
-		tested "file '$testfile' tail is '$tailfile'"
-
-		# TODO generate stats to calculate progress ¿or even introspection?
-		# ex: `grep -c "[ ;]tested[ ]" test/bash/bashlib-assert-code`
-		#   to seek tested calls and check the code style for them
-		#   to count the minimum expected times that `tested` should be called
-		local tcount=$(grep -c "tested" "$testfile")
-		local tskips=$(grep -c "teskip" "$testfile")
-		local ttodos=$(grep -c "testodo" "$testfile")
-		info "found $(( $tcount + $tskips + $ttodos )) tests in '$testfile'"
-		(( $tcount )) || (( $tskips )) || (( $ttodos ))
-		tested "there is at least 1 test call in '$testfile'"
 	done < <(find abc/$feature -type f)
 }
 ####

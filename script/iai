@@ -37,6 +37,8 @@ iai () {
     exit 0
 	fi
 
+	type -t verb >/dev/null && verb "running 'iai-$@' (from $(caller))"
+
 	local cmd="iai-$1"
 	local typ="$(type -t "$cmd")"
 
@@ -60,7 +62,6 @@ iai () {
 		fi
 	fi
 
-	type -t verb >/dev/null && verb "running 'iai-$@' (from $(caller))"
 	shift;
 	# Quoting is neccessary, otherwise quoted args are splitted
 	$cmd "$@" || exit
