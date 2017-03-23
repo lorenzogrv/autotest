@@ -1,0 +1,97 @@
+
+source "$(bashido assert-lint)" || exit
+
+# TODO Could be better checking for test filenames based on code filenames?
+# TODO for example, list bash/*.bash and check every lib file has tests
+# TODO it would ease pending test identify
+check_feature () {
+	local feature="${1:?"$FUNCNAME: feature codename must be specified"}"
+
+	# test filesystem for feature directories
+	assert_dir_exists "abc/$feature"
+	assert_dir_exists "test/$feature"
+
+	# TODO iterating over an array of filenames is a "bash-bad-practice"
+	# TODO i should use `find` with `-exec` action instead
+	while read file
+	do
+		assert_reg_perm_r "$file"
+
+		local basename="${file##*/}"
+		local codename="${basename%%.*}" # NOTE hidden files have no codename
+		local testfile="test/$feature/$codename"
+		(assert_reg_perm_x "$testfile")
+		tested "$feature's '$basename', codenamed '$codename', has a test file"
+
+		# TODO content convention tests
+		local headfile="db/convention/bash-head"
+		assert_head_equal "$testfile" "$headfile"
+		tested "file '$testfile' head is '$headfile'"
+		local tailfile="db/convention/bash-tail"
+		assert_tail_equal "$testfile" "$tailfile"
+		tested "file '$testfile' tail is '$tailfile'"
+
+		# TODO generate stats to calculate progress ¿or even introspection?
+		# ex: `grep -c "[ ;]tested[ ]" test/bash/bashlib-assert-code`
+		#   to seek tested calls and check the code style for them
+		#   to count the minimum expected times that `tested` should be called
+		local tcount=$(grep -c "tested" "$testfile")
+		local tskips=$(grep -c "teskip" "$testfile")
+		info "found $(( $tcount + $tskips )) tests in '$testfile'"
+		(( $tcount )) || (( $tskips ))
+		tested "there is at least 1 test call in '$testfile'"
+
+		(( $tskips )) && warn "$tskips skiped tests in '$testfile'"
+
+		info "running test file '$testfile'..."
+		SECONDS=0 # Crude time calc from http://stackoverflow.com/a/8903280/1894803
+		eval "$(declare_results "./$testfile")"
+		(( exited )) && {
+		  echo "  ./$file exited with code $exited"
+			if test -n "$stdout"; then
+				echo "  - - stdout - -"; echo "$stdout"; echo "  - - * ** * - -"
+			fi
+			if test -n "$stderr"; then
+				echo "  - - stderr - -"; echo "$stderr"; echo "  - - * ** * - -"
+			fi
+	  }
+		test $exited -eq 0
+		tested "running $testfile in a subshell returns 0 (${SECONDS}s)"
+		# exec file in a subshell avoids env pollution and unexpected exits
+		# declare_results actually execs command line within a subshell
+		# TODO measure the time spent by each test better, consider `time`
+		# TODO dot animation while running?
+		# TODO progress could be `echo .` for each tested call?
+		# TODO both outs were hidden because working with a test fail implies isolating
+		# TODO interactively allow developer at this tty (if it's a tty) to do so?
+		# TODO maybe save report=$(./$file) and print it if failed?
+
+	done < <(find abc/$feature -type f)
+}
+####
+# Capturing any command's stderr and stdout separately
+# TODO should this be at autotest-testrun.bash ?
+#
+## Reference
+# Basis found at http://stackoverflow.com/q/11027679/1894803
+# the working (and ugly) aproach is using `eval` and `typeset -p` (`declare`)
+# it's well explained at http://stackoverflow.com/a/26827443/1894803
+# but as seen at http://stackoverflow.com/a/28796214/1894803
+# it can be refactored ussing a helper function and `printf -v`
+#
+## Example
+# eval "$(declare_results 'commandline with argument list')"
+# echo "stdout is: |$stdout| stderr is: |$stderr| return code is: |$exited|"
+##
+declare_stdin_as () {
+	printf -v "$1" "%s" "$(cat)";
+	typeset -p "$1";
+}
+declare_results () {
+	local cmd="$@"
+	("$cmd") 2> >(declare_stdin_as stderr) 1> >(declare_stdin_as stdout)
+	declare_stdin_as exited <<<"$?"
+}
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

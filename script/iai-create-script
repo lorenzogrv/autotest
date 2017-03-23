@@ -9,7 +9,7 @@ if test -a "$script_path"; then
 fi
 
 templates="$(iai path db convention)"
-cat "$templates/bash-head" "$templates/bash-tail" > "$script_path"
+cat "$templates/bash-"{head,tail} > "$script_path"
 echo >&2 "created script file '$script_path'"
 
 echo >&2 "press any key to vim it"; read -n 1
