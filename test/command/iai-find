@@ -43,6 +43,20 @@ line="iai find -type d -name test"
 test_cmd "$line" --code-is 0
 test_cmd "$line" --outputs "$REPO_DIR/test"
 
+line="iai find in db/fixtures/fs -type f | sort"
+test_cmd "$line" --code-is 1
+test_cmd "$line" --outputs "$REPO_DIR/test" "$(cat <<STDOUT
+db/fixtures/fs/f000
+db/fixtures/fs/f00x
+db/fixtures/fs/f0w0
+db/fixtures/fs/f0wx
+db/fixtures/fs/fr00
+db/fixtures/fs/fr0x
+db/fixtures/fs/frw0
+db/fixtures/fs/frwx
+STDOUT
+)"
+
 iai working
 
 ##
