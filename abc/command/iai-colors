@@ -22,6 +22,7 @@ function iai-colors () {
 			printf "  %-9s" "${seq0:-(default)}"
 			printf " ${seq0}TEXT\e[m"
 			printf " \e[${vals:+${vals+$vals;}}1mBOLD\e[m"
+			printf "%s" " \e[${vals:+${vals+$vals;}}1m"
 			echo
 		done
 		echo; echo
