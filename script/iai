@@ -33,7 +33,7 @@ iai-dependencies () {
 iai () {
   if test $# -eq 0
 	then
-		cat "$(iai-path db artii 0110)"
+		cat "$(iai-path dojo db artii 0110)"
     exit 0
 	fi
 
