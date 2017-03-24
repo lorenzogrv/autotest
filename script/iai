@@ -52,7 +52,7 @@ iai () {
 			verb "loaded command '$cmd'"
 		else
 			if test -n "$typ"; then
-				warn "type -t '$cmd' reports '$typ'"
+				emsg "type -t '$cmd' reports '$typ'"
 			else
 				warn "there is nothing named '$cmd'"
 				iai-help
