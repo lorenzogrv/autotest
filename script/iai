@@ -167,10 +167,11 @@ iai-working () {
   iai.dependencies || exit
 	read line fn file <<<"$(caller 0)"
 	test "$fn" = "iai" && read line fn file <<<"$(caller 1)"
-	emsg "CALL @$fn"
-	emsg "LINE $line"
-	emsg "FILE .${file##$PWD}"
-	exit 1 <<<"vim $file"
+	emsg "CALL @%s" $fn
+	emsg "LINE %s" $line
+	emsg "FILE %s" ".${file##$PWD}"
+	emsg "to continue working on, use: vim %s" "$file"
+	exit 1
 }
 
 ##
