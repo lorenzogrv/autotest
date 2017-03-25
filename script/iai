@@ -170,7 +170,7 @@ iai-working () {
 	emsg "CALL @%s" $fn
 	emsg "LINE %s" $line
 	emsg "FILE %s" ".${file##$PWD}"
-	emsg "to continue working on, use: vim %s" "$file"
+	emsg "to continue working on, use: vim %s" ".${file##$PWD}"
 	exit 1
 }
 
