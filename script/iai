@@ -10,17 +10,18 @@
 # - should depend only on bashido?
 ##
 
-iai-dependencies () {
+iai.dependencies () {
 	type -t bashido >/dev/null || { echo >&2 "FATAL: missing bashido"; exit 1; }
 	source "$(bashido abc-call_trace)" || exit
 	source "$(bashido abc-log)" || exit
 	source "$(bashido assert-basic)" || exit
-	logs () {
-		return 0 # uncomment this line for max amount of verbosity
+	log.filter () {
+		return 0 # comment this line for max amount of verbosity
+		return 1
 		#echo "logs $@"
 		test "$2" != "iai"
 	}
-	iai-dependencies () { true; }
+	iai.dependencies () { true; }
   info "loaded iai dependencies"
 }
 
@@ -37,27 +38,27 @@ iai () {
     exit 0
 	fi
 
-	type -t verb >/dev/null && verb "running 'iai-$@' (from $(caller))"
+	type -t verb >/dev/null && verb "exec %s" "iai-${@}"
 
 	local cmd="iai-$1"
 	local typ="$(type -t "$cmd")"
 
 	if test "$typ" != "function"; then
 		# when cmd is function, it's either builtin or an already sourced file
-		iai-dependencies || exit
+		iai.dependencies || exit
 		# when command is a file, it's assumed to be its function source file
 		if test "$typ" = "file"; then
-			test -x "$cmd" && warn "command '$cmd' definition file is executable"
-			source "$cmd" || fail "Unexpected exit status $? while sourcing '$cmd'"
-			verb "loaded command '$cmd'"
+			test -x "$cmd" && warn "command %s definition file is executable" $cmd
+			source "$cmd" || fail "Unexpected exit code %s while sourcing %s" $? $cmd
+			info "loaded command %s" "$cmd"
 		else
 			if test -n "$typ"; then
 				emsg "type -t '$cmd' reports '$typ'"
 			else
-				warn "there is nothing named '$cmd'"
-				iai-help
+				warn "there is nothing named %s" "$cmd"
 			fi
-			emsg "unknown command line '$@'"
+			emsg "unknown command %s" "$1"
+			iai-help | warn
 			exit 1
 		fi
 	fi
@@ -78,17 +79,28 @@ iai () {
 ##
 # `iai help` outputs useful information about iai's command-line usage
 ##
-iai-help () {
-  iai-dependencies || exit
-  info <<HELP
-	##
-	# Here should be some help text
-	##
-	> built-in commands:
-	> id db dir date hora info warn fail
-	TODO research functions within this file named 'iai-*'
-	> available commands (\$1):
-	$(tree "$(iai-path abc command)")
+
+iai-help () { cat <<HELP
+
+iai
+===
+
+usage: iai [command] [command arguments ...]
+
+built-in commands:
+  $(while read d t fn; do echo $fn; done < <(declare -F)\
+   	| grep "iai-"\
+  	| sort\
+  	|	while read cmd; do printf "  ${cmd##iai-}"; done
+  )
+
+other available commands:
+  $(find "$(iai-path abc command)" -type f -name "iai-*" -print0\
+  	| xargs -0 basename -a\
+  	| sort\
+  	| while read cmd; do printf "  ${cmd##iai-}"; done
+  )
+
 HELP
 }
 
@@ -122,7 +134,7 @@ iai-root () {
 # TODO: `dir` is deprecated favouring `root` at it's more descriptive
 ##
 iai-dir () {
-  iai-dependencies || exit
+  iai.dependencies || exit
   warn "iai-dir is deprecated, use iai-root instead"
 	iai-root
 }
@@ -140,12 +152,25 @@ iai-path () {
   printf "\n" # could use echo but wanted to be more explicit
 }
 
+function iai-repo () {
+	git rev-parse --show-toplevel 2>/dev/null || {
+	  iai.dependencies || exit
+		emsg "Could not find git repository"
+		exit 1
+  }
+}
+
 ##
 # `iai-working` intentionally fails to signal a place you were working at
 ##
 iai-working () {
-  iai-dependencies || exit
-	fail "You were working @ $(caller)"
+  iai.dependencies || exit
+	read line fn file <<<"$(caller 0)"
+	test "$fn" = "iai" && read line fn file <<<"$(caller 1)"
+	emsg "CALL @$fn"
+	emsg "LINE $line"
+	emsg "FILE .${file##$PWD}"
+	exit 1 <<<"vim $file"
 }
 
 ##
