@@ -1,10 +1,9 @@
 #!/bin/bash
-# TODO this script should generate a test/fixtures/fs directory
-# TODO test/fixtures/fs should be populated with files and dirs
+# TODO this script should generate a directory with files and dirs
 #      having all posible combinations of filesystem permisions,
 #      to be used by tests that require them to perform checks.
 
-cd "$(iai path db fixtures fs)"
+cd "$(iai path db fixtures fs)" || exit
 rm -rf *
 touch f{r,0}{w,0}{x,0}
 mkdir -p d{r,0}{w,0}{x,0}
