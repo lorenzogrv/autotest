@@ -163,13 +163,13 @@ function iai-repo () {
 # `iai-working` intentionally fails to signal a place you were working at
 ##
 iai-working () {
+  local last_code=$?
+	(( last_code )) && warn "called after an exit-status %s" "$last_code"
   iai.dependencies || exit
 	read line fn file <<<"$(caller 0)"
 	test "$fn" = "iai" && read line fn file <<<"$(caller 1)"
-	emsg "CALL @%s" $fn
-	emsg "LINE %s" $line
-	emsg "FILE %s" ".${file##$PWD}"
-	utip "to continue working on, use: %s" "vim .${file##$PWD}"
+	utip "You were working at function %s" $fn
+	utip "to continue working on, use: %s" "vim +$line .${file##$PWD}"
 	exit 1
 }
 
