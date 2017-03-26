@@ -39,7 +39,7 @@ log () {
 			# TODO values specified should be styled with $v
 			# TODO actually implemented, but not tested
       local v=$(ansi log.value)
-			local args="$(printf " $v%q$r$b$c" "${@:2}")"
+			local args="$(printf " $v%s$r$b$c" "${@:2}")"
 			args="${args#' '}"
 			#echo "'$msg'" "'$args'"
 			msg="$(printf "$msg" "$args")"
