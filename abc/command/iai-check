@@ -14,6 +14,7 @@ function iai-check () {
 		0) iai-check.project ;;
 		1) iai-check.feature "$1" ;;
 		2) iai-check.partial "$1" "$2" ;;
+		*) fail "too much arguments (%s given)" $# ;;
 	esac
 }
 
