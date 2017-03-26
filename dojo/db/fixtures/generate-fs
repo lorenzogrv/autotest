@@ -8,7 +8,7 @@ rm -rf fs
 mkdir fs && cd fs || exit
 
 touch f{r,0}{w,0}{x,0}
-mkdir -p d{r,0}{w,0}{x,0}
+mkdir -p dr{w,0}{x,0} # TODO a way for find to skip non-readable directories
 chmod -r *0??
 chmod -w *?0?
 chmod +x *??x

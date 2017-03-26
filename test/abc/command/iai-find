@@ -6,21 +6,28 @@ source "$(bashido assert-tdd)" || exit
 REPO_DIR=$(git rev-parse --show-toplevel)
 
 test_cmd () {
-	local line="$1" cmd="$2" val="$3"
+	local cmdline="$1" cmd="$2" val="$3"
 	case "$cmd" in
 		--code-is)
-			( eval "$line" ) 1>/dev/null
+			( eval "$cmdline" ) 1>/dev/null
 			( assert_code $val )
-			tested "running '$line' returns '$val'"
+			tested "running '$cmdline' returns '$val'"
 			;;
 		--outputs)
-			if test "$val" == "nothing"; then
-				test "$( eval "$line" )" == ""
-				tested "running '$line' outputs nothing"
-			else
-				diff_test <( eval "$line" ) <<<"$val"
-				tested "running '$line' outputs expected data"
-			fi
+			case "$val" in
+				"")
+					diff_test <( eval "$cmdline" ) <&0
+					tested "running '$cmdline' outputs given stdin"
+					;;
+				nothing)
+					test "$( eval "$cmdline" )" == ""
+					tested "running '$cmdline' outputs nothing"
+					;;
+				*)
+					diff_test <( eval "$cmdline" ) <<<"$val"
+					tested "running '$cmdline' outputs given string"
+					;;
+			esac
 			;;
 		*)
 			echo "test_cmd: unknown action '$cmd'"
@@ -31,33 +38,30 @@ line="iai find --help >/dev/null"
 test_cmd "$line" --code-is 0
 test_cmd "$line" --outputs nothing
 
-line="iai find"
+line="iai find >/dev/null"
 test_cmd "$line" --code-is 0
-#test_cmd "$line" --outputs nothing
+test_cmd "$line" --outputs nothing
 
 line="iai find -samefile ."
 test_cmd "$line" --code-is 0
-test_cmd "$line" --outputs "$REPO_DIR"
+test_cmd "$line" --outputs "$(iai root)"
 
 line="iai find -type d -name test"
 test_cmd "$line" --code-is 0
 test_cmd "$line" --outputs "$REPO_DIR/test"
 
-line="iai find in db/fixtures/fs -type f | sort"
-test_cmd "$line" --code-is 1
-test_cmd "$line" --outputs "$REPO_DIR/test" "$(cat <<STDOUT
-db/fixtures/fs/f000
-db/fixtures/fs/f00x
-db/fixtures/fs/f0w0
-db/fixtures/fs/f0wx
-db/fixtures/fs/fr00
-db/fixtures/fs/fr0x
-db/fixtures/fs/frw0
-db/fixtures/fs/frwx
+line="iai find in dojo/db/fixtures/fs -type f | sort"
+test_cmd "$line" --code-is 0
+test_cmd "$line" --outputs <<STDOUT
+$REPO_DIR/dojo/db/fixtures/fs/f000
+$REPO_DIR/dojo/db/fixtures/fs/f00x
+$REPO_DIR/dojo/db/fixtures/fs/f0w0
+$REPO_DIR/dojo/db/fixtures/fs/f0wx
+$REPO_DIR/dojo/db/fixtures/fs/fr00
+$REPO_DIR/dojo/db/fixtures/fs/fr0x
+$REPO_DIR/dojo/db/fixtures/fs/frw0
+$REPO_DIR/dojo/db/fixtures/fs/frwx
 STDOUT
-)"
-
-iai working
 
 ##
 # vim modeline
