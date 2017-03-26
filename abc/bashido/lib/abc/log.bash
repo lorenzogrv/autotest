@@ -26,6 +26,8 @@ log () {
   read line fn file <<<"$(caller 0)"
   test "$fn" != "loog"; n=$(( 1 + $? ))
   read line fn file <<<"$(caller $n)"
+  test "$fn" != "fail"; n=$(( n + $? ))
+  read line fn file <<<"$(caller $n)"
 
   if log.filter "$lvl" "$fn" "$file"
   then
@@ -65,7 +67,7 @@ verb () { if (($#)); then log VV "$@"; else <&0 loog VV; fi; }
 
 # helper to [fail fast](http://www.martinfowler.com/ieeeSoftware/failFast.pdf)
 # Aditionally adds a call trace.
-fail () { emsg "$1"; emsg <<<"$(call_trace 1)"; exit 1; }
+fail () { emsg "$@"; emsg <<<"$(call_trace 1)"; exit 1; }
 
 ####
 # fail: same as `emsg`, but also writes a call trace and exits with code=1
