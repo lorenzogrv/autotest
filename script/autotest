@@ -48,14 +48,17 @@ case "$1" in
 	allin)
 		tdir="${2:?provide a directory to search for test scripts}"
 		cd "$tdir" || exit 1
-		echo "running each script in '$tdir' directory"
-		find . -type f -exec bash -c '{
+		echo >&2 "running each script in '$tdir' directory"
+		SECONDS=0
+		find . -type f -execdir bash -c '{
 			file="{}"
 			SECONDS=0
 			"./$file" &>/dev/null
 			printf "CODE %3i IN %2is BY %s\n" $? $SECONDS "$file"
 		}' \;
-		(( $? )) && echo "TEST PASSED" || echo "TEST FAILED"
+		code=$?
+		echo >&2 "EXIT $code AFTER ${SECONDS}s"
+		exit $code
 		;;
 	script)
 		file="${2:?provide a script file to run}"
