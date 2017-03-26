@@ -3,13 +3,13 @@
 assert_function iai || exit
 
 function iai-check () {
-	autotest checkup && source <(autotest) || exit
-	info <<DONE
-#################################################
-						! All tests were run !
-#################################################
-									good job :D
-DONE
+	#autotest checkup && source <(autotest) || exit
+	case $# in
+		0) emsg "i should check the whole project" ;;
+		1) emsg "i should check the %s feature" $1 ;;
+		2) emsg "i should check the %s partial" $2 ;;
+	esac
+	info "All tests were run! good job :D"
 	warn <<IMPORTANT
 - Remember to commit your work if applicable
 - Continue with TDD and write more test scripts.
@@ -19,6 +19,7 @@ IMPORTANT
 # TODO iai interactive commands (cmds that expect stdin interaction)
 # TODO discovering things to be done: find files cowboy-coded
 # TODO discovering things to be done: find TODO comments and display them nicely
+  $(iai find | grep -i todo)
 TODOS
 }
 ##

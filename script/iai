@@ -81,7 +81,7 @@ iai () {
 ##
 
 iai-help () { cat <<HELP
-
+===
 iai
 ===
 
@@ -100,7 +100,6 @@ other available commands:
   	| sort\
   	| while read cmd; do printf "  ${cmd##iai-}"; done
   )
-
 HELP
 }
 
