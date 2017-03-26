@@ -3,8 +3,10 @@
 #      having all posible combinations of filesystem permisions,
 #      to be used by tests that require them to perform checks.
 
-cd "$(iai path db fixtures fs)" || exit
-rm -rf *
+cd "$(iai path dojo db fixtures)" || exit
+rm -rf fs
+mkdir fs && cd fs || exit
+
 touch f{r,0}{w,0}{x,0}
 mkdir -p d{r,0}{w,0}{x,0}
 chmod -r *0??
