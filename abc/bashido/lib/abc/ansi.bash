@@ -11,7 +11,6 @@ ansi () {
 	printf '%b' ${!varname}
 }
 
-BASHIDO_ANSI_RESET="$(tput sgr0)"
 BASHIDO_ANSI_BG_RED="$(tput setab 1)"
 BASHIDO_ANSI_FG_RED="$(tput setaf 1)"
 BASHIDO_ANSI_BG_BLUE="$(tput setab 4)"
@@ -29,10 +28,16 @@ BASHIDO_ANSI_FG_ORANGE="$(tput setaf 3)"
 BASHIDO_ANSI_BG_PURPLE="$(tput setab 5)"
 BASHIDO_ANSI_FG_PURPLE="$(tput setaf 5)"
 
-BASHIDO_ANSI_LOG_BEGIN="$(ansi fg.purple)"
+BASHIDO_ANSI_REV="$(tput rev)"
+BASHIDO_ANSI_DIM="$(tput dim)"
+BASHIDO_ANSI_BOLD="$(tput bold)"
+BASHIDO_ANSI_RESET="$(tput sgr0)"
+
+BASHIDO_ANSI_LOG_BEGIN="$(ansi dim)"
 BASHIDO_ANSI_LOG_TRAIL="$(ansi reset)"
-BASHIDO_ANSI_LOG_VALUE="$(tput bold)"
-BASHIDO_ANSI_LOG_VV="$(tput dim)"
+BASHIDO_ANSI_LOG_VALUE="$(ansi rev)"
+BASHIDO_ANSI_LOG_VV="$(ansi fg.purple)"
+BASHIDO_ANSI_LOG_UX="$(ansi fg.green)"
 BASHIDO_ANSI_LOG_II="$(ansi fg.blue)"
 BASHIDO_ANSI_LOG_WW="$(ansi fg.orange)"
 BASHIDO_ANSI_LOG_EE="$(ansi fg.red)"

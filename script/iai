@@ -58,7 +58,7 @@ iai () {
 				warn "there is nothing named %s" "$cmd"
 			fi
 			emsg "unknown command %s" "$1"
-			iai-help | warn
+			iai-help | utip
 			exit 1
 		fi
 	fi

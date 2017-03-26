@@ -18,7 +18,7 @@ log () {
   local lvl="${1:?'provide the log level'}"
   local msg="$2" # dont fail if empty, it could be an empty newline
   
-  case $lvl in EE|WW|II|VV) ;; *) fail "invalid log lvl '$lvl'";; esac
+  case $lvl in EE|WW|II|VV|UX) ;; *) fail "invalid log lvl '$lvl'";; esac
   
   # Research where this log message was generated
   # TODO this seems too dirty
@@ -44,7 +44,7 @@ log () {
     fi
     # TODO configurable way to enable this
     false && >&2 printf '%b%s%b' $(ansi log.begin) "[$$]#$BASH_SUBSHELL "
-    >&2 printf "$b($c%s$r$b)@%s: $c%s$t\n" "$lvl" "$fn" "$msg"
+    >&2 printf "$c%s$r $b@%s$r $t$c%s$r\n" "$lvl" "$fn" "$msg"
   fi
 }
 
@@ -54,10 +54,12 @@ log.filter () { true; }
 
 # logs messages with an error level mark (EE)
 emsg () { if (($#)); then log EE "$@"; else <&0 loog EE; fi; }
-# logs messages with an warning level mark (WW)
+# logs messages with a warning level mark (WW)
 warn () { if (($#)); then log WW "$@"; else <&0 loog WW; fi; }
 # logs messages with an info level mark (II)
 info () { if (($#)); then log II "$@"; else <&0 loog II; fi; }
+# logs messages with an info level mark (II)
+utip () { if (($#)); then log UX "$@"; else <&0 loog UX; fi; }
 # logs messages with a verbose level mark (VV)
 verb () { if (($#)); then log VV "$@"; else <&0 loog VV; fi; }
 

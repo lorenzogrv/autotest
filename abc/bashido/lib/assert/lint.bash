@@ -8,10 +8,11 @@ assert_head_equal () {
 	assert_reg_exists "$actual"
 	assert_reg_exists "$expect"
 	diff_test <(head -n $(wc -l <"$expect") "$actual") "$expect" || {
-		verb "try the following commands to quick-fix the problem:"
-		verb "    mv $actual $actual.old"
-		verb "    cat $expect $actual.old > $actual"
-		verm "    rm $actual.old"
+		utip "try the following commands to quick-fix the problem:"
+		utip "    cd $PWD"
+		utip "    mv $actual $actual.old"
+		utip "    cat $expect $actual.old > $actual"
+		utip "    rm $actual.old"
 	}
 }
 assert_tail_equal () {
@@ -19,8 +20,8 @@ assert_tail_equal () {
 	assert_reg_exists "$actual"
 	assert_reg_exists "$expect"
 	diff_test <(tail -n $(wc -l <"$expect") "$actual") "$expect" || {
-		verb "try the following commands to quick-fix the problem:"
-		verb "    cat $expect >> $actual"
+		utip "try the following commands to quick-fix the problem:"
+		utip "    cat $expect >> $actual"
 	}
 }
 ##
