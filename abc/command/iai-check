@@ -1,9 +1,15 @@
 #!/bin/bash
 
 assert_function iai || exit
+autotest checkup >/dev/null && source <(autotest) || exit
 
 function iai-check () {
-	autotest checkup >/dev/null && source <(autotest) || exit
+	# project root is researched through the builtin `iai-repo`
+  local root="$(iai-repo)"
+	test -n "$root"\
+	  && cd "$root"\
+		|| fail "current working directory is not a project (neither its parents)"\
+		;
 	case $# in
 		0) iai-check.project ;;
 		1) iai-check.feature "$1" ;;
@@ -15,16 +21,12 @@ function iai-check.partial () {
 	# checks the partial implementation of feature "$1" which is defined at $2
 	local feature="${1:?'missing partial relative path'}"
 	local partial="${2:?'missing partial relative path'}"
-	# cd to the current iai project, so iai-assert.partial is authoritative
-	cd "$(iai-repo)"\
-		&& info "checking the partial %s" "$feature/$partial"\
-		|| fail "current working directory is not a project (neither its parents)"\
-		;
-	# ensure the feature complains the filesystem structure convention
-	iai-assert.partial "$feature/${partial%%.*}"
+	# ensure the partial complains the filesystem structure convention
+	info "checking the partial %s" "$feature/$partial"
+	(iai-assert.partial "$feature/${partial%%.*}")
 	# TODO research the partial testbin
 	# TODO run the partial testbin
-	emsg "i should run $feature/$partial testbin"
+	emsg "i should run testbin test/abc/$feature/${partial%%.*}"
 	tested "$partial implementation for $feature"
   info "successfully checked %s" "$feature/$partial"
 }
@@ -32,32 +34,28 @@ function iai-check.partial () {
 function iai-check.feature () {
 	# checks the current iai-based feature whose codename matches exactly "$1"
 	local feature="${1:?'missing feature codename'}"
-	# cd to the current iai project, so iai-assert.feature is authoritative
-	cd "$(iai-repo)"\
-		&& info "checking the feature %s" "$feature"\
-		|| fail "current working directory is not a project (neither its parents)"\
-		;
 	# ensure the feature complains the filesystem structure convention
+	info "checking the feature %s" "$feature"
 	iai-assert.feature "$feature"
-	# there could be more test scripts than feature partials, run'em all
-	autotest allin "test/abc/$feature"
+	# the convention is that each file in a feature is a partial
+	# checking the feature implies checking each partial
 	find "abc/$feature" -type f -print0\
 		| sort -z\
 		| while read -d $'\0' file; do printf '%s\0' "${file##*/$feature/}"; done\
 		| while read -d $'\0' partial; do iai-check "$feature" "$partial"; done\
 		;
 	tested "all $feature partials"
+	# there could be more test scripts than feature partials, run'em all
+	autotest allin "test/abc/$feature"
+	tested "all $feature test scripts"
+	warn "some test scripts may have run twice"
   info "successfully checked %s" "$feature"
 }
 
 function iai-check.project () {
-	# checks the current iai-based project
-	# project root is researched through the builtin `iai-repo`
-  local root="$(iai-repo)"
-	test -n "$root"\
-		&& info "checking the project %s" "${root##*/}"\
-		|| fail "current working directory is not a project (neither its parents)"\
-		;
+	# checks the current iai-based project, assumed to be at $PWD
+	local root="$PWD"
+	info "checking the project %s" "${root##*/}"
 	# ensure the project complains the filesystem structure convention
 	iai-assert.project "$root"
 	# the convention is that each directory in 'abc' is a feature
