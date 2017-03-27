@@ -60,3 +60,6 @@ tested "exit 7 returns 0 does not pass assertion"
 
 
 #echo; echo "force failure"; exit 1
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

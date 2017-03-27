@@ -70,3 +70,6 @@ check that 'is_flag_enabled "C" "abC"' returns 0
 check that 'is_flag_enabled "c" "abC"' returns 1
 check that 'is_flag_enabled "" "abC"' returns 1
 
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

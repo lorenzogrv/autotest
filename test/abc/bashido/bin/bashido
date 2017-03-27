@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source <(autotest)
+
 ##
 # waits $1 seconds until process $pid finishes. If timeout is reached,
 # returns status 1 and kills the process. Returns 0 if process exits before
@@ -56,6 +58,7 @@ do
 	vim "$file"
 	continue
 done
+tested "all bashido sources can be effectively sourced within 2 seconds"
 
 # TODO test the bashido bin
 

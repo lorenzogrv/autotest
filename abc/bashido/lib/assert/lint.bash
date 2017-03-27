@@ -13,6 +13,7 @@ assert_head_equal () {
 		utip "    mv $actual $actual.old"
 		utip "    cat $expect $actual.old > $actual"
 		utip "    rm $actual.old"
+		exit 1 # TODO EALINT or the like
 	}
 }
 assert_tail_equal () {
@@ -22,6 +23,7 @@ assert_tail_equal () {
 	diff_test <(tail -n $(wc -l <"$expect") "$actual") "$expect" || {
 		utip "try the following commands to quick-fix the problem:"
 		utip "    cat $expect >> $actual"
+		exit 1 # TODO EALINT or the like
 	}
 }
 ##

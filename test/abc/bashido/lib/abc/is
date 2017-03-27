@@ -49,3 +49,6 @@ is_function ${BASH_SOURCE[0]} && { echo "echo fails (passes)"; exit 1; }
 
 
 exit 0 # if it get's executed, all tests passed
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

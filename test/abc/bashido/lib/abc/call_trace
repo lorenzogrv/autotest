@@ -1,3 +1,8 @@
 #!/bin/bash
+
+#!/bin/bash
 source "$(bashido autotest)" || exit
 teskip "write tests for the feature"
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

@@ -1,6 +1,11 @@
 #!/bin/bash
 
+source <(autotest)
+
 source "$(bashido check)" || exit
+tested "can source bashido check"
+
+teskip "test it works with autotest"
 
 # tests for iai-check
 check that iai-check works
@@ -16,3 +21,7 @@ check that iai-check works
   check end
 check end
 
+tested "an example of the check api"
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

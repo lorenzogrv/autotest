@@ -1,10 +1,15 @@
 #!/bin/bash
 
-source "$(bashido basic-array)" || { echo "can't source basic-array"; exit 1; }
+source <(autotest)
+
+source "$(bashido basic-array)"
+tested "can source bashido basic-array"
 
 # tests for array_join
 a=("foo" "bar" "baz"); join="$(array_join a)"
-test "$join" == "foo,bar,baz" || { echo "bad join: '$join'"; exit 1; }
+test "$join" == "foo,bar,baz"
+tested "array_join"
 
-echo "all basic-array tests pass"
-
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

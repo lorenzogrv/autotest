@@ -261,4 +261,4 @@ tested "output has \n as expected when actual is /dev/null and stdin is empty"
 
 ##
 # vim modeline
-# /* vim: set filetype=sh shiftwidth=2 ts=2: */
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

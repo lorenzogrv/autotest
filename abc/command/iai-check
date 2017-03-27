@@ -2,6 +2,7 @@
 
 assert_function iai || exit
 autotest checkup >/dev/null && source <(autotest) || exit
+source "$(bashido assert-lint)"
 
 function iai-check () {
 	# project root is researched through the builtin `iai-repo`
@@ -45,15 +46,36 @@ function iai-check.partial () {
 	local testbin="test/abc/$feature/${partial%%.*}"
 	(assert_reg_perm_x "$testbin")
 	tested "$feature/$partial has a test file which is executable"
-	warn "testbin lint to be implemented."
 
-	info "run testbin %s ..." "$testbin"
-	( ./"$testbin" ) &> /dev/null || {
+	# generate test stats
+	local tcount=$(grep -c "tested" "$testbin")
+	local tskips=$(grep -c "teskip" "$testbin")
+	verb "found $(( $tcount + $tskips )) tests in '$testbin'"
+
+	# lint the testbin
+	(( $tcount )) || (( $tskips ))
+	tested "there is at least 1 test call in '$testbin'"
+	(( $tskips )) && warn "$tskips skiped tests in '$testbin'"
+
+	local headfile="dojo/db/convention/bash-head"
+	local tailfile="dojo/db/convention/bash-tail"
+	assert_head_equal "$testbin" "$headfile"
+	tested "file '$testbin' head is '$headfile'"
+	assert_tail_equal "$testbin" "$tailfile"
+	tested "file '$testbin' tail is '$tailfile'"
+
+	# TODO calculate progress better
+	verb "run testbin %s ..." "$testbin"; SECONDS=0
+	(
+	  # TODO count the times that tested/teskip are called
+		./"$testbin"
+	) &> /dev/null || {
 	  utip "test exited with code %s" $?
 		utip "Run %s to see details" "./$testbin"
 		false
   }
 	tested "$partial implementation for $feature"
+	verb "ran testbin in %s seconds" "$SECONDS"
   info "successfully checked %s" "$feature/$partial"
 }
 
