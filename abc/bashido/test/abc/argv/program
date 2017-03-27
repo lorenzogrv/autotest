@@ -1,0 +1,11 @@
+#!/bin/bash
+
+source <(autotest) || exit
+
+source "$(bashido)/example/program.bash"
+tested "example argv.program can be sourced"
+
+teskip "there should be more tests"
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

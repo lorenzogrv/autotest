@@ -13,7 +13,7 @@ bashido () {
 
 (( $# )) || { bashido; exit; }
 
-file="$(bashido)/lib/${1//-//}.bash"
+file="$(bashido)/abc/${1//-//}.bash"
 test -r "$file" && echo "$file" || {
   >&2 echo "BASHIDO ERROR: '$file' is not readable"
 	exit 1

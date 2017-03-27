@@ -12,7 +12,7 @@ function iai-check () {
 		|| fail "current working directory is not a project (neither its parents)"\
 		;
 	case $# in
-		0) iai-check.project ;;
+		0) iai-check.project "$root" ;;
 		1) iai-assert.project "$root"; iai-check.feature "$1" ;;
 		2) iai-assert.feature "$1"; iai-check.partial "$1" "$2" ;;
 		*) fail "too much arguments (%s given)" $# ;;
@@ -57,8 +57,8 @@ function iai-check.partial () {
 	tested "there is at least 1 test call in '$testbin'"
 	(( $tskips )) && warn "$tskips skiped tests in '$testbin'"
 
-	local headfile="dojo/db/convention/bash-head"
-	local tailfile="dojo/db/convention/bash-tail"
+	local headfile="$(iai-path dojo/db/convention/bash-head)"
+	local tailfile="$(iai-path dojo/db/convention/bash-tail)"
 	assert_head_equal "$testbin" "$headfile"
 	tested "file '$testbin' head is '$headfile'"
 	assert_tail_equal "$testbin" "$tailfile"
@@ -82,6 +82,16 @@ function iai-check.partial () {
 function iai-check.feature () {
 	# checks the current iai-based feature whose codename matches exactly "$1"
 	local feature="${1:?'missing feature codename'}"
+
+  if test -f "abc/$feature/package.json"
+	then
+		info "the feature %s is a project on its own" "$feature"
+		local oldpwd="$PWD" newpwd="$PWD/abc/$feature"
+		cd "$newpwd" || exit
+		iai-check.project "$newpwd"
+		cd "$oldpwd"
+		return
+	fi
 
 	info "checking the feature %s" "$feature"
 	iai-assert.feature "$feature"
@@ -114,7 +124,7 @@ function iai-assert.feature () {
 
 function iai-check.project () {
 	# checks the current iai-based project, assumed to be at $PWD
-	local root="$PWD"
+	local root="${1:?'missing project root'}"
 	info "checking the project %s" "${root##*/}"
 	iai-assert.project "$root"
 	# the convention is that each directory in 'abc' is a feature
@@ -133,10 +143,11 @@ function iai-assert.project () {
 	# asserts that project at $1 complains with the iai convention
 	local root="${1:?'missing the project root'}"
 	# the convention is that each project must contain the following:
+	assert_reg_exists "$root/README.md"
+	assert_reg_exists "$root/package.json"
 	assert_dir_exists "$root/abc"
 	assert_dir_exists "$root/dojo"
 	assert_dir_exists "$root/test"
-	assert_reg_exists "$root/README.md"
 }
 
 function iai-check.done () {
