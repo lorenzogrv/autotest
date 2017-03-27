@@ -2,6 +2,7 @@ assert_function iai || exit
 
 function iai-todo () {
 	# provides an interactive api to properly manage the things to be done
+	# @argv: {cmd} [...]
 	##
 	test -n "$1" || { emsg "missing command"; iai-todo.help | utip; exit 1; }
 
@@ -15,7 +16,33 @@ function iai-todo () {
 	$cmd "$@"
 }
 
+function iai-todo.files () {
+	# researches files where the todo keyword is present
+	# TODO flag -z prints only files null-separated
+	##
+  grep --color=always -d recurse -Zcw TODO $PWD/* 2>/dev/null\
+		| while read -d $'\0' file; do
+	      read count; test $count -gt 0 || continue
+				printf '%3i %s\n' $count "$file"
+			done\
+		|& less -R\
+		;
+}
+
+function iai-todo.view () {
+	# 
+	##
+  grep -ci "TODO" test/bash/*
+}
+
+function iai.subcommand () {
+	read fn line file <<<"$(caller 0)"
+}
+
+# TODO iai.subcommand and the like
 function iai-todo.help () {
+	# this is the help help
+	##
 	cat <<HELP
 ########
 iai todo
@@ -36,7 +63,7 @@ HELP
 	  local cmd="iai-todo.$1"
 		if is_function "$cmd"
 		then
-			<<<"$(caller)" read l file
+			<<<"$(caller)" read ln file
 			read -d : l <<<"$(grep -n "$cmd" "$file")"
 			local n=2 # dont understand why this bug
 			while read line; do
@@ -53,17 +80,6 @@ HELP
 	fi
 }
 
-function iai-todo.find () {
-	# this is the help for find
-	##
-  grep --color=always -d recurse -ni todo ./* | less -R
-}
-
-function iai-todo.count () {
-	# this is the help for count
-	##
-  grep -ci "TODO" test/bash/*
-}
 ##
 # vim modeline
 # /* vim: set filetype=sh ts=2 shiftwidth=2: */
