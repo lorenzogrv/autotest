@@ -12,22 +12,47 @@ function iai-check () {
 		;
 	case $# in
 		0) iai-check.project ;;
-		1) iai-check.feature "$1" ;;
-		2) iai-check.partial "$1" "$2" ;;
+		1) iai-assert.project "$root"; iai-check.feature "$1" ;;
+		2) iai-assert.feature "$1"; iai-check.partial "$1" "$2" ;;
 		*) fail "too much arguments (%s given)" $# ;;
 	esac
+	iai-check.done
 }
 
 function iai-check.partial () {
 	# checks the partial implementation of feature "$1" which is defined at $2
-	local feature="${1:?'missing partial relative path'}"
+	local feature="${1:?'missing feature codename'}"
 	local partial="${2:?'missing partial relative path'}"
-	# ensure the partial complains the filesystem structure convention
+
+	# research partial identifiers
+	local codename="${partial%%.*}" # the relative path without file extension
+	local basename="${partial##*/}" # the relative path file basename
+	local prefix="${basename%%.*}" # the file codename
+	local suffix="${basename#*.}" # ALL the file extensions
+
+	# README files are skiped
+	test "$prefix" == "README" && return 0
+
 	info "checking the partial %s" "$feature/$partial"
-	(iai-assert.partial "$feature/${partial%%.*}")
-	# TODO research the partial testbin
-	# TODO run the partial testbin
-	emsg "i should run testbin test/abc/$feature/${partial%%.*}"
+
+	# partials can't be hidden files
+	# TODO maybe should return 0 and emit a warn instead
+	test "${basename:0:1}" != "."
+	tested "$feature/$partial, basenamed $basename, is not a hidden file"
+
+	# the convention is that each partial must have its test
+	# TODO tests could have .bash suffix, or even .js or the like
+	local testbin="test/abc/$feature/${partial%%.*}"
+	(assert_reg_perm_x "$testbin")
+	tested "$feature/$partial has a test file which is executable"
+	warn "testbin lint to be implemented."
+
+	info "running %s ..." "$testbin"
+	( ./"$testbin" ) &> /dev/null || {
+	  utip "test exited with code %s" $?
+		utip "Run %s to see details" "./$testbin"
+		false
+  }
 	tested "$partial implementation for $feature"
   info "successfully checked %s" "$feature/$partial"
 }
@@ -35,7 +60,7 @@ function iai-check.partial () {
 function iai-check.feature () {
 	# checks the current iai-based feature whose codename matches exactly "$1"
 	local feature="${1:?'missing feature codename'}"
-	# ensure the feature complains the filesystem structure convention
+
 	info "checking the feature %s" "$feature"
 	iai-assert.feature "$feature"
 	# the convention is that each file in a feature is a partial
@@ -43,7 +68,9 @@ function iai-check.feature () {
 	find "abc/$feature" -type f -print0\
 		| sort -z\
 		| while read -d $'\0' file; do printf '%s\0' "${file##*/$feature/}"; done\
-		| while read -d $'\0' partial; do iai-check "$feature" "$partial"; done\
+		| while read -d $'\0' partial; do
+				iai-check.partial "$feature" "$partial"
+			done\
 		;
 	tested "all $feature partials"
 	# there could be more test scripts than feature partials, run'em all
@@ -53,22 +80,44 @@ function iai-check.feature () {
   info "successfully checked %s" "$feature"
 }
 
+# TODO does iai-assert.feature belong here?
+function iai-assert.feature () {
+	# asserts the feature whose codename is $1 complains with the iai convention
+	# to rely on this function, ensure the $PWD is a valid project first
+	local codename="${1:?'missing the feature codename'}"
+	# the convention is that each feature codename must be present at:
+	assert_dir_exists "$PWD/abc/$codename"
+	assert_dir_exists "$PWD/test/abc/$codename"
+}
+
 function iai-check.project () {
 	# checks the current iai-based project, assumed to be at $PWD
 	local root="$PWD"
 	info "checking the project %s" "${root##*/}"
-	# ensure the project complains the filesystem structure convention
 	iai-assert.project "$root"
 	# the convention is that each directory in 'abc' is a feature
 	# checking the whole project implies checking each feature
 	find "$root/abc" -mindepth 1 -maxdepth 1 -type d -print0\
 		| sort -z\
 		| xargs -0 basename -az\
-		| while read -d $'\0' feature; do iai-check $feature; done\
+		| while read -d $'\0' feature; do iai-check.feature $feature; done\
 		;
 	tested "all ${root##*/} features"
   info "successfully checked %s project" "${root##*/}"
+}
 
+# TODO does iai-assert.project belong here?
+function iai-assert.project () {
+	# asserts that project at $1 complains with the iai convention
+	local root="${1:?'missing the project root'}"
+	# the convention is that each project must contain the following:
+	assert_dir_exists "$root/abc"
+	assert_dir_exists "$root/dojo"
+	assert_dir_exists "$root/test"
+	assert_reg_exists "$root/README.md"
+}
+
+function iai-check.done () {
 	info "All tests were run! good job :D"
 	warn <<IMPORTANT
 - Remember to commit your work if applicable
@@ -82,35 +131,6 @@ IMPORTANT
   $(iai find | grep -i todo)
 TODOS
 }
-
-# TODO iai-assert.project does not belong here
-function iai-assert.project () {
-	# asserts that project at $1 complains with the iai convention
-	local root="${1:?'missing the project root'}"
-	# the convention is that each project must contain the following:
-	assert_dir_exists "$root/abc"
-	assert_dir_exists "$root/dojo"
-	assert_dir_exists "$root/test"
-	assert_reg_exists "$root/README.md"
-}
-
-function iai-assert.feature () {
-	# asserts the feature whose codename is $1 complains with the iai convention
-	# to rely on this function, ensure the $PWD is a valid project first
-	local codename="${1:?'missing the feature codename'}"
-	# the convention is that each feature codename must be present at:
-	assert_dir_exists "$PWD/abc/$codename"
-	assert_dir_exists "$PWD/test/abc/$codename"
-}
-
-function iai-assert.partial () {
-	# asserts the partial codenamed $1 complains with the iai convention
-	# to rely on this function, ensure the $PWD is a valid project first
-	local codename="${1:?'missing the partial codename'}"
-	# the convention is that each partial codename must be present at:
-	warn "partial %s convention not implemented" "$codename"
-}
-
 ##
 # vim modeline
 # /* vim: set filetype=sh ts=2 shiftwidth=2: */

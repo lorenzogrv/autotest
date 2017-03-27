@@ -1,7 +1,6 @@
 #!/bin/bash
 
-source "$(bashido abc)" || exit 1
-source "$(bashido check)" || cant "source check.bash"
+source "$(bashido check)" || exit
 
 # tests for iai-check
 check that iai-check works

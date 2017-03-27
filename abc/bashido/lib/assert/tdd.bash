@@ -1,4 +1,5 @@
 source "$(bashido assert-basic)"
+source "$(bashido abc-ansi)"
 
 ##
 # util to test that two sources output the same
@@ -22,7 +23,7 @@ diff_str () {
 	# formatting shit - TODO refactor this please
 	local old="$(tput setab 3)"
 	local new="$(tput setab 2)"
-	local clr="$(tput sgr0)"
+	local clr="$(ansi reset)"
 	local all="$(tput setab 7)$(tput setaf 0)"
 	local w=$(tput cols) bar="|"
 	if ! (( w % 2 )); then bar="||"; fi # TODO configurable bar means if bar is odd too

@@ -31,7 +31,7 @@ BASHIDO_ANSI_FG_PURPLE="$(tput setaf 5)"
 BASHIDO_ANSI_REV="$(tput rev)"
 BASHIDO_ANSI_DIM="$(tput dim)"
 BASHIDO_ANSI_BOLD="$(tput bold)"
-BASHIDO_ANSI_RESET="$(tput sgr0)"
+BASHIDO_ANSI_RESET=$'\E[m'
 
 BASHIDO_ANSI_LOG_BEGIN="$(ansi dim)"
 BASHIDO_ANSI_LOG_TRAIL="$(ansi reset)"

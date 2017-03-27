@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "$(bashido autotest)" || exit
+source <(autotest) || exit
 source "$(bashido assert-tdd)" || exit
 source "$(bashido basic-str)" || exit
 
@@ -62,7 +62,7 @@ while IFS= read line; do
 done <<<"$out"
 (
   print_details () {
-		echo "- - - DISPLAY (${#out} lines) - - -"; printf "%s\n" "${out}"
+		echo "- - - DISPLAY ($(wc -l <<<"$out") lines) - - -"; printf "%s\n" "${out}"
 		echo "- - - ERRORS (${#errors[@]} found) - - -"; printf "%s\n" "${errors[@]}"
 		echo "- - - CONTENT (${#output[@]} lines) - - -"; printf "%q\n" "${output[@]}"
 		false

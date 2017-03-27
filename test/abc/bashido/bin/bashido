@@ -44,7 +44,9 @@ check_sources_in () {
 	printf ' %s\n' 'OK'
 }
 
-while !	check_sources_in "abc/bashido/lib"
+IAI_ROOT="$(iai root)"
+
+while !	check_sources_in "$IAI_ROOT/abc/bashido/lib"
 do
 	# TODO this is how to determine if stdin is a tty (interactive mode)
 	test -t 0 || exit 1
@@ -55,8 +57,8 @@ do
 	continue
 done
 
-source <(autotest)
-autotest allin "abc/bashido/test"
+# TODO test the bashido bin
+
 ##
 # vim modeline
 # /* vim: set filetype=sh ts=2 shiftwidth=2: */
