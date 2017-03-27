@@ -40,6 +40,24 @@ The fact starting an *abstract*'s life-cycle is the need to perform a
 
 - - -
 
+# Annex 1.1: Identify an *unknown* task to be done
+
+The strategy consists on researching the things to be done.
+
+## Definition
+
+*abstract* to search for the *unknown*.
+
+## Steps
+
+1. Recursively search the project directory to find the "todo" keyword in files
+2. Generate the todo description using the `iai todo describe` command
+3. When description matches an existant abstract codename, ignore that match
+4. When not, determine if an existant abstract can perform that task
+5. When not, procede to Annex 1.2. Else case, repeat from step 1.
+
+- - -
+
 # Annex 2: Write the *abstract* and adopt it as standard
 
 The document must meet the requeriments specified on this *abstract* Annex 2.1.
