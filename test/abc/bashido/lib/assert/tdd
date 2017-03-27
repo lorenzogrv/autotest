@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "$(bashido autotest)" || exit
+source <(autotest) || exit
 
 source "$(bashido assert-basic)" || exit
 source "$(bashido assert-tdd)" || exit

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "$(bashido autotest)" || exit
+source <(autotest) || exit
 source "$(bashido basic-str)" || exit
 
 # tests for str_repeat
@@ -32,7 +32,7 @@ source "$(bashido basic-str)" || exit
 )
 
 # TODO maybe this tests should depend on a smaller tool
-source "$(bashido check)" || exit
+source "$(bashido check-check)" || exit
 
 ##
 # string1 contains 2

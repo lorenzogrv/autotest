@@ -9,8 +9,8 @@ source "$(bashido abc-log)" || exit
 source "$(bashido abc-is)" || exit
 source "$(bashido basic-array)" || exit
 source "$(bashido basic-str)" || exit
-source "$(bashido math)" || exit
-source "$(bashido checkdb)" || exit
+source "$(bashido basic-math)" || exit
+source "$(bashido check-checkdb)" || exit
 
 ##
 # provides an expressive interface to write tests

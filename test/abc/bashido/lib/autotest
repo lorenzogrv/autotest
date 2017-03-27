@@ -1,7 +1,7 @@
 #!/bin/bash
 
 source <(autotest) || exit
-teskip "there should be some tests for this"
+teskip "autotest is no longer part of bashido"
 ##
 # vim modeline
 # /* vim: set filetype=sh ts=2 shiftwidth=2: */

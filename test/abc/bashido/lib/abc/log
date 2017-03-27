@@ -1,9 +1,9 @@
 #!/bin/bash
 
-source "$(bashido autotest)" || exit
+source <(autotest) || exit
 
-source "$(bashido abc-log)" || exit
-tested "bashlib 'abcs' can be sourced"
+source "$(bashido abc-log)"
+tested "bashlib 'abc-log' can be sourced"
 
 out=$(eche "some text" 2>/dev/null)
 err=$(eche "some text" 2>&1 1>/dev/null)

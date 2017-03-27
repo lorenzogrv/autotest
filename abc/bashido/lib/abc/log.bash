@@ -6,6 +6,7 @@
 # TODO document the usage
 
 source "$(bashido abc-ansi)"
+source "$(bashido abc-call_trace)"
 
 # same as `echo` but output to stderr
 eche () { >&2 echo "$@"; }

@@ -2,7 +2,8 @@
 
 source <(autotest)
 
-source "$(bashido check)" || exit
+# TODO check-check is not a good identifier
+source "$(bashido check-check)" || exit
 tested "can source bashido check"
 
 teskip "test it works with autotest"
