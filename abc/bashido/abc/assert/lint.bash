@@ -1,6 +1,6 @@
 # no shebang because this file is meant to be sourced by bash
 
-source "$(bashido assert-basic)"
+source "$(bashido assert-aerror)"
 source "$(bashido assert-tdd)"
 
 assert_head_equal () {

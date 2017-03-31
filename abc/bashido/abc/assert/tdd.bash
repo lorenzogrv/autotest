@@ -123,6 +123,35 @@ assert_1_outputs_2 () {
 # - should use --suppress-common-lines too?
   diff --width=$(tput cols) --color=always <(eval $1) <(echo "$2")
 }
+
+test_cmd () {
+	local cmdline="$1" cmd="$2" val="$3"
+	case "$cmd" in
+		--code-is)
+			( eval "$cmdline" ) 1>/dev/null
+			( assert_code $val )
+			tested "running '$cmdline' returns '$val'"
+			;;
+		--outputs)
+			case "$val" in
+				"")
+					diff_test <( eval "$cmdline" ) <&0
+					tested "running '$cmdline' outputs given stdin"
+					;;
+				nothing)
+					test "$( eval "$cmdline" )" == ""
+					tested "running '$cmdline' outputs nothing"
+					;;
+				*)
+					diff_test <( eval "$cmdline" ) <<<"$val"
+					tested "running '$cmdline' outputs given string"
+					;;
+			esac
+			;;
+		*)
+			echo "test_cmd: unknown action '$cmd'"
+	esac
+}
 ##
 # vim modeline
 # /* vim: set filetype=sh shiftwidth=2 ts=2: */
