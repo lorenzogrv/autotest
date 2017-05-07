@@ -18,21 +18,23 @@ function iai-todo () {
 
 function iai-todo.files () {
 	# researches files where the todo keyword is present
+	# TODO given a directory, search in it instead of searching in PWD
 	# TODO flag -z prints only files null-separated
 	##
   grep --color=always -d recurse -Zcw TODO $PWD/* 2>/dev/null\
 		| while read -d $'\0' file; do
 	      read count; test $count -gt 0 || continue
-				printf '%3i %s\n' $count "$file"
+				printf '%3i %s\n' $count "${file##$PWD}"
 			done\
 		|& less -R\
 		;
 }
 
 function iai-todo.view () {
-	# 
+	# display todos at a given file
+	# @argv {file}
 	##
-  grep -ci "TODO" test/bash/*
+  grep -w TODO "${1:?'missing file to view todos'}"
 }
 
 function iai.subcommand () {
