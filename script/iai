@@ -51,6 +51,7 @@ iai () {
 			test -x "$cmd" && warn "command %s definition file is executable" $cmd
 			source "$cmd" || fail "Unexpected exit code %s while sourcing %s" $? $cmd
 			info "loaded command %s" "$cmd"
+			assert_function "$cmd" # there is no function named $cmd at that file
 		else
 			if test -n "$typ"; then
 				emsg "type -t '$cmd' reports '$typ'"
