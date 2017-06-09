@@ -10,7 +10,7 @@ function iai-dropboxes () {
   for dropbox in $dropboxes
   do
     HOME="/home/$USER/$dropbox"
-		HOME="$HOME" "$HOME/.dropbox-dist/dropboxd" 2>(emsg) &
+		HOME="$HOME" "$HOME/.dropbox-dist/dropboxd" 2>/dev/null &
 		info "started the dropbox daemon for '$HOME' ($? - $!)"
   done
 }
