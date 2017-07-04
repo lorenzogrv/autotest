@@ -14,7 +14,7 @@ iai.dependencies () {
 	type -t bashido >/dev/null || { echo >&2 "FATAL: missing bashido"; exit 1; }
 	source "$(bashido abc-call_trace)" || exit
 	source "$(bashido abc-log)" || exit
-	source "$(bashido assert-basic)" || exit
+	source "$(bashido assert.common)" || exit
 	log.filter () {
 		return 0 # comment this line for max amount of verbosity
 		return 1
@@ -101,6 +101,12 @@ other available commands:
   	| sort\
   	| while read cmd; do printf "  ${cmd##iai-}"; done
   )
+
+output of \`iai tree .\`:
+$(iai tree .)
+
+content of \`./help.md\`:
+$(cat ./help.md)
 HELP
 }
 
@@ -108,7 +114,25 @@ HELP
 # `iai date` and `iai hora` standarize the date and time formats
 ##
 iai-date () { date --rfc-3339=date || exit 1; }
-iai-hora () { date --rfc-3339=seconds || exit 1; }
+iai-time () { date --rfc-3339=seconds || exit 1; }
+
+##
+# `iai tree` standarizes the way to display the contents of a directory
+# `iai ls` standarizes the way to list the contents of a directory
+##
+iai-tree () { tree -L 2 --dirsfirst --sort=name --noreport -C || exit 1; }
+iai-ls () { ls -lat || exit 1; }
+
+##
+##
+alias ll='ls -l'
+#alias la='ls -A'
+#alias l='ls -CF'
+
+# see http://unix.stackexchange.com/a/81699
+iai-wanip () { dig +short myip.opendns.com @resolver1.opendns.com || exit 1; }
+# see https://askubuntu.com/a/604691/167333
+iai-lanip () { ip route get 8.8.8.8 | awk '{print $NF; exit}' || exit 1; }
 
 ##
 # `iai root` outputs the directory where iai resides (the "iai root").
@@ -141,6 +165,7 @@ iai-dir () {
 
 ##
 # `iai-path` joins each argument to `iai-root` with slashes between.
+# TODO: `iai path` is vage and not descriptive enought
 ##
 iai-path () {
   printf "%s" $(iai-root)
