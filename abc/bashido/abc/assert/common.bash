@@ -1,7 +1,4 @@
-source "$(bashido abc-log)" || exit
-source "$(bashido abc-is)" || exit
-source "$(bashido basic-str)" || exit
-source "$(bashido assert-aerror)" || exit
+source "$(bashido abc.common)" || exit
 
 #TODO assert_var_set: http://stackoverflow.com/questions/3601515/how-to-check-if-a-variable-is-set-in-bash
 

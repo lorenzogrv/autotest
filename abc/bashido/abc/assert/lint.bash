@@ -1,7 +1,8 @@
 # no shebang because this file is meant to be sourced by bash
 
-source "$(bashido assert-aerror)"
-source "$(bashido assert-tdd)"
+source "$(bashido abc.common)"
+bashido.require "assert.errors"
+bashido.require "assert.equal"
 
 assert_head_equal () {
 	local actual="$1" expect="$2"
