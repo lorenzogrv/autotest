@@ -1,11 +1,11 @@
 source "$(bashido abc.log)" || exit
+source "$(bashido abc.error)" || exit
 
 declare -a BASHIDO_REQUIRED
 function bashido.require () {
 	local ref="${1:?'missing lib reference'}"
-	echo "require $1"
-	cat <<<"${BASHIDO_REQUIRED}"
-	grep -w "$1" <<<"$BASHIDO_REQUIRED"
+	verb "process $$ requires sourcing %s" "$1"
+	#echo "${BASHIDO_REQUIRED[@]}"
 	if grep -e "$1" <<<"${BASHIDO_REQUIRED[@]}"
 	then
 		warn "process $$ already required $ref"

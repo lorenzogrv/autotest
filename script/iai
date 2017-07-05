@@ -120,14 +120,8 @@ iai-time () { date --rfc-3339=seconds || exit 1; }
 # `iai tree` standarizes the way to display the contents of a directory
 # `iai ls` standarizes the way to list the contents of a directory
 ##
-iai-tree () { tree -L 2 --dirsfirst --sort=name --noreport -C || exit 1; }
-iai-ls () { ls -lat || exit 1; }
-
-##
-##
-alias ll='ls -l'
-#alias la='ls -A'
-#alias l='ls -CF'
+iai-tree () { tree -L 2 --dirsfirst --sort=name --noreport -C "$@" || exit 1; }
+iai-ls () { ls -lht --color=always "$@" || exit 1; }
 
 # see http://unix.stackexchange.com/a/81699
 iai-wanip () { dig +short myip.opendns.com @resolver1.opendns.com || exit 1; }

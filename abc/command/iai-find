@@ -2,12 +2,24 @@ assert_function iai || exit
 
 iai-find () {
 	[[ "$@" =~ "--help" ]] && {
-		echo "here should be some help text"
+		utip "here should be some help text"
 		exit 0
 	}
+
+	## TODO could exist other keywords
+	if test "$1" = 'in'
 	local iai_root="$(iai-root)"
 	local root="$iai_root"
-	if test "$1" = 'in'; then shift; root="$root/$1"; shift; fi
+	then
+		shift
+		root="$root/$1"
+		shift
+  else
+		shift
+	fi
+
+	local args=""
+	test -n "$1" && fail "argument not expected"
 
 	# -O2 enables Optimization Level 2 (see `man find`)
 	find -O2 "$root" \
