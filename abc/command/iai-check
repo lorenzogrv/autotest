@@ -47,13 +47,16 @@ function iai-check.partial () {
 	(assert_reg_perm_x "$testbin")
 	tested "$feature/$partial has a test file which is executable"
 
-	# generate test stats
-	local tcount=$(grep -c "tested" "$testbin")
-	local tskips=$(grep -c "teskip" "$testbin")
+	# generate test stats (autotest)
+	local tcount=$(grep -cw "tested" "$testbin")
+	local tskips=$(grep -cw "teskip" "$testbin")
 	verb "found $(( $tcount + $tskips )) tests in '$testbin'"
+	# generate test stats (bashido check)
+	local ccount=$(grep -cw "check" "$testbin")
+	verb "found $(( $ccount )) checks in '$testbin'"
 
 	# lint the testbin
-	(( $tcount )) || (( $tskips ))
+	(( $tcount )) || (( $tskips )) || (( $ccount ))
 	tested "there is at least 1 test call in '$testbin'"
 	(( $tskips )) && warn "$tskips skiped tests in '$testbin'"
 
@@ -95,6 +98,21 @@ function iai-check.feature () {
 
 	info "checking the feature %s" "$feature"
 	iai-assert.feature "$feature"
+	# feature should have tests or it's not possible to perform any check
+	local count=$(find "test/abc/$feature" -type f | wc -l)
+	echo "test count is $count"
+	# when no tests found, tell user where they should be
+	if test "$count" -eq 0; then
+		emsg "no tests found for %s" "$feature"
+	  utip "Tests should be files in test/abc/$feature"
+	  iai tree test/abc/$feature | utip
+		exit 1
+	else
+	  verb "found $(( $count )) tests for '$feature'"
+	fi
+	test "$count" -gt 0
+	tested "$feature has at least one testbin"
+
 	# the convention is that each file in a feature is a partial
 	# checking the feature implies checking each partial
 	find "abc/$feature" -type f -print0\

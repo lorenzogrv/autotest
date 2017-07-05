@@ -65,6 +65,8 @@ assert_code () {
   Error $ecode "exit code was $xcode, while expecting $1."
 }
 
+assert.last-code-is () { assert_code "$@"; }
+
 ##
 # vim modeline
 # /* vim: set filetype=sh shiftwidth=2 ts=2: */

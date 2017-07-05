@@ -1,59 +1,29 @@
 #!/bin/bash
 
-source <(autotest) || exit
-source "$(bashido assert-tdd)" || exit
+source "$(bashido check.command)" || exit
+
+line="iai find --help >/dev/null"
+check that command "$line" code-is 0
+check that command "$line" outputs nothing
+
+line="iai find >/dev/null"
+check that command "$line" code-is 0
+check that command "$line" outputs nothing
 
 REPO_DIR=$(git rev-parse --show-toplevel)
 
-test_cmd () {
-	local cmdline="$1" cmd="$2" val="$3"
-	case "$cmd" in
-		--code-is)
-			( eval "$cmdline" ) 1>/dev/null
-			( assert_code $val )
-			tested "running '$cmdline' returns '$val'"
-			;;
-		--outputs)
-			case "$val" in
-				"")
-					diff_test <( eval "$cmdline" ) <&0
-					tested "running '$cmdline' outputs given stdin"
-					;;
-				nothing)
-					test "$( eval "$cmdline" )" == ""
-					tested "running '$cmdline' outputs nothing"
-					;;
-				*)
-					diff_test <( eval "$cmdline" ) <<<"$val"
-					tested "running '$cmdline' outputs given string"
-					;;
-			esac
-			;;
-		*)
-			echo "test_cmd: unknown action '$cmd'"
-	esac
-}
-
-line="iai find --help >/dev/null"
-test_cmd "$line" --code-is 0
-test_cmd "$line" --outputs nothing
-
-line="iai find >/dev/null"
-test_cmd "$line" --code-is 0
-test_cmd "$line" --outputs nothing
-
 line="iai find -samefile ."
-test_cmd "$line" --code-is 0
-test_cmd "$line" --outputs "$(iai root)"
+check that command "$line" code-is 0
+check that command "$line" outputs "$(iai root)"
 
 # now i have nested projects, so this test got broken
 line="iai find -maxdepth 1 -type d -name test"
-#test_cmd "$line" --code-is 0
-#test_cmd "$line" --outputs "$REPO_DIR/test"
+#check that command "$line" code-is 0
+#check that command "$line" outputs "$REPO_DIR/test"
 
 line="iai find in dojo/db/fixtures/fs -type f | sort"
-test_cmd "$line" --code-is 0
-test_cmd "$line" --outputs <<STDOUT
+check that command "$line" code-is 0
+check that command "$line" outputs <<STDOUT
 $REPO_DIR/dojo/db/fixtures/fs/f000
 $REPO_DIR/dojo/db/fixtures/fs/f00x
 $REPO_DIR/dojo/db/fixtures/fs/f0w0
