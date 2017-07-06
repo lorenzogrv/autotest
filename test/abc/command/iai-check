@@ -1,5 +1,6 @@
 #!/bin/bash
 
+autotest checkup && source <(autotest) || exit
 source "$(bashido check.command)" || exit
 
 REPO_DIR=$(git rev-parse --show-toplevel)
