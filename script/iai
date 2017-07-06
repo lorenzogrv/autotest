@@ -101,13 +101,18 @@ other available commands:
   	| sort\
   	| while read cmd; do printf "  ${cmd##iai-}"; done
   )
-
-output of \`iai tree .\`:
-$(iai tree .)
-
-content of \`./help.md\`:
-$(cat ./help.md)
 HELP
+  iai.dependencies || exit
+  if test -f ./README.md
+	then
+		utip "content of './README.md':"
+		utip < ./README.md
+	else
+		warn "no README.md file was found here (%s)" "$(pwd)"
+	  utip "you should init README.md with a tree description with '%s'"\
+		 	"iai tree . > README.md"
+    iai-tree .
+	fi
 }
 
 ##
@@ -123,9 +128,22 @@ iai-time () { date --rfc-3339=seconds || exit 1; }
 iai-tree () { tree -L 2 --dirsfirst --sort=name --noreport -C "$@" || exit 1; }
 iai-ls () { ls -lht --color=always "$@" || exit 1; }
 
-# see http://unix.stackexchange.com/a/81699
-iai-wanip () { dig +short myip.opendns.com @resolver1.opendns.com || exit 1; }
-# see https://askubuntu.com/a/604691/167333
+##
+# `iai wanip` provides a way to research the system IP within the cloud.
+# It depends on `dig`. See http://unix.stackexchange.com/a/81699
+##
+iai-wanip () {
+  dig +short myip.opendns.com @resolver1.opendns.com || {
+		iai.dependencies
+		emsg "dig command failed, see above for details"
+		type dig &>/dev/null || utip "dig seems not available. Try '%s'"\
+			"apt install dnstools"
+	}
+}
+##
+# `iai lanip` provides a way to research the system IP within the LAN.
+# See https://askubuntu.com/a/604691/167333
+##
 iai-lanip () { ip route get 8.8.8.8 | awk '{print $NF; exit}' || exit 1; }
 
 ##
