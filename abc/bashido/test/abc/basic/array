@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source <(autotest)
+autotest checkup && source <(autotest) || exit
 
 source "$(bashido basic-array)"
 tested "can source bashido basic-array"

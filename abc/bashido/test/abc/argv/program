@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source <(autotest) || exit
+autotest checkup && source <(autotest) || exit
 
 source "$(bashido)/example/program.bash"
 tested "example argv.program can be sourced"

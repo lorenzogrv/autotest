@@ -1,6 +1,7 @@
 #!/bin/bash
 
-source <(autotest) || exit
+autotest checkup && source <(autotest) || exit
+
 source "$(bashido basic-str)" || exit
 
 # tests for str_repeat

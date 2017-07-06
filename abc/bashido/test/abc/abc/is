@@ -1,5 +1,7 @@
 #!/bin/bash
 
+autotest checkup && source <(autotest) || exit
+
 source "$(bashido abc-is)"
 
 # TODO cleanup this ugly test file please

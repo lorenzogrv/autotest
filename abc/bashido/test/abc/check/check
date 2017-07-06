@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source <(autotest)
+autotest checkup && source <(autotest) || exit
 
 # TODO check-check is not a good identifier
 source "$(bashido check-check)" || exit

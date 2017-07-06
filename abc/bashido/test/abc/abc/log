@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source <(autotest) || exit
+autotest checkup && source <(autotest) || exit
 
 source "$(bashido abc-log)"
 tested "bashlib 'abc-log' can be sourced"
