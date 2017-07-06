@@ -2,7 +2,7 @@
 
 autotest checkup && source <(autotest) || exit
 
-teskip "there should be some tests for this"
+tested "teskip implementation within autotest passes tests"
 
 ##
 # vim modeline
