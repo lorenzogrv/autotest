@@ -7,23 +7,22 @@ source "$(bashido assert-lint)"
 function iai-check () {
 	# project root is researched through the builtin `iai-repo`
   local root="$(iai-repo)"
-	test -n "$root"\
-	  && cd "$root"\
-		|| fail "current working directory is not a project (neither its parents)"\
-		;
 	case $# in
-		0) iai-check.project "$root" ;;
-		1) iai-assert.project "$root"; iai-check.feature "$1" ;;
-		2) iai-assert.feature "$1"; iai-check.partial "$1" "$2" ;;
+		0) iai check.project "$root" ;;
+		1) iai lint.project "$root"; iai check.feature "$1" ;;
+		2) iai lint.feature "$1"; iai check.partial "$2" ;;
 		*) fail "too much arguments (%s given)" $# ;;
 	esac
-	iai-check.done
+	iai check.done
 }
 
 function iai-check.partial () {
-	# checks the partial implementation of feature "$1" which is defined at $2
-	local feature="${1:?'missing feature codename'}"
-	local partial="${2:?'missing partial relative path'}"
+	# checks the partial implementation defined at $1
+	# to rely on this function, ensure the $PWD is a valid feature first
+	local partial="${1:?'missing partial path'}"
+
+	info "checking the partial %s" "$PWD/$partial"
+	assert_reg_perm_r "$PWD/$partial"
 
 	# research partial identifiers
 	local codename="${partial%%.*}" # the relative path without file extension
@@ -32,19 +31,21 @@ function iai-check.partial () {
 	local suffix="${basename#*.}" # ALL the file extensions
 
 	# README files are skiped
-	test "$prefix" == "README" && return 0
-
-	info "checking the partial %s" "$feature/$partial"
+	if test "$prefix" == "README"
+	then
+		info "partial check skiped as it's a README file"
+		return 0
+	fi
 
 	# TODO maybe should return 0 and emit a warn instead
 	test "${basename:0:1}" != "." || {
 	  utip "partials can't be hidden files"
 		false
   }
-	tested "$feature/$partial, basenamed $basename, is not a hidden file"
+	tested "$partial, basenamed $basename, is not a hidden file"
 
 	# TODO tests could have .bash suffix, or even .js or the like
-	local testbin="$(pwd)/test/abc/$feature/${partial%%.*}"
+	local testbin="$PWD/test/$codename"
 	(assert_reg_perm_x "$testbin") || {
 	  utip "the convention is that each partial must have its 'testbin'."
 		utip "'testbin's are executable files, so this test fails because the file"
@@ -53,7 +54,7 @@ function iai-check.partial () {
 		utip "for not executable: %s" "chmod +x $testbin"
 		false
   }
-	tested "$feature/$partial has a test file which is executable"
+	tested "$partial has a test file which is executable"
 
 	# lint the testbin (bash testbin)
 	## TODO this should be separate from check.partial
@@ -102,75 +103,84 @@ function iai-check.partial () {
 		utip "Run %s to see details" ". $testbin || echo EXIT \$?"
 		false
   }
-	tested "$partial implementation for $feature"
+	tested "$partial testbin exits with code 0"
 	verb "ran testbin in %s seconds" "$SECONDS"
-  info "successfully checked %s" "$feature/$partial"
+  info "successfully checked %s" "$partial"
 }
 
 function iai-check.feature () {
 	# checks the current iai-based feature whose codename matches exactly "$1"
+	# to rely on this function, ensure the $PWD is a valid project first
 	local feature="${1:?'missing feature codename'}"
 
-  if test -f "abc/$feature/package.json"
-	then
-		info "the feature %s is a project on its own" "$feature"
-		local oldpwd="$PWD" newpwd="$PWD/abc/$feature"
-		cd "$newpwd" || exit
-		iai-check.project "$newpwd"
-		cd "$oldpwd"
-		return
-	fi
-
 	info "checking the feature %s" "$feature"
-	iai-assert.feature "$feature"
 
-	# feature should have tests or it's not possible to perform any check
-	local count=$(find "test/abc/$feature" -type f | wc -l)
-	echo "test count is $count"
-	# when no tests found, tell user where they should be
-	if test "$count" -eq 0; then
-		emsg "no tests found for %s" "$feature"
-	  utip "Tests should be files in test/abc/$feature"
-	  iai tree test/abc/$feature | utip
-		exit 1
+  if test -f "$PWD/abc/$feature/package.json"
+	then
+		# when feature is a project itself, delegate on check.project
+		info "the feature %s is a project on its own" "$feature"
+		iai check.project "$PWD/abc/$feature"
 	else
-	  verb "found $(( $count )) tests for '$feature'"
-	fi
-	test "$count" -gt 0
-	tested "$feature has at least one testbin"
+		iai lint.feature "$feature"
+		# feature should have tests or it's not possible to perform any check
+		local count=$(find "test/abc/$feature" -type f | wc -l)
+		# when no tests found, tell user where they should be
+		if test "$count" -eq 0; then
+			utip "Tests should be files in test/abc/$feature"
+			iai ls "test/abc" | utip
+			Error "no tests found for %s" "$feature"
+			exit 1
+		else
+			verb "found $(( $count )) tests for '$feature'"
+		fi
+		test "$count" -gt 0
+		tested "$feature has at least one testbin"
 
-	# the convention is that each file in a feature is a partial
-	# checking the feature implies checking each partial
-	find "abc/$feature" -type f -print0\
-		| sort -z\
-		| while read -d $'\0' file; do printf '%s\0' "${file##*/$feature/}"; done\
-		| while read -d $'\0' partial; do
-				iai-check.partial "$feature" "$partial"
-			done\
-		;
-	tested "all $feature partials"
-	# there could be more test scripts than feature partials, run'em all
-	autotest allin "test/abc/$feature"
-	tested "all $feature test scripts"
-	warn "some test scripts may have run twice"
+		# the convention is that each file in a feature is a partial
+		# checking the feature implies checking each partial
+		find "abc/$feature" -type f -print0\
+			| sort -z\
+			| while read -d $'\0' file; do printf '%s\0' "${file##*/$feature/}"; done\
+			| while read -d $'\0' partial; do
+					iai-check.partial "abc/$feature/$partial"
+				done\
+			;
+		tested "all $feature partials"
+		# there could be more test scripts than feature partials, run'em all
+		autotest allin "test/abc/$feature"
+		tested "all $feature test scripts"
+		warn "some test scripts may have run twice"
+	fi
+
   info "successfully checked %s" "$feature"
 }
 
 # TODO does iai-assert.feature belong here?
-function iai-assert.feature () {
+function iai-lint.feature () {
 	# asserts the feature whose codename is $1 complains with the iai convention
 	# to rely on this function, ensure the $PWD is a valid project first
 	local codename="${1:?'missing the feature codename'}"
-	# the convention is that each feature codename must be present at:
-	assert_dir_exists "$PWD/abc/$codename"
-	assert_dir_exists "$PWD/test/abc/$codename"
+	info "linting the feature %s" "$codename"
+
+  if test -f "abc/$codename/package.json"
+	then
+		info "the feature %s is a project on its own" "$codename"
+		iai lint.project "$PWD/abc/$codename"
+	else
+		# the convention is that each feature codename must be present at:
+		assert_dir_exists "$PWD/abc/$codename"
+		assert_dir_exists "$PWD/test/abc/$codename"
+	fi
+	info "successfully linted the feature %s" "$codename"
 }
 
 function iai-check.project () {
 	# checks the current iai-based project, assumed to be at $PWD
 	local root="${1:?'missing project root'}"
 	info "checking the project %s" "${root##*/}"
-	iai-assert.project "$root"
+
+	iai lint.project "$root"
+
 	# the convention is that each directory in 'abc' is a feature
 	# checking the whole project implies checking each feature
 	find "$root/abc" -mindepth 1 -maxdepth 1 -type d -print0\
@@ -182,16 +192,23 @@ function iai-check.project () {
   info "successfully checked %s project" "${root##*/}"
 }
 
-# TODO does iai-assert.project belong here?
-function iai-assert.project () {
+# TODO does iai-lint.project belong here?
+function iai-lint.project () {
 	# asserts that project at $1 complains with the iai convention
 	local root="${1:?'missing the project root'}"
+	info "linting the project %s" "$root"
+
+	# a project must be a valid directory
+	assert_dir_exists "$root"
+	cd "$root" || fail "could not descend into %s" "$root"
+
 	# the convention is that each project must contain the following:
 	assert_reg_exists "$root/README.md"
 	assert_reg_exists "$root/package.json"
 	assert_dir_exists "$root/abc"
 	assert_dir_exists "$root/dojo"
 	assert_dir_exists "$root/test"
+  info "successfully linted %s project" "${root}"
 }
 
 function iai-check.done () {
