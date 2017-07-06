@@ -1,0 +1,9 @@
+#!/bin/bash
+
+autotest checkup && source <(autotest) || exit
+
+teskip "this thing should be tested though"
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */
