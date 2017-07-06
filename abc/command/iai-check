@@ -78,6 +78,14 @@ function iai-check.partial () {
   }
 	tested "there is at least 1 test call in '$testbin'"
 	(( $tskips )) && warn "$tskips skiped tests in '$testbin'"
+
+	(( $tcount )) || (( $ccount )) || {
+	  utip "$testbin only contains 'tskip' calls, so tests nothing"
+		emsg "write at least one test there, cowboy fucker"
+		utip "use %s now" "vim '$testbin'"
+	  false
+  }
+	tested "there is more than 1 'tskip' testcase in $testbin"
 	
 	local tailfile="$(iai-path dojo/db/convention/bash-tail--testbin)"
 	lint.tail_equals "$testbin" "$tailfile"
