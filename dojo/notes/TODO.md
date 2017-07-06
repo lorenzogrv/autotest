@@ -10,6 +10,7 @@
 - [ ] meet with Stallman's Emacs at least once http://wiki.c2.com/?EmacsVsVi
 - [ ] Integrate a code coverage tool, i.e. https://simonkagstrom.github.io/kcov/
 - `apt search key-mon screenkey` https://github.com/wavexx/screenkey
+- [ ] `man rsync` it should be in toolset already
 
 ## keycombo kilombo 
 
