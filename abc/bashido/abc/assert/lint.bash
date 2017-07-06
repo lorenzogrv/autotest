@@ -4,26 +4,40 @@ source "$(bashido abc.common)"
 bashido.require "assert.errors"
 bashido.require "assert.equal"
 
-assert_head_equal () {
+assert_head_equal() { fail "$FUNCNAME deprecated. Use %s" lint.head_equals; }
+assert_tail_equal() { fail "$FUNCNAME deprecated. Use %s" lint.tail_equals; }
+
+lint.head_equals () {
 	local actual="$1" expect="$2"
 	assert_reg_exists "$actual"
 	assert_reg_exists "$expect"
 	diff_test <(head -n $(wc -l <"$expect") "$actual") "$expect" || {
-		utip "try the following commands to quick-fix the problem:"
-		utip "    cd $PWD"
-		utip "    mv $actual $actual.old"
-		utip "    cat $expect $actual.old > $actual"
-		utip "    rm $actual.old"
+		emsg "file %s" "$actual"
+		emsg "does not begin with the contents of"
+	  emsg "%s" "$expect"
+		utip "try the following one-liner to quick-fix the problem: %s"\
+			"mv '$actual' '$actual.old'\
+		 	&& cat '$expect' '$actual.old' > '$actual'\
+		 	&& rm '$actual.old'\
+		 	&& echo FIX APPLIED || echo FIX FAILED"
+		utip "or use %s instead." "vim '$actual'"
+		fail "EALINT"
 		exit 1 # TODO EALINT or the like
 	}
 }
-assert_tail_equal () {
+
+lint.tail_equals () {
 	local actual="$1" expect="$2"
 	assert_reg_exists "$actual"
 	assert_reg_exists "$expect"
 	diff_test <(tail -n $(wc -l <"$expect") "$actual") "$expect" || {
-		utip "try the following commands to quick-fix the problem:"
-		utip "    cat $expect >> $actual"
+		emsg "file %s" "$actual"
+		emsg "does not end with the contents of"
+	  emsg "%s" "$expect"
+		utip "try the following one-liner to quick-fix the problem: %s"\
+			"cat '$expect' >> '$actual'"
+		utip "or use %s instead." "vim '$actual'"
+		fail "EALINT"
 		exit 1 # TODO EALINT or the like
 	}
 }
