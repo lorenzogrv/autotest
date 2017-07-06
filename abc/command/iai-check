@@ -46,6 +46,28 @@ function iai-check.partial () {
 
 	# TODO tests could have .bash suffix, or even .js or the like
 	local testbin="$PWD/test/$codename"
+	# lint the testbin (bash testbin)
+	iai lint.testbin "$testbin"
+
+	# TODO calculate progress better
+	verb "run testbin %s ..." "$testbin"; SECONDS=0
+	(
+	  # TODO count the times that tested/teskip are called
+		. "$testbin"
+	) &> /dev/null || {
+	  utip "test exited with code %s" $?
+		utip "Run %s to see details" ". $testbin || echo EXIT \$?"
+		false
+  }
+	tested "$partial testbin exits with code 0"
+	verb "ran testbin in %s seconds" "$SECONDS"
+  info "successfully checked %s" "$partial"
+}
+
+iai-lint.testbin () {
+	local testbin="${1:-'missing testbin path'}"
+	info "linting the testbin %s" "$testbin"
+
 	(assert_reg_perm_x "$testbin") || {
 	  utip "the convention is that each partial must have its 'testbin'."
 		utip "'testbin's are executable files, so this test fails because the file"
@@ -54,10 +76,10 @@ function iai-check.partial () {
 		utip "for not executable: %s" "chmod +x $testbin"
 		false
   }
-	tested "$partial has a test file which is executable"
+	tested "$testbin is a regular file which is executable"
 
-	# lint the testbin (bash testbin)
-	## TODO this should be separate from check.partial
+	## TODO this should be separate from lint.testbin
+	## TODO i.e., automatically at lint.partial
 	local headfile="$(iai-path dojo/db/convention/bash-head--testbin)"
 	lint.head_equals "$testbin" "$headfile"
 	tested "file '$testbin' head is '$headfile'"
@@ -86,26 +108,13 @@ function iai-check.partial () {
 		utip "use %s now" "vim '$testbin'"
 	  false
   }
-	tested "there is more than 1 'tskip' testcase in $testbin"
+	tested "something is actually tested in $testbin"
 	
 	local tailfile="$(iai-path dojo/db/convention/bash-tail--testbin)"
 	lint.tail_equals "$testbin" "$tailfile"
 	tested "file '$testbin' tail is '$tailfile'"
-	# test lint end
 
-	# TODO calculate progress better
-	verb "run testbin %s ..." "$testbin"; SECONDS=0
-	(
-	  # TODO count the times that tested/teskip are called
-		. "$testbin"
-	) &> /dev/null || {
-	  utip "test exited with code %s" $?
-		utip "Run %s to see details" ". $testbin || echo EXIT \$?"
-		false
-  }
-	tested "$partial testbin exits with code 0"
-	verb "ran testbin in %s seconds" "$SECONDS"
-  info "successfully checked %s" "$partial"
+	info "succesfully linted %s testbin" "$testbin"
 }
 
 function iai-check.feature () {
