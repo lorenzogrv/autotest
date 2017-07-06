@@ -44,7 +44,7 @@ function iai-check.partial () {
 	tested "$feature/$partial, basenamed $basename, is not a hidden file"
 
 	# TODO tests could have .bash suffix, or even .js or the like
-	local testbin="test/abc/$feature/${partial%%.*}"
+	local testbin="$(pwd)/test/abc/$feature/${partial%%.*}"
 	(assert_reg_perm_x "$testbin") || {
 	  utip "the convention is that each partial must have its 'testbin'."
 		utip "'testbin's are executable files, so this test fails because the file"
@@ -55,6 +55,12 @@ function iai-check.partial () {
   }
 	tested "$feature/$partial has a test file which is executable"
 
+	# lint the testbin (bash testbin)
+	## TODO this should be separate from check.partial
+	local headfile="$(iai-path dojo/db/convention/bash-head--testbin)"
+	lint.head_equals "$testbin" "$headfile"
+	tested "file '$testbin' head is '$headfile'"
+
 	# generate test stats (autotest)
 	local tcount=$(grep -cw "tested" "$testbin")
 	local tskips=$(grep -cw "teskip" "$testbin")
@@ -63,29 +69,29 @@ function iai-check.partial () {
 	local ccount=$(grep -cw "check" "$testbin")
 	verb "found $(( $ccount )) checks in '$testbin'"
 
-	# lint the testbin
 	(( $tcount )) || (( $tskips )) || (( $ccount )) || {
-		utip "$testbin was linted searching for test cases, but none was found"
+		utip "%s was linted searching for test cases, but none was found" "$testbin"
+		utip "quick'n dirty fix: %s"\
+		 	"echo 'tested \"this should be tested someway though\" >> '$testbin'"
+		utip "or use %s to fix the problem by hand" "vim '$testbin'"
 		false
   }
 	tested "there is at least 1 test call in '$testbin'"
 	(( $tskips )) && warn "$tskips skiped tests in '$testbin'"
-
-	local headfile="$(iai-path dojo/db/convention/bash-head--testbin)"
+	
 	local tailfile="$(iai-path dojo/db/convention/bash-tail--testbin)"
-	assert_head_equal "$testbin" "$headfile"
-	tested "file '$testbin' head is '$headfile'"
-	assert_tail_equal "$testbin" "$tailfile"
+	lint.tail_equals "$testbin" "$tailfile"
 	tested "file '$testbin' tail is '$tailfile'"
+	# test lint end
 
 	# TODO calculate progress better
 	verb "run testbin %s ..." "$testbin"; SECONDS=0
 	(
 	  # TODO count the times that tested/teskip are called
-		./"$testbin"
+		. "$testbin"
 	) &> /dev/null || {
 	  utip "test exited with code %s" $?
-		utip "Run %s to see details" "./$testbin || echo EXIT \$?"
+		utip "Run %s to see details" ". $testbin || echo EXIT \$?"
 		false
   }
 	tested "$partial implementation for $feature"
