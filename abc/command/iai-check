@@ -36,15 +36,23 @@ function iai-check.partial () {
 
 	info "checking the partial %s" "$feature/$partial"
 
-	# partials can't be hidden files
 	# TODO maybe should return 0 and emit a warn instead
-	test "${basename:0:1}" != "."
+	test "${basename:0:1}" != "." || {
+	  utip "partials can't be hidden files"
+		false
+  }
 	tested "$feature/$partial, basenamed $basename, is not a hidden file"
 
-	# the convention is that each partial must have its test
 	# TODO tests could have .bash suffix, or even .js or the like
 	local testbin="test/abc/$feature/${partial%%.*}"
-	(assert_reg_perm_x "$testbin")
+	(assert_reg_perm_x "$testbin") || {
+	  utip "the convention is that each partial must have its 'testbin'."
+		utip "'testbin's are executable files, so this test fails because the file"
+		utip "is either not present or not executable. You can try this solutions:"
+		utip "for not present: %s" "touch $testbin"
+		utip "for not executable: %s" "chmod +x $testbin"
+		false
+  }
 	tested "$feature/$partial has a test file which is executable"
 
 	# generate test stats (autotest)
@@ -56,12 +64,15 @@ function iai-check.partial () {
 	verb "found $(( $ccount )) checks in '$testbin'"
 
 	# lint the testbin
-	(( $tcount )) || (( $tskips )) || (( $ccount ))
+	(( $tcount )) || (( $tskips )) || (( $ccount )) || {
+		utip "$testbin was linted searching for test cases, but none was found"
+		false
+  }
 	tested "there is at least 1 test call in '$testbin'"
 	(( $tskips )) && warn "$tskips skiped tests in '$testbin'"
 
-	local headfile="$(iai-path dojo/db/convention/bash-head)"
-	local tailfile="$(iai-path dojo/db/convention/bash-tail)"
+	local headfile="$(iai-path dojo/db/convention/bash-head--testbin)"
+	local tailfile="$(iai-path dojo/db/convention/bash-tail--testbin)"
 	assert_head_equal "$testbin" "$headfile"
 	tested "file '$testbin' head is '$headfile'"
 	assert_tail_equal "$testbin" "$tailfile"
@@ -74,7 +85,7 @@ function iai-check.partial () {
 		./"$testbin"
 	) &> /dev/null || {
 	  utip "test exited with code %s" $?
-		utip "Run %s to see details" "./$testbin"
+		utip "Run %s to see details" "./$testbin || echo EXIT \$?"
 		false
   }
 	tested "$partial implementation for $feature"
@@ -98,6 +109,7 @@ function iai-check.feature () {
 
 	info "checking the feature %s" "$feature"
 	iai-assert.feature "$feature"
+
 	# feature should have tests or it's not possible to perform any check
 	local count=$(find "test/abc/$feature" -type f | wc -l)
 	echo "test count is $count"

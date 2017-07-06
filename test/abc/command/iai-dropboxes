@@ -1,0 +1,9 @@
+#!/bin/bash
+
+autotest checkup && source <(autotest) || exit
+
+teskip "this cowbow-coded multidropbox solution works only at shitbook"
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */
