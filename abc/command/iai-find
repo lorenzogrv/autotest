@@ -6,7 +6,6 @@ iai-find () {
 		exit 0
 	}
 	
-	local iai_root="$(iai-root)"
 	local root=""
 	local args=""
 
@@ -16,7 +15,7 @@ iai-find () {
 	do
 		case "$1" in
 			# it's important to shift every arg or will loop infinity
-			'in') shift; args="$args ${1:-'missing pathspec'}"; shift ;;
+			'in') shift; root="${1:-'missing pathspec'}"; shift ;;
 			'here') shift; root="$(pwd)" ;;
 				*)
 					if test -z "$args" && test $# -eq 1
@@ -34,13 +33,17 @@ iai-find () {
 	test -n "$1" && fail "argument not expected"
 
 	# if no root was defined, will search within the iai root.
-	if test -z "$root"; then root="$iai_root"; fi
+	if test -z "$root"; then root="$(iai-root)"; fi
 
 	# -O2 enables Optimization Level 2 (see `man find`)
+	# first prune ignores everything inside any .git directory
+	# second prune ignores everything inside a node_modules directory
+	#   **exceptions are entities whose name matches 'iai*' **
+	# third prune ignores any git repository except the root
 	find -O2 "$root"\
 		-path "*/.git/*" -prune -o\
 		-path "*/node_modules/*" ! -name "iai*" -prune -o\
-		-exec test -e /"{}/.git" \; ! -path "$iai_root" -prune -o\
+		-exec test -e /"{}/.git" \; ! -path "$root" -prune -o\
 		${args} -print\
 		|| {
     emsg "find exit status was %s" "$?"
