@@ -1,15 +1,16 @@
 
 source "$(bashido check.common)"
+source "$(bashido assert.equal)" # this one has the diff_test
 
 check.command () {
 	local cmdline="$1" cmd="$2" val="$3"
 	case "$cmd" in
-		--code-is)
+		code-is)
 			( eval "$cmdline" ) 1>/dev/null
 			( assert.last-code-is $val )
 			tested "running '$cmdline' returns '$val'"
 			;;
-		--outputs)
+		outputs)
 			case "$val" in
 				"")
 					diff_test <( eval "$cmdline" ) <&0

@@ -3,13 +3,21 @@ autotest checkup && source <(autotest) || exit
 source "$(bashido assert.common)"
 
 function check () {
-	echo "not implemented"
-	exit 1
+	local fname="check.$1"
+	assert_function "$fname"
+	shift
+	$fname "$@"
 }
 
 function check.that () {
-	echo "not implemented"
-	exit 1
+	# the behaviour is actually the same as check()
+	check "$@"
+	return
+	# TODO consider the usefulness of "that" other than being expressive
+	local fname="check.$1"
+	assert_function "$fname"
+	shift
+	$fname "$@"
 }
 
 ##
