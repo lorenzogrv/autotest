@@ -81,7 +81,8 @@ iai () {
 # `iai help` outputs useful information about iai's command-line usage
 ##
 
-iai-help () { cat <<HELP
+iai-help () {
+cat <<HELP
 ===
 iai
 ===
@@ -102,11 +103,11 @@ other available commands:
   	| while read cmd; do printf "  ${cmd##iai-}"; done
   )
 HELP
-  iai.dependencies || exit
+  type -t utip || iai.dependencies || exit
   if test -f ./README.md
 	then
-		utip "content of './README.md':"
-		utip < ./README.md
+		echo "content of './README.md':"
+		cat ./README.md
 	else
 		warn "no README.md file was found here (%s)" "$(pwd)"
 	  utip "you should init README.md with a tree description with '%s'"\
