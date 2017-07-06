@@ -103,12 +103,12 @@ other available commands:
   	| while read cmd; do printf "  ${cmd##iai-}"; done
   )
 HELP
-  type -t utip || iai.dependencies || exit
   if test -f ./README.md
 	then
 		echo "content of './README.md':"
 		cat ./README.md
 	else
+    type -t warn || iai.dependencies || exit
 		warn "no README.md file was found here (%s)" "$(pwd)"
 	  utip "you should init README.md with a tree description with '%s'"\
 		 	"iai tree . > README.md"
