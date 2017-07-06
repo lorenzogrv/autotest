@@ -5,28 +5,53 @@ iai-find () {
 		utip "here should be some help text"
 		exit 0
 	}
-
-	## TODO could exist other keywords
-	if test "$1" = 'in'
+	
 	local iai_root="$(iai-root)"
-	local root="$iai_root"
-	then
-		shift
-		root="$root/$1"
-		shift
-  else
-		shift
-	fi
-
+	local root=""
 	local args=""
+
+	# argument parsing strategy
+	test $# -gt 0 && warn "experimental behaviour to parse argument list"
+	while test -n "$1"
+	do
+		case "$1" in
+			# it's important to shift every arg or will loop infinity
+			'in') shift; args="$args ${1:-'missing pathspec'}"; shift ;;
+			'here') shift; root="$(pwd)" ;;
+				*)
+					if test -z "$args" && test $# -eq 1
+					then
+						args="-name *$1*";
+					else
+						args+=" $1"
+					fi
+					shift
+					;;
+		esac
+	done
+
+	# if we have still arguments, something went wrong at parsing stage
 	test -n "$1" && fail "argument not expected"
 
+	# if no root was defined, will search within the iai root.
+	if test -z "$root"; then root="$iai_root"; fi
+
 	# -O2 enables Optimization Level 2 (see `man find`)
-	find -O2 "$root" \
+	find -O2 "$root"\
 		-path "*/.git/*" -prune -o\
 		-path "*/node_modules/*" ! -name "iai*" -prune -o\
 		-exec test -e /"{}/.git" \; ! -path "$iai_root" -prune -o\
-		"$@" -print
+		${args} -print\
+		|| {
+    emsg "find exit status was %s" "$?"
+		verb <<DEBUG
+find -O2 "$root"
+  -path "*/.git/*" -prune -o
+  -path "*/node_modules/*" ! -name "iai*" -prune -o
+  -exec test -e /"{}/.git" \; ! -path "$iai_root" -prune -o
+  ${args} -print
+DEBUG
+  }
 }
 ##
 # vim modeline
