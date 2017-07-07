@@ -24,3 +24,8 @@ At least, forgive that tests for a while. It adds complexity. **KISS please**.
 - The main rule is: given a **sorted** list of the file names, any file can
   depend upon code from files sorted above, but can not depend on those sorted
   below.
+
+> 2017-07-07 01:53:58+02:00
+
+- Renamed "abc" to "api". api will contain the basic api to use within scripts
+- The way code is sourced actually don't eases arrangement of the feature names
