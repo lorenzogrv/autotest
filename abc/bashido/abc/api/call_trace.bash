@@ -17,7 +17,7 @@ call_trace () {
 #	  {  echo "${#callsite[@]} elements on '${callsite}'"; }
     read line fn file <<< "$callsite"
     file="${file//main/${BASH_SOURCE[0]}}"
-    file="${file#$(pwd)/}" # remove cwd from file paths
+    file="${file#$PWD/}" # remove cwd from file paths
     printf " %-2s %20s %-3s %s\n" "$n" "$fn" "$line" "$file"
     (( n++ ))
   done
