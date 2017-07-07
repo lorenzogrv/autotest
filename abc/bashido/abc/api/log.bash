@@ -5,7 +5,7 @@
 # They are designed to allow reading from standard input if need.
 # TODO document the usage
 
-source "$(bashido abc.ansi)"
+bashido.require "api.ansi" || exit
 
 # same as `echo` but output to stderr
 eche () { >&2 echo "$@"; }
