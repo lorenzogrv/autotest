@@ -10,9 +10,8 @@
 
 iai.dependencies () {
 	type -t bashido >/dev/null || { echo >&2 "FATAL: missing bashido"; exit 1; }
-	source "$(bashido abc-call_trace)" || exit
-	source "$(bashido abc-log)" || exit
-	source "$(bashido assert.common)" || exit
+	source "$(bashido api.require)" || exit
+	bashido.require "assert.common" || exit
 	log.filter () {
 		return 0 # comment this line for max amount of verbosity
 		return 1
