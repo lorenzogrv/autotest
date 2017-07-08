@@ -48,7 +48,8 @@ then
 	BASHIDO_ANSI_LOG_WW="$(ansi fg.orange)"
 	BASHIDO_ANSI_LOG_EE="$(ansi fg.red)"
 else
-	>&2 echo "tput not present. try 'apt install ncurses utils'"
+	>&2 echo "tput not present so ansi-formated log is disabled"
+	>&2 echo "try 'apt install ncurses-utils'"
 	BASHIDO_ANSI_DISABLE=1
 fi
 
