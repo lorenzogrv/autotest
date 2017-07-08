@@ -6,7 +6,7 @@ bashido () {
 		SOURCE="$(readlink "$SOURCE")"
 		[[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
 	done
-	dirname "$(cd -P "$( dirname "$SOURCE" )" && pwd)"
+	echo "$(dirname "$(cd -P "$( dirname "$SOURCE" )" && pwd)")/abc/bashido"
 }
 
 (( $# )) || { bashido; exit; }

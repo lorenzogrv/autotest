@@ -1,1 +1,1 @@
-../../abc/bashido/bin/bashido-bin
+bash-bin bashido "$@"

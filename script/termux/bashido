@@ -1,1 +1,1 @@
-../../abc/bashido/bin/bashido-termux
+. bash-termux bashido "$@"

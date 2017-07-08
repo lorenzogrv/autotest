@@ -1,1 +1,1 @@
-. ../bash-termux ../autotest
+. bash-termux autotest "$@"

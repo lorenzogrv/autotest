@@ -29,7 +29,7 @@ iai.dependencies () {
 # `iai` acts as an accessor to sub-commands.
 # When it's run without arguments, outputs some ascii art.
 ##
-iai () {
+function iai () {
   if test $# -eq 0
 	then
 		cat "$(iai-path dojo db artii 0110)"
@@ -56,9 +56,8 @@ iai () {
 			else
 				warn "there is nothing named %s" "$cmd"
 			fi
-			Error "unknown command %s" "$1"
 			iai-help | utip
-			exit 1
+			fail "unknown command %s" "$1" ||	exit 1
 		fi
 	fi
 
@@ -79,7 +78,7 @@ iai () {
 # `iai help` outputs useful information about iai's command-line usage
 ##
 
-iai-help () {
+function iai-help () {
 cat <<HELP
 ===
 iai
@@ -99,6 +98,7 @@ $(find "$(iai-path abc command)" -type f -name "iai-*" -print0\
 		| sort -z\
   	| while read -d $'\0' cmd; do printf "  ${cmd##*/iai-}"; done\
   )
+---
 HELP
   iai.dependencies || exit
   if test -f ./README.md
@@ -114,21 +114,25 @@ HELP
 ##
 # `iai date` and `iai hora` standarize the date and time formats
 ##
-iai-date () { date --rfc-3339=date || exit 1; }
-iai-time () { date --rfc-3339=seconds || exit 1; }
+function iai-date () { date --rfc-3339=date || exit 1; }
+function iai-time () { date --rfc-3339=seconds || exit 1; }
 
 ##
 # `iai tree` standarizes the way to display the contents of a directory
 # `iai ls` standarizes the way to list the contents of a directory
 ##
-iai-tree () { tree -L 2 --dirsfirst --sort=name --noreport -C "$@" || exit 1; }
-iai-ls () { ls -lht --color=always "$@" || exit 1; }
+function iai-tree () {
+	tree -L 2 --dirsfirst --sort=name --noreport -C "$@" || exit 1;
+}
+function iai-ls () {
+	ls -lht --color=always "$@" || exit 1;
+}
 
 ##
 # `iai wanip` provides a way to research the system IP within the cloud.
 # It depends on `dig`. See http://unix.stackexchange.com/a/81699
 ##
-iai-wanip () {
+function iai-wanip () {
   dig +short myip.opendns.com @resolver1.opendns.com || {
 		iai.dependencies
 		emsg "dig command failed, see above for details"
@@ -140,7 +144,9 @@ iai-wanip () {
 # `iai lanip` provides a way to research the system IP within the LAN.
 # See https://askubuntu.com/a/604691/167333
 ##
-iai-lanip () { ip route get 8.8.8.8 | awk '{print $NF; exit}' || exit 1; }
+function iai-lanip () {
+	ip route get 8.8.8.8 | awk '{print $NF; exit}' || exit 1;
+}
 
 ##
 # `iai root` outputs the directory where iai resides (the "iai root").
@@ -165,7 +171,7 @@ iai-root () {
 # `iai dir` is an alias for `iai root`
 # TODO: `dir` is deprecated favouring `root` at it's more descriptive
 ##
-iai-dir () {
+function iai-dir () {
   iai.dependencies || exit
   warn "iai-dir is deprecated, use iai-root instead"
 	iai-root
@@ -175,7 +181,7 @@ iai-dir () {
 # `iai-path` joins each argument to `iai-root` with slashes between.
 # TODO: `iai path` is vage and not descriptive enought
 ##
-iai-path () {
+function iai-path () {
   printf "%s" $(iai-root)
   if test $# -gt 0; then
     # Quoting is neccessary to correctly parse arguments
@@ -196,7 +202,7 @@ function iai-repo () {
 ##
 # `iai-working` intentionally fails to signal a place you were working at
 ##
-iai-working () {
+function iai-working () {
   local last_code=$?
 	(( last_code )) && warn "called after an exit-status %s" "$last_code"
   iai.dependencies || exit
