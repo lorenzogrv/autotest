@@ -2,6 +2,10 @@
 
 autotest checkup && source <(autotest) || exit
 
+bashido isref "api.call_trace"
+tested "call_trace is a function"
+
+
 teskip "write tests for the feature"
 
 ##

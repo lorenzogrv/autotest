@@ -2,18 +2,8 @@
 
 autotest checkup && source <(autotest) || exit
 
-(
-  source "$(bashido api.ansi)"
-	test "$(type -t "ansi")" == "function"
-)
-tested "ansi api can be sourced old way"
-
-(
-  source "$(bashido api.require)"
-	bashido.require "api.ansi"
-	test "$(type -t "ansi")" == "function"
-)
-tested "ansi api can be source with bashido.require"
+bashido isref "api.ansi"
+tested "api.ansi is a valid bashido reference identifier"
 
 teskip "there should be more tests for this"
 

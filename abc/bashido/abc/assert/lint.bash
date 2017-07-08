@@ -6,6 +6,8 @@ bashido.require "assert.equal" || exit
 assert_head_equal() { fail "$FUNCNAME deprecated. Use %s" lint.head_equals; }
 assert_tail_equal() { fail "$FUNCNAME deprecated. Use %s" lint.tail_equals; }
 
+function lint () { fail "$FUNCNAME not implemented"; }
+
 lint.head_equals () {
 	local actual="$1" expect="$2"
 	assert_reg_exists "$actual"
