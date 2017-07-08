@@ -70,7 +70,7 @@ function iai-check.partial () {
 		. "$testbin"
 	) &> /dev/null || {
 	  utip "test exited with code %s" $?
-		utip "Run %s to see details" ". $testbin || echo EXIT \$?"
+		utip "Run %s to see details" "$testbin || echo EXIT \$?"
 		false
   }
 	tested "$partial testbin exits with code 0"
