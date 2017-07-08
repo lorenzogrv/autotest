@@ -9,9 +9,9 @@ function iai-check () {
 	# project root is researched through the builtin `iai-repo`
   local root="$(iai-repo)"
 
-	cd "$root"\
+	(iai-repo) &> /dev/null\
 		&& info "running for project root %s" "$root"\
-		|| fail "could not enter directory %s" "$root"\
+		|| fail "could not find project repo"\
 	;
 	case $# in
 		0) iai check.project "$root" ;;
