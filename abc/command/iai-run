@@ -6,7 +6,8 @@ function iai-run () {
 
 	local file="$1"; shift
 	verb %s "$file $@"
-	. "$file" "$@" # run the file with given args
+	. "$file" "$@"
+	verb "$file $@ exits with code %s" "$?"
 }
 
 ##
