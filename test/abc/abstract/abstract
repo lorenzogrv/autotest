@@ -2,7 +2,14 @@
 
 autotest checkup && source <(autotest) || exit
 
-teskip "there should be some tests for this"
+bashido.require "assert.common" || exit
+
+(
+  assert_reg_perm_r "$(iai path abc abstract abstract.md)"
+)
+tested "abstract.md is readable"
+
+teskip "there should be more tests for this"
 
 ##
 # vim modeline
