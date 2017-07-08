@@ -138,11 +138,14 @@ function iai-check.feature () {
 
 	info "checking the feature %s" "$feature"
 
+	# TODO this test should rely on .git directory, not package.json
   if test -f "$PWD/abc/$feature/package.json"
 	then
 		# when feature is a project itself, delegate on check.project
 		info "the feature %s is a project on its own" "$feature"
+		local oldpwd="$PWD"
 		iai check.project "$PWD/abc/$feature"
+		cd "$oldpwd" # ensure we are at the project pwd to proceed
 	else
 		iai lint.feature "$feature"
 		# feature should have tests or it's not possible to perform any check
