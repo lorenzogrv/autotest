@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # NOTE: `set -e` impedes try-catching commands
 
 ##
@@ -90,29 +88,26 @@ iai
 usage: iai [command] [command arguments ...]
 
 built-in commands:
-  $(while read d t fn; do echo $fn; done < <(declare -F)\
+$(while read d t fn; do echo $fn; done < <(declare -F)\
    	| grep "iai-"\
   	| sort\
   	|	while read cmd; do printf "  ${cmd##iai-}"; done
   )
 
 other available commands:
-  $(find "$(iai-path abc command)" -type f -name "iai-*" -print0\
-  	| xargs -0 basename -a\
-  	| sort\
-  	| while read cmd; do printf "  ${cmd##iai-}"; done
+$(find "$(iai-path abc command)" -type f -name "iai-*" -print0\
+		| sort -z\
+  	| while read -d $'\0' cmd; do printf "  ${cmd##*/iai-}"; done\
   )
 HELP
+  iai.dependencies || exit
   if test -f ./README.md
 	then
-		echo "content of './README.md':"
-		cat ./README.md
+		utip "try '%s' for information about this directory" "cat ./README.md"
 	else
-    type -t warn || iai.dependencies || exit
-		warn "no README.md file was found here (%s)" "$(pwd)"
-	  utip "you should init README.md with a tree description with '%s'"\
-		 	"iai tree . > README.md"
-    iai-tree .
+		warn "no README.md file was found here (%s)" "$PWD"
+	  utip "you should init README.md with a tree description, use '%s'"\
+    "iai-tree > README.md"
 	fi
 }
 
