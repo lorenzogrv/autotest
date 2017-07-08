@@ -1,4 +1,3 @@
-source "$(bashido abc.common)" || exit
 
 #TODO assert_var_set: http://stackoverflow.com/questions/3601515/how-to-check-if-a-variable-is-set-in-bash
 

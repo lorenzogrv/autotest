@@ -29,7 +29,9 @@ function bashido.require () {
 	bashido.require "$@" # call the require logic also the first time
 }
 
-bashido.require "abc.log" || exit
+bashido.require "api.log" || exit
+bashido.require "api.error" || exit
+bashido.require "api.is" || exit # not required here, but used everywere
 
 ##
 # vim modeline

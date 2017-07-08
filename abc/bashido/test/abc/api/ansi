@@ -1,7 +1,22 @@
 #!/bin/bash
 
 autotest checkup && source <(autotest) || exit
-teskip "there should be some tests for this"
+
+(
+  source "$(bashido api.ansi)"
+	test "$(type -t "ansi")" == "function"
+)
+tested "ansi api can be sourced old way"
+
+(
+  source "$(bashido api.require)"
+	bashido.require "api.ansi"
+	test "$(type -t "ansi")" == "function"
+)
+tested "ansi api can be source with bashido.require"
+
+teskip "there should be more tests for this"
+
 ##
 # vim modeline
 # /* vim: set filetype=sh ts=2 shiftwidth=2: */

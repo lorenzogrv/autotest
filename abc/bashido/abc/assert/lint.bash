@@ -1,8 +1,7 @@
 # no shebang because this file is meant to be sourced by bash
 
-source "$(bashido abc.common)"
-bashido.require "assert.errors"
-bashido.require "assert.equal"
+bashido.require "assert.errors" || exit
+bashido.require "assert.equal" || exit
 
 assert_head_equal() { fail "$FUNCNAME deprecated. Use %s" lint.head_equals; }
 assert_tail_equal() { fail "$FUNCNAME deprecated. Use %s" lint.tail_equals; }

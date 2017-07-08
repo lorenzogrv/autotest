@@ -1,5 +1,4 @@
-source "$(bashido abc-common)"
-source "$(bashido basic-str)"
+bashido.require "basic.str"
 
 ##
 # util to test that two sources output the same

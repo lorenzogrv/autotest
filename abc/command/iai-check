@@ -1,16 +1,23 @@
 #!/bin/bash
 
 assert_function iai || exit
+
 autotest checkup >/dev/null && source <(autotest) || exit
-source "$(bashido assert-lint)"
+bashido.require "assert.lint"
 
 function iai-check () {
 	# project root is researched through the builtin `iai-repo`
   local root="$(iai-repo)"
+
+	cd "$root"\
+		&& info "running for project root %s" "$root"\
+		|| fail "could not enter directory %s" "$root"\
+	;
 	case $# in
 		0) iai check.project "$root" ;;
 		1) iai lint.project "$root"; iai check.feature "$1" ;;
-		2) iai lint.feature "$1"; iai check.partial "$2" ;;
+		# actually the next will fail when
+		2) iai lint.feature "$1"; iai check.partial "abc/$2" ;;
 		*) fail "too much arguments (%s given)" $# ;;
 	esac
 	iai check.done
@@ -22,7 +29,14 @@ function iai-check.partial () {
 	local partial="${1:?'missing partial path'}"
 
 	info "checking the partial %s" "$PWD/$partial"
-	assert_reg_perm_r "$PWD/$partial"
+
+	(assert_reg_perm_r "$PWD/$partial") || {
+	  emsg "%s is not a readable file" "$PWD/$partial"
+		utip "the convention is that each file in a feature is a partial"
+		utip "so partials must be readable files thought."
+		false
+  }
+	tested "partial file actually exists"
 
 	# research partial identifiers
 	local codename="${partial%%.*}" # the relative path without file extension
@@ -95,7 +109,7 @@ iai-lint.testbin () {
 	(( $tcount )) || (( $tskips )) || (( $ccount )) || {
 		utip "%s was linted searching for test cases, but none was found" "$testbin"
 		utip "quick'n dirty fix: %s"\
-		 	"echo 'tested \"this should be tested someway though\" >> '$testbin'"
+		 	"echo 'tested \"this should be tested someway though\"' >> '$testbin'"
 		utip "or use %s to fix the problem by hand" "vim '$testbin'"
 		false
   }
