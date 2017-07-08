@@ -1,5 +1,3 @@
-#!/bin/bash
-
 autotest--help () {
 	cat <<HELP
 Usage:
