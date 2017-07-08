@@ -16,7 +16,7 @@ function iai-check () {
 	case $# in
 		0) iai check.project "$root" ;;
 		1) iai lint.project "$root"; iai check.feature "$1" ;;
-		# actually the next will fail when
+		# actually the next will fail when, plus its usability needs debate.
 		2) iai lint.feature "$1"; iai check.partial "abc/$2" ;;
 		*) fail "too much arguments (%s given)" $# ;;
 	esac
@@ -67,8 +67,8 @@ function iai-check.partial () {
 	verb "run testbin %s ..." "$testbin"; SECONDS=0
 	(
 	  # TODO count the times that tested/teskip are called
-		. "$testbin"
-	) &> /dev/null || {
+		iai run "$testbin"
+	) 1> /dev/null || {
 	  utip "test exited with code %s" $?
 		utip "Run %s to see details" "$testbin || echo EXIT \$?"
 		false

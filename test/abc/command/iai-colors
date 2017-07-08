@@ -2,7 +2,15 @@
 
 autotest checkup && source <(autotest) || exit
 
-teskip "there should be some tests for this"
+bashido.require "assert.common"
+
+(
+	source "iai-colors"
+  assert_function "iai-colors"
+)
+tested "there is a command file which defines iai-colors"
+
+teskip "there should be more tests for this, but they are not urgent"
 
 ##
 # vim modeline
