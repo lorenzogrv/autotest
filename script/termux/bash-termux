@@ -1,3 +1,21 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
-. "$1"
+# research the directory where script is suposed to be
+SOURCE="${BASH_SOURCE[0]}" DIR=""
+while [ -h "$SOURCE" ]; do
+DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+SOURCE="$(readlink "$SOURCE")"
+[[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+FILE="$(dirname $DIR)/$1"
+
+if test -x "$FILE"
+then
+  shift
+  . "$FILE" "$@"
+else
+  >&2 echo "FATAL: $FILE is not executable"
+  exit 1
+fi
