@@ -8,11 +8,11 @@ bashido.require "assert.lint"
 function iai-check () {
 	# project root is researched through the builtin `iai-repo`
   local root="$(iai-repo)"
+	test -n "$root" || fail "could not find project repo"
 
-	(iai-repo) &> /dev/null\
-		&& info "running for project root %s" "$root"\
-		|| fail "could not find project repo"\
-	;
+	cd "$root" || fail "could not descend into '$root'"
+	info "running for project root %s" "$root"
+
 	case $# in
 		0) iai check.project "$root" ;;
 		1) iai lint.project "$root"; iai check.feature "$1" ;;
