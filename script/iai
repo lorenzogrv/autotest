@@ -10,7 +10,7 @@
 
 iai.dependencies () {
 	type -t bashido >/dev/null || { echo >&2 "FATAL: missing bashido"; exit 1; }
-	source "$(bashido api.require)" || exit
+	source "$(bashido api)" --source-only || exit
 	bashido.require "assert.common" || exit
 	log.filter () {
 		return 0 # comment this line for max amount of verbosity
@@ -124,7 +124,7 @@ function iai-tree () {
 	tree -L 2 --dirsfirst --sort=name --noreport -C "$@" || exit 1;
 }
 function iai-ls () {
-	ls -lht --color=always "$@" || exit 1;
+	ls -lhu --color=always --group-directories-first "$@" || exit 1;
 }
 
 ##
