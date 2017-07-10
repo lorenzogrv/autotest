@@ -11,7 +11,6 @@ function iai-check () {
 	test -n "$root" || fail "could not find project repo"
 
 	cd "$root" || fail "could not descend into '$root'"
-	info "running for project root %s" "$root"
 
 	case $# in
 		0) iai check.project "$root" ;;
@@ -27,8 +26,6 @@ function iai-check.partial () {
 	# checks the partial implementation defined at $1
 	# to rely on this function, ensure the $PWD is a valid feature first
 	local partial="${1:?'missing partial path'}"
-
-	info "checking the partial %s" "$PWD/$partial"
 
 	(assert_reg_perm_r "$PWD/$partial") || {
 	  emsg "%s is not a readable file" "$PWD/$partial"
@@ -80,7 +77,6 @@ function iai-check.partial () {
 
 iai-lint.testbin () {
 	local testbin="${1:-'missing testbin path'}"
-	info "linting the testbin %s" "$testbin"
 
 	(assert_reg_perm_x "$testbin") || {
 	  utip "the convention is that each partial must have its 'testbin'."
@@ -136,8 +132,6 @@ function iai-check.feature () {
 	# to rely on this function, ensure the $PWD is a valid project first
 	local feature="${1:?'missing feature codename'}"
 
-	info "checking the feature %s" "$feature"
-
 	# TODO this test should rely on .git directory, not package.json
   if test -f "$PWD/abc/$feature/package.json"
 	then
@@ -186,7 +180,6 @@ function iai-lint.feature () {
 	# asserts the feature whose codename is $1 complains with the iai convention
 	# to rely on this function, ensure the $PWD is a valid project first
 	local codename="${1:?'missing the feature codename'}"
-	info "linting the feature %s" "$codename"
 
   if test -f "abc/$codename/package.json"
 	then
@@ -203,7 +196,6 @@ function iai-lint.feature () {
 function iai-check.project () {
 	# checks the current iai-based project, assumed to be at $PWD
 	local root="${1:?'missing project root'}"
-	info "checking the project %s" "${root##*/}"
 
 	iai lint.project "$root"
 
@@ -221,7 +213,6 @@ function iai-check.project () {
 function iai-lint.project () {
 	# asserts that project at $1 complains with the iai convention
 	local root="${1:?'missing the project root'}"
-	info "linting the project %s" "$root"
 
 	# a project must be a valid directory
 	assert_dir_exists "$root"
