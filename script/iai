@@ -135,8 +135,11 @@ function iai-wanip () {
   dig +short myip.opendns.com @resolver1.opendns.com || {
 		iai.dependencies
 		emsg "dig command failed, see above for details"
-		type dig &>/dev/null || utip "dig seems not available. Try '%s'"\
-			"apt install dnstools"
+		type dig &>/dev/null || {
+			utip "dig seems not available."
+		  utip "Try '%s' (debian based)" "apt install dnstools"
+			utip "or '%s' (arch based)" "pacman -S bind-tools"
+		}
 	}
 }
 ##
