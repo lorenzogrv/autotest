@@ -11,13 +11,18 @@ then
 fi
 
 function bashido () {
-	# 4th form: backwards compat avoiding delegation on non-existant functions
-  if test "$(type -t "bashido.$1")" == "function"
-	then
+	if ! (( $# ))
+	then # 1st form: no arguments, same as bashido.root (for backwards compat)
+		bashido.root
+	elif test "$1" == "api"
+	then # 2nd form: output the absolute path to source api (entry point)
+	  echo "$(bashido.root)/abc/bashido.bash"
+	elif test "$(type -t "bashido.$1")" == "function"
+	then # 3rd form: call command with given argv
 		local command="bashido.$1"; shift;
 		verb "exec by process $$ %s" "$command $@"
 		$command "$@"
-	else
+	else # 4th form: backwards compat avoiding delegation on non-existant functions
 		bashido.translate "${1//-//}" # translate dashes to slashes (backwards compat)
 	fi
 }
@@ -38,12 +43,8 @@ function bashido.root () {
 # Special hook while running or being sourced
 # The following cases avoid "doing more", as it's not necessary
 # - 1st form: no arguments, same as bashido.root (for backwards compat)
-(( $# )) || { bashido.root; exit; }
 # - 2nd form: when requesting the api entry point
-if test "$1" == "api"; then
-	echo "$(bashido.root)/abc/bashido.bash"
-	exit
-fi
+if test "$1" == "api" || ! (( $# )); then	bashido "$@"; return; fi
 
 function bashido.help () {
 	# prints help about bashido usage
@@ -92,7 +93,7 @@ function bashido.translate () {
 	local file="$(bashido.libroot)/${ref//\.//}.bash"
 	test -r "$file" && echo "$file" || {
 		fail "BASHIDO ERROR: '$file' is not readable"
-		return 1 # not neccesary, but explicit
+		return 1 # not neccesary but wanted to be explicit
 	}
 }
 
@@ -130,6 +131,7 @@ bashido.require "error" || exit
 
 # not required here, but used everywere
 bashido.require "is" || exit
+bashido.require "api.assert" || exit
 
 # TODO this shit belongs to "is" api
 function bashido.isref () {
@@ -139,7 +141,7 @@ function bashido.isref () {
 		emsg "BASHIDO ERROR: reference string '$ref' has no dots"
 		return 1
 	}
-	(bashido.translate "$ref") 2>/dev/null || {
+	(bashido.translate "$ref") >/dev/null || {
 		emsg "BASHIDO ERROR: '$ref' can't be translated to a readable file"
 	  return 1
 	}

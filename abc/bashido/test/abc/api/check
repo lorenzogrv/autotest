@@ -1,0 +1,32 @@
+#!/bin/bash
+
+autotest checkup && source <(autotest) || exit
+
+bashido isref "api.check"
+tested "api.check is a valid bashido reference"
+
+bashido.require "api.check" || exit
+
+( check that command "echo hola" returns 0 ) &>/dev/null
+test $? -eq 0; tested "return code ok is properly catched"
+
+( check that command "exit 3" returns 7 ) &>/dev/null
+test $? -ne 0; tested "return code not ok is properly catched"
+
+( check that command "exit 7" returns 7 ) &>/dev/null
+test $? -eq 0; tested "return code match, even > 0, returns 0"
+
+# finally, check that example testbins run
+(
+  . "$(bashido)/example/testbin.bash"
+)
+tested "the simple example of the check api works"
+
+(
+  . "$(bashido)/example/testbin-nested.bash"
+)
+teskip "the nested example of the check api works"
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

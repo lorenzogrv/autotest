@@ -1,6 +1,5 @@
 
-source "$(bashido check.common)"
-source "$(bashido assert.equal)" # this one has the diff_test
+bashido.require "assert.equal" # for diff_test
 
 check.command () {
 	local cmdline="$1" cmd="$2" val="$3"

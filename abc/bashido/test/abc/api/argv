@@ -1,0 +1,22 @@
+#!/bin/bash
+
+autotest checkup && source <(autotest) || exit
+
+bashido isref api.argv
+tested "api.argv is a bashido reference"
+# TODO thinking on moving argv.program to stdio.argv
+
+# example program needs bashido api sourced
+source "$(bashido api)" --source-only || exit
+source "$(bashido)/example/example-program.bash"
+tested "example program can be sourced"
+
+iai working
+
+# TODO test outputs to check subcommands etc
+example-program "$@"
+teskip "there should be more tests"
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */
