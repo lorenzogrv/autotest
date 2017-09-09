@@ -44,7 +44,7 @@ function bashido.root () {
 # The following cases avoid "doing more", as it's not necessary
 # - 1st form: no arguments, same as bashido.root (for backwards compat)
 # - 2nd form: when requesting the api entry point
-if test "$1" == "api" || ! (( $# )); then	bashido "$@"; return; fi
+if test "$1" == "api" || ! (( $# )); then	bashido "$@"; exit; fi
 
 function bashido.help () {
 	# prints help about bashido usage
