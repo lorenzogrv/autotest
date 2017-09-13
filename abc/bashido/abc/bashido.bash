@@ -20,7 +20,7 @@ function bashido () {
 	elif test "$(type -t "bashido.$1")" == "function"
 	then # 3rd form: call command with given argv
 		local command="bashido.$1"; shift;
-		verb "exec by process $$ %s" "$command $@"
+		info "exec by process $$ %s" "$command $@"
 		$command "$@"
 	else # 4th form: backwards compat avoiding delegation on non-existant functions
 		bashido.translate "${1//-//}" # translate dashes to slashes (backwards compat)
@@ -173,7 +173,7 @@ case "$1" in
 	# api is useless here, but included to be explicit
 	# TODO re-analyze the way to include bashido
 	'api') fail "source process $$ should have stoped" ;;
-	'--source-only') verb "process $$ sourced bashido" ;;
+	'--source-only') info "process $$ sourced bashido" ;;
 	# all other cases: run bashido with given argv
 	# provides backwards compat plus internal builtins
 	*) bashido "$@"	;;

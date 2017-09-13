@@ -49,8 +49,8 @@ log () {
 }
 
 # decides whenever to output a log message or ignore it.
-# default implementation is to output everything
-log.filter () { true; }
+# default implementation is to output everything except verbose messages
+log.filter () { test "$1" != 'VV'; }
 
 # logs messages with an error level mark (EE)
 emsg () { if (($#)); then log EE "$@"; else <&0 loog EE; fi; }
