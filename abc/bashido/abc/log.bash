@@ -5,9 +5,6 @@
 # They are designed to allow reading from standard input if need.
 # TODO document the usage
 
-source "$(bashido api.ansi)" || exit
-source "$(bashido api.call_trace)" || exit
-
 # same as `echo` but output to stderr
 eche () { >&2 echo "$@"; }
 
@@ -52,8 +49,8 @@ log () {
 }
 
 # decides whenever to output a log message or ignore it.
-# default implementation is to output everything
-log.filter () { true; }
+# default implementation is to output everything except verbose messages
+log.filter () { test "$1" != 'VV'; }
 
 # logs messages with an error level mark (EE)
 emsg () { if (($#)); then log EE "$@"; else <&0 loog EE; fi; }
@@ -81,6 +78,11 @@ fail () { emsg "$@"; emsg <<<"$(call_trace 1)"; exit 1; }
 #
 # Helper function to [fail early](http://stackoverflow.com/a/2807375/1894803)
 ####
+
+# require dependencies at the end, to ensure log is defined already
+bashido.require "stdio.ansi" || exit
+bashido.require "call_trace" || exit
+
 
 ##
 # vim modeline

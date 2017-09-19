@@ -1,5 +1,7 @@
 
-basename_split () {
+function path () { fail "not implemented yet"; }
+
+function basename_split () {
 	local basename="$(basename "$file")"
 	# `man bash`, search for "Parameter Expansion"
 	local prefix="${basename%%\.*}"

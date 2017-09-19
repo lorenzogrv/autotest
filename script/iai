@@ -10,14 +10,18 @@
 
 iai.dependencies () {
 	type -t bashido >/dev/null || { echo >&2 "FATAL: missing bashido"; exit 1; }
-	source "$(bashido api.require)" || exit
-	bashido.require "assert.common" || exit
+	source "$(bashido api)" --source-only || exit
 	log.filter () {
-		return 0 # comment this line for max amount of verbosity
-		return 1
-		#echo "logs $@"
-		test "$2" != "iai"
+		return 0 # uncomment this line for max amount of verbosity
+		#return 1 # uncomment this line to remove al logging
+
+		# log.filter receives 3 arguments:
+		# $1: "lvl" (one of EE, II, VV, etc.)
+		# $2: "fn" (the function where log output was requested)
+		# $3: "file" (the file where the function is defined)
+		echo "logs $@"
 	}
+	bashido.require "assert.common" || exit
 	iai.dependencies () { true; }
   info "loaded iai dependencies"
 }
@@ -56,7 +60,7 @@ function iai () {
 				warn "there is nothing named %s" "$cmd"
 			fi
 			iai-help | utip
-			fail "unknown command %s" "$1" ||	exit 1
+			fail "unknown command %s" "$1" || exit
 		fi
 	fi
 
@@ -124,7 +128,7 @@ function iai-tree () {
 	tree -L 2 --dirsfirst --sort=name --noreport -C "$@" || exit 1;
 }
 function iai-ls () {
-	ls -lht --color=always "$@" || exit 1;
+	ls -lhu --color=always --group-directories-first "$@" || exit 1;
 }
 
 ##
@@ -132,11 +136,14 @@ function iai-ls () {
 # It depends on `dig`. See http://unix.stackexchange.com/a/81699
 ##
 function iai-wanip () {
-  dig +short myip.opendns.com @resolver1.opendns.com || {
+  dig +short myip.opendns.com @resolver1.opendns.com 2>/dev/null || {
 		iai.dependencies
-		emsg "dig command failed, see above for details"
-		type dig &>/dev/null || utip "dig seems not available. Try '%s'"\
-			"apt install dnstools"
+		emsg "dig command failed"
+		type dig &>/dev/null || {
+			utip "dig seems not available."
+		  utip "Try '%s' (debian based)" "apt install dnstools"
+			utip "or '%s' (arch based)" "pacman -S bind-tools"
+		}
 	}
 }
 ##
@@ -196,6 +203,13 @@ function iai-repo () {
 		emsg "Could not find git repository"
 		exit 1
   }
+}
+
+##
+# `iai-dependencies` is an utility to check if dependencies load
+##
+function iai-dependencies () {
+	iai.dependencies
 }
 
 ##

@@ -1,0 +1,19 @@
+assert_function iai || exit
+
+function iai-note () {
+	test -n "$@" || fail "expecting no arguments"
+
+	local file="$(pwd)/READMY.md"
+
+	test -f "$file" || {
+	  warn "the READMY.md file does not exist, will create one"
+		touch "$file"
+  }
+
+	printf "\n> %s\n\n- " "$(iai time)" >> "$file"
+	vim + "$file"
+}
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

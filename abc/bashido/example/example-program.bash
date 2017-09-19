@@ -1,18 +1,21 @@
-source "$(bashido argv-program)" || exit
+# rely on the file which sources this one to properly source bashido api
 
-function example () {
+assert_function bashido || exit
+bashido.require "api.argv"
+
+function example-program () {
 	# an example command to demonstrate bashido's argv.program api
 	##
-	argv.program "$@"
+	argv program "$FUNCNAME" "$@"
 }
 
-function example.subcommand () {
+function example-program.subcommand () {
 	# an example subcommand to demonstrate bashido's argv.program api
 	##
 	echo "you ran $command"
 }
 
-function example.anotherone () {
+function example-program.anotherone () {
 	# another subcommand to demonstrate bashido's argv.program api
 	##
 	echo "you ran $command"

@@ -1,11 +1,14 @@
 
-source "$(bashido check.common)"
-source "$(bashido assert.equal)" # this one has the diff_test
+bashido.require "assert.equal" # for diff_test
 
 check.command () {
 	local cmdline="$1" cmd="$2" val="$3"
 	case "$cmd" in
 		code-is)
+			warn "check.command code-is deprecated. use 'returns' instead"
+			check.command "$cmdline" returns "$val"
+			;;
+		returns)
 			( eval "$cmdline" ) 1>/dev/null
 			( assert.last-code-is $val )
 			tested "running '$cmdline' returns '$val'"
@@ -27,7 +30,8 @@ check.command () {
 			esac
 			;;
 		*)
-			echo "test_cmd: unknown action '$cmd'"
+			>&2 echo "$FUNCNAME: unknown check to perform '$cmd'"
+			exit 1
 	esac
 }
 ##

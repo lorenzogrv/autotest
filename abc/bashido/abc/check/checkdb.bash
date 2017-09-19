@@ -8,7 +8,7 @@ _items=() # keys are gids, values group lengths
 _ended=()
 
 #echo "iai-check runs for the 1st time"; set -x
-iai-checkdb () {
+checkdb () {
   case "$1" in
     # regarding _count
     isid|'is-$2-an-existing-test-id')

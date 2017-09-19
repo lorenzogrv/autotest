@@ -8,15 +8,14 @@ bashido.require "assert.lint"
 function iai-check () {
 	# project root is researched through the builtin `iai-repo`
   local root="$(iai-repo)"
+	test -n "$root" || fail "could not find project repo"
 
-	(iai-repo) &> /dev/null\
-		&& info "running for project root %s" "$root"\
-		|| fail "could not find project repo"\
-	;
+	cd "$root" || fail "could not descend into '$root'"
+
 	case $# in
 		0) iai check.project "$root" ;;
 		1) iai lint.project "$root"; iai check.feature "$1" ;;
-		# actually the next will fail when
+		# actually the next will fail when, plus its usability needs debate.
 		2) iai lint.feature "$1"; iai check.partial "abc/$2" ;;
 		*) fail "too much arguments (%s given)" $# ;;
 	esac
@@ -27,8 +26,6 @@ function iai-check.partial () {
 	# checks the partial implementation defined at $1
 	# to rely on this function, ensure the $PWD is a valid feature first
 	local partial="${1:?'missing partial path'}"
-
-	info "checking the partial %s" "$PWD/$partial"
 
 	(assert_reg_perm_r "$PWD/$partial") || {
 	  emsg "%s is not a readable file" "$PWD/$partial"
@@ -67,10 +64,10 @@ function iai-check.partial () {
 	verb "run testbin %s ..." "$testbin"; SECONDS=0
 	(
 	  # TODO count the times that tested/teskip are called
-		. "$testbin"
-	) &> /dev/null || {
+		iai run "$testbin"
+	) 1> /dev/null || {
 	  utip "test exited with code %s" $?
-		utip "Run %s to see details" "$testbin || echo EXIT \$?"
+		utip "Run %s to see details" "iai run $testbin || echo 'EXIT CODE WAS' \$?"
 		false
   }
 	tested "$partial testbin exits with code 0"
@@ -80,7 +77,6 @@ function iai-check.partial () {
 
 iai-lint.testbin () {
 	local testbin="${1:-'missing testbin path'}"
-	info "linting the testbin %s" "$testbin"
 
 	(assert_reg_perm_x "$testbin") || {
 	  utip "the convention is that each partial must have its 'testbin'."
@@ -136,13 +132,14 @@ function iai-check.feature () {
 	# to rely on this function, ensure the $PWD is a valid project first
 	local feature="${1:?'missing feature codename'}"
 
-	info "checking the feature %s" "$feature"
-
+	# TODO this test should rely on .git directory, not package.json
   if test -f "$PWD/abc/$feature/package.json"
 	then
 		# when feature is a project itself, delegate on check.project
 		info "the feature %s is a project on its own" "$feature"
+		local oldpwd="$PWD"
 		iai check.project "$PWD/abc/$feature"
+		cd "$oldpwd" # ensure we are at the project pwd to proceed
 	else
 		iai lint.feature "$feature"
 		# feature should have tests or it's not possible to perform any check
@@ -183,7 +180,6 @@ function iai-lint.feature () {
 	# asserts the feature whose codename is $1 complains with the iai convention
 	# to rely on this function, ensure the $PWD is a valid project first
 	local codename="${1:?'missing the feature codename'}"
-	info "linting the feature %s" "$codename"
 
   if test -f "abc/$codename/package.json"
 	then
@@ -200,7 +196,6 @@ function iai-lint.feature () {
 function iai-check.project () {
 	# checks the current iai-based project, assumed to be at $PWD
 	local root="${1:?'missing project root'}"
-	info "checking the project %s" "${root##*/}"
 
 	iai lint.project "$root"
 
@@ -218,7 +213,6 @@ function iai-check.project () {
 function iai-lint.project () {
 	# asserts that project at $1 complains with the iai convention
 	local root="${1:?'missing the project root'}"
-	info "linting the project %s" "$root"
 
 	# a project must be a valid directory
 	assert_dir_exists "$root"

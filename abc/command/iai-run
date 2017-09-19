@@ -1,0 +1,15 @@
+assert_function iai || exit
+
+function iai-run () {
+	test -n "$1" || fail "missing argument 1 (path to file)"
+	test -x "$1" || fail "file %s is not executable" "$file"
+
+	local file="$1"; shift
+	verb %s "$file $@"
+	. "$file" "$@"
+	verb "$file $@ exits with code %s" "$?"
+}
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

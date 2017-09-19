@@ -2,6 +2,9 @@
 
 autotest checkup && source <(autotest) || exit
 
+iai todo help &>/dev/null
+tested "%s exits with code 0" 'iai todo help'
+
 teskip "there should be some tests for this"
 
 ##
