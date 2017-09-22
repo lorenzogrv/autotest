@@ -226,6 +226,10 @@ function iai-working () {
 	exit 1
 }
 
+function iai-status () {
+  "$@" && echo OK || echo KO
+}
+
 ##
 # MAIN ROUTINE
 # ============
