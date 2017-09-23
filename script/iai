@@ -156,7 +156,7 @@ function iai-wanip () {
 # See https://askubuntu.com/a/604691/167333
 ##
 function iai-lanip () {
-	ip route get 8.8.8.8 | awk '{print $NF; exit}' || exit 1;
+	ip route get 8.8.8.8 | awk '{print $7; exit}' || exit 1;
 }
 
 ##
