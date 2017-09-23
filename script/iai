@@ -166,18 +166,16 @@ function iai-ssh-auth {
 	local host="$1"
 	test -z "$host" && fail "Missing argument 1: %s" "hostname to be authorized"
 
-	info "Getting the id_rsa.pub file from '%s'" "$host"
-	test -e id_rsa.pub && fail "id_rsa.pub already exists at pwd"
-	scp "$host:~/.ssh/id_rsa.pub" . || fail "something went wrong"
+	local idfile=~/.ssh/"$host--id_rsa.pub"
+	test -e "$idfile" && warn "will overwrite %s" "$idfile"
 
-	local idfile="~/.ssh/${host}--id_rsa.pub"
-	verb "Moving the key file to %s" "$idfile"
-	mv id_rsa.pub "$idfile" || fail "something went wrong"
+	info "Getting the id_rsa.pub file from %s" "$host"
+	scp "$host:~/.ssh/id_rsa.pub" "$idfile" || fail "something went wrong"
 
-	verb "Adding the key to '.ssh/authorized_keys'"
-	cat "$idfile" >> "~/.ssh/authorized_keys" || fail "something went wrong"
+	verb "Adding the key to '~/.ssh/authorized_keys'"
+	cat "$idfile" >> ~/.ssh/authorized_keys || fail "something went wrong"
 
-	info "Successfully added $host's key" "$host"
+	info "Successfully added %s's key" "$host"
 	utip "Now you can ssh into this system from %s" "$host"
 }
 
