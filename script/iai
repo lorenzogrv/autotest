@@ -35,7 +35,8 @@ iai.dependencies () {
 function iai () {
   if test $# -eq 0
 	then
-		cat "$(iai-path dojo db artii 0110)"
+		local artii="$(iai-path dojo db artii)"
+		cat "$artii/$(iai find in "$artii" -type f | sort -R | head -1)"
     exit 0
 	fi
 
@@ -44,8 +45,9 @@ function iai () {
 	local cmd="iai-$1"
 	local typ="$(type -t "$cmd")"
 
+	# when cmd is function, it's either builtin or an already sourced file
+	# so there aren't actions needed before running the command
 	if test "$typ" != "function"; then
-		# when cmd is function, it's either builtin or an already sourced file
 		iai.dependencies || exit
 		# when command is a file, it's assumed to be its function source file
 		if test "$typ" = "file"; then
