@@ -164,7 +164,7 @@ function iai-ssh-auth {
 	which scp &>/dev/null || fail "scp not found"
 
 	local host="$1"
-	test -z "$host" && fail "Missing argument 1: hostname to be authorized"
+	test -z "$host" && fail "Missing argument 1: %s" "hostname to be authorized"
 
 	info "Getting the id_rsa.pub file from '%s'" "$host"
 	local idfile="~/.ssh/${host}--id_rsa.pub"
