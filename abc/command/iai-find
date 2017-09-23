@@ -41,12 +41,12 @@ iai-find () {
 
 	# -O2 enables Optimization Level 2 (see `man find`)
 	# judge if supported by feature detection
-  if find -O2 &>/dev/null
+  if find -O2 -false &>/dev/null
 	then
-		opts="-O2 {$opts}"
+		opts="-O2 ${opts}"
 	else
 		warn "system's find don't support optimization level 2 (-O2)"
-		utip "this behaviour is expected on busybox binarys"
+		warn "this behaviour is expected on busybox binarys"
 	fi
 	# first prune ignores everything inside any .git directory
 	# second prune ignores everything inside a node_modules directory
