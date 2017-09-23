@@ -170,7 +170,13 @@ function iai-ssh-auth {
 	test -e "$idfile" && warn "will overwrite %s" "$idfile"
 
 	info "Getting the id_rsa.pub file from %s" "$host"
-	scp "$host:~/.ssh/id_rsa.pub" "$idfile" || fail "something went wrong"
+	if ! scp "$host:~/.ssh/id_rsa.pub" "$idfile"
+	then
+		emsg "something went wrong while retrieving the key"
+		utip "Does the remote machine (%s) have an id_rsa.pub file?" "$host"
+		utip "> %s" "ssh $host test -e ~/.ssh/id_rsa.pub && echo OK || ssh-keygen"
+		return 1
+	fi
 
 	verb "Adding the key to '~/.ssh/authorized_keys'"
 	cat "$idfile" >> ~/.ssh/authorized_keys || fail "something went wrong"
