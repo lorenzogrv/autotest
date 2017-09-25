@@ -61,8 +61,9 @@ function iai () {
 			else
 				warn "there is nothing named %s" "$cmd"
 			fi
+			emsg "unknown command %s" "$1" || exit
 			iai-help | utip
-			fail "unknown command %s" "$1" || exit
+			return 1
 		fi
 	fi
 
@@ -84,6 +85,15 @@ function iai () {
 ##
 
 function iai-help () {
+  iai.dependencies || exit
+  if test -f ./README.md
+	then
+		utip "try '%s' for information about this directory" "cat ./README.md"
+	else
+		warn "no README.md file was found here (%s)" "$PWD"
+	  utip "you should init README.md with a tree description, use '%s'"\
+    "iai-tree > README.md"
+	fi
 cat <<HELP
 ===
 iai
@@ -105,15 +115,6 @@ $(find "$(iai-path abc command)" -type f -name "iai-*" -print0\
   )
 ---
 HELP
-  iai.dependencies || exit
-  if test -f ./README.md
-	then
-		utip "try '%s' for information about this directory" "cat ./README.md"
-	else
-		warn "no README.md file was found here (%s)" "$PWD"
-	  utip "you should init README.md with a tree description, use '%s'"\
-    "iai-tree > README.md"
-	fi
 }
 
 ##
