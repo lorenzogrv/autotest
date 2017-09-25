@@ -1,9 +1,6 @@
 assert_function iai || exit
 
 function iai-pkg () {
-	test -z "$1" && fail "missing argument: %s" 'action to do'
-	test -z "$2" && fail "missing argument: %s" 'package term'
-
 	local mode="unknown"
 	if which apt &>/dev/null; then
 		mode="apt"
@@ -13,6 +10,9 @@ function iai-pkg () {
 		fail "could not detect the system package tool"
 	fi
 	info "will use %s as system package management tool" "$mode"
+
+	test -z "$1" && fail "missing argument: %s" 'action to do'
+	test -z "$2" && fail "missing argument: %s" 'package term'
 
 	action="iai-pkg.$mode.$1"
 	assert_function $action
