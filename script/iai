@@ -128,10 +128,10 @@ function iai-time () { date --rfc-3339=seconds || exit 1; }
 # `iai ls` standarizes the way to list the contents of a directory
 ##
 function iai-tree () {
-	tree -L 2 --dirsfirst --sort=name --noreport -C "$@" || exit 1;
+	tree -L 2 --dirsfirst --sort=name --noreport -C --filelimit 10 "$@" || exit 1
 }
 function iai-ls () {
-	ls -lhu --color=always --group-directories-first "$@" || exit 1;
+	ls -lhu --color=always --group-directories-first "$@" || exit 1
 }
 
 ##
