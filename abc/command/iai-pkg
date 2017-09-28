@@ -6,6 +6,8 @@ function iai-pkg () {
 		mode="apt"
 	elif which pacman &>/dev/null; then
 		mode="pacman"
+	elif which opkg &>/dev/null; then
+		mode="opkg"
 	else
 		fail "could not detect the system package tool"
 	fi
@@ -37,6 +39,10 @@ function iai-pkg () {
 
 iai-pkg.apt.search () { apt search "$@"; }
 iai-pkg.apt.install () { sudo apt install "$@"; }
+
+iai-pkg.opkg.search () { opkg search "*$@*"; }
+iai-pkg.opkg.install () { opkg install "$@"; }
+
 
 # see https://wiki.manjaro.org/index.php?title=Pacman_Tips
 iai-pkg.pacman.search () { pacman -Ss "$@"; }
