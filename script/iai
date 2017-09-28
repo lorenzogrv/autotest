@@ -176,6 +176,10 @@ function iai-ssh-auth {
 		emsg "something went wrong while retrieving the key"
 		utip "Does the remote machine (%s) have an id_rsa.pub file?" "$host"
 		utip "> %s" "ssh $host test -e ~/.ssh/id_rsa.pub && echo OK || ssh-keygen"
+		utip "IMPORTANT: if remote machine runs dropbear, the command is"
+		utip "> %s" "dropbearkey -t rsa -f ~/.ssh/id_dropbear -s 2048"
+		utip "After that, public key data will be output
+		utip "see https://techoverflow.net/2015/12/12/fixing-ssh-exited-string-too-long-on-openwrt/"
 		return 1
 	fi
 
