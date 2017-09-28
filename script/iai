@@ -178,7 +178,7 @@ function iai-ssh-auth {
 		utip "> %s" "ssh $host 'test -e ~/.ssh/id_rsa.pub && echo OK || ssh-keygen'"
 		utip "IMPORTANT: if remote machine runs dropbear, the command is"
 		utip "> %s" "dropbearkey -t rsa -f ~/.ssh/id_dropbear -s 2048"
-		utip "After that, public key data will be output
+		utip "After that, public key data will be output"
 		utip "see https://techoverflow.net/2015/12/12/fixing-ssh-exited-string-too-long-on-openwrt/"
 		return 1
 	fi
