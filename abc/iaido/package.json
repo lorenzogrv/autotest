@@ -1,0 +1,15 @@
+{
+  "name": "iaido",
+  "version": "1.0.0",
+  "description": "the path of personal reintegration, the fight against ego to reach the purity of mind\"",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "iai",
+    "javascript"
+  ],
+  "author": "Lorenzo García Rivera",
+  "license": "SEE LICENSE IN LICENSE.md"
+}
