@@ -16,4 +16,7 @@ npm-debug.log
 node_modules/*
 !node_modules/iai-*
 
+abc/iaido/node_modules/*
+!abc/iaido/node_modules/iai-*
+
 dojo/db/fixtures/fs/?0*
