@@ -16,5 +16,8 @@
     "cheerio": "^1.0.0-rc.2",
     "jquery": "^3.2.1",
     "raphael": "^2.2.7"
+  },
+  "devDependencies": {
+    "standard": "^10.0.3"
   }
 }
