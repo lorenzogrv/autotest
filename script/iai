@@ -51,10 +51,17 @@ function iai () {
 		iai.dependencies || exit
 		# when command is a file, it's assumed to be its function source file
 		if test "$typ" = "file"; then
-			test -x "$cmd" && warn "command %s definition file is executable" $cmd
-			source "$cmd" || fail "Unexpected exit code %s while sourcing %s" $? $cmd
-			info "loaded command %s" "$cmd"
-			assert_function "$cmd" # there is no function named $cmd at that file
+			local file="$(type -p $cmd)"
+			if ! test -x "$file"
+			then
+				verb "assuming command is a bash function because it's not executable"
+			  # executable files must include a shebang to be run directly
+			  source "$file" || {
+					fail "Got exit code $? while sourcing %s" "$file"
+			  }
+			  assert_function "$cmd" # or there is no function named $cmd at that file
+			  info "loaded command %s" "$cmd"
+			fi
 		else
 			if test -n "$typ"; then
 				emsg "type -t '$cmd' reports '$typ'"
@@ -110,6 +117,12 @@ $(while read d t fn; do echo $fn; done < <(declare -F)\
 
 other available commands:
 $(find "$(iai-path abc command)" -type f -name "iai-*" -print0\
+		| sort -z\
+  	| while read -d $'\0' cmd; do printf "  ${cmd##*/iai-}"; done\
+  )
+
+other available executables:
+$(find "$(iai-path bin)" -name "iai-*" -print0\
 		| sort -z\
   	| while read -d $'\0' cmd; do printf "  ${cmd##*/iai-}"; done\
   )
@@ -270,6 +283,7 @@ function iai-status () {
 # MAIN ROUTINE
 # ============
 PATH="$PATH:"$(iai-path abc command)""
+PATH="$PATH:"$(iai-path bin)""
 iai "$@"
 exit
 
