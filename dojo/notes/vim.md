@@ -24,3 +24,12 @@ git config --global merge.tool vimdiff
 git config --global merge.conflictstyle diff3
 git config --global mergetool.prompt false
 ```
+
+## How to plugins
+
+```
+# ALE (automatic linter (async))
+mkdir -p ~/.vim/pack/git-plugins/start
+git clone https://github.com/w0rp/ale.git ~/.vim/pack/git-plugins/start/ale
+npm install -g standard
+```
