@@ -1,34 +1,33 @@
 
 var path = require('path')
-// var budo = require('budo')
+var budo = require('budo')
 var babelify = require('babelify')
 
 module.exports = iaido
 
 function iaido (args) {
-  console.log('running iai-do cli');
+  console.log('running iai-do cli')
   var pwd = process.cwd()
   console.log('current pwd:', pwd)
 
   var resolve = (str) => path.resolve(pwd, str)
 
-  console.log('running iai-do cli');
+  console.log('running iai-do cli')
   var pkg = require(resolve('package.json'))
 
   console.log('project name: ', pkg.name)
   console.log('backend entry: ', pkg.main)
   console.log('browser entry: ', pkg.browser)
 
-  return
-
   budo('./' + pkg.browser, {
-    title: 'iaido',
+    title: pkg.name,
     live: true,             // setup live reload
     port: 8000,             // use this port
     browserify: {
       transform: babelify   // ES6
     },
     middleware: function (req, res, next) {
+      console.log('middleware', req.url)
       // TODO if pkg.main leads to a router
       next()
     }
