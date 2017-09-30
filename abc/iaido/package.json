@@ -2,9 +2,12 @@
   "name": "iaido",
   "version": "1.0.0",
   "description": "the path of personal reintegration, the fight against ego to reach the purity of mind\"",
-  "main": "index.js",
+  "main": "lib/backend.js",
+  "browser": "lib/browser.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "standard | notify-error",
+    "fix": "standard --fix",
+    "start": "budo index.js --live -- -t babelify"
   },
   "keywords": [
     "iai",
@@ -18,6 +21,9 @@
     "raphael": "^2.2.7"
   },
   "devDependencies": {
+    "babelify": "^7.3.0",
+    "budo": "^10.0.4",
+    "notify-error": "^1.2.0",
     "standard": "^10.0.3"
   }
 }

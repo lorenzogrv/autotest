@@ -1,8 +1,8 @@
 {
   "name": "iai",
   "version": "1.0.0",
-  "description": "@laconbass' development framework",
-  "main": "iai",
+  "description": "@laconbass' development toolset",
+  "main": "abc/iaido",
   "dependencies": {
     "bashido": "^1.0.0"
   },
