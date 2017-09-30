@@ -1,9 +1,10 @@
-#!/bin/bash
-
 assert_function iai || exit
 
 autotest checkup >/dev/null && source <(autotest) || exit
 bashido.require "assert.lint"
+
+# TODO remove this
+source iai-lint
 
 function iai-check () {
 	# project root is researched through the builtin `iai-repo`
@@ -16,7 +17,7 @@ function iai-check () {
 		0) iai check.project "$root" ;;
 		1) iai lint.project "$root"; iai check.feature "$1" ;;
 		# actually the next will fail when, plus its usability needs debate.
-		2) iai lint.feature "$1"; iai check.partial "abc/$2" ;;
+		#2) iai lint.feature "$1"; iai check.partial "abc/$2" ;;
 		*) fail "too much arguments (%s given)" $# ;;
 	esac
 	iai check.done
@@ -75,57 +76,6 @@ function iai-check.partial () {
   info "successfully checked %s" "$partial"
 }
 
-iai-lint.testbin () {
-	local testbin="${1:-'missing testbin path'}"
-
-	(assert_reg_perm_x "$testbin") || {
-	  utip "the convention is that each partial must have its 'testbin'."
-		utip "'testbin's are executable files, so this test fails because the file"
-		utip "is either not present or not executable. You can try this solutions:"
-		utip "for not present: %s" "touch $testbin"
-		utip "for not executable: %s" "chmod +x $testbin"
-		false
-  }
-	tested "$testbin is a regular file which is executable"
-
-	## TODO this should be separate from lint.testbin
-	## TODO i.e., automatically at lint.partial
-	local headfile="$(iai-path dojo/db/convention/bash-head--testbin)"
-	lint.head_equals "$testbin" "$headfile"
-	tested "file '$testbin' head is '$headfile'"
-
-	# generate test stats (autotest)
-	local tcount=$(grep -cw "tested" "$testbin")
-	local tskips=$(grep -cw "teskip" "$testbin")
-	verb "found $(( $tcount + $tskips )) tests in '$testbin'"
-	# generate test stats (bashido check)
-	local ccount=$(grep -cw "check" "$testbin")
-	verb "found $(( $ccount )) checks in '$testbin'"
-
-	(( $tcount )) || (( $tskips )) || (( $ccount )) || {
-		utip "%s was linted searching for test cases, but none was found" "$testbin"
-		utip "quick'n dirty fix: %s"\
-		 	"echo 'tested \"this should be tested someway though\"' >> '$testbin'"
-		utip "or use %s to fix the problem by hand" "vim '$testbin'"
-		false
-  }
-	tested "there is at least 1 test call in '$testbin'"
-	(( $tskips )) && warn "$tskips skiped tests in '$testbin'"
-
-	(( $tcount )) || (( $ccount )) || {
-	  utip "$testbin only contains 'tskip' calls, so tests nothing"
-		emsg "write at least one test there, cowboy fucker"
-		utip "use %s now" "vim '$testbin'"
-	  false
-  }
-	tested "something is actually tested in $testbin"
-	
-	local tailfile="$(iai-path dojo/db/convention/bash-tail--testbin)"
-	lint.tail_equals "$testbin" "$tailfile"
-	tested "file '$testbin' tail is '$tailfile'"
-
-	info "succesfully linted %s testbin" "$testbin"
-}
 
 function iai-check.feature () {
 	# checks the current iai-based feature whose codename matches exactly "$1"
@@ -175,24 +125,6 @@ function iai-check.feature () {
   info "successfully checked %s" "$feature"
 }
 
-# TODO does iai-assert.feature belong here?
-function iai-lint.feature () {
-	# asserts the feature whose codename is $1 complains with the iai convention
-	# to rely on this function, ensure the $PWD is a valid project first
-	local codename="${1:?'missing the feature codename'}"
-
-  if test -f "abc/$codename/package.json"
-	then
-		info "the feature %s is a project on its own" "$codename"
-		iai lint.project "$PWD/abc/$codename"
-	else
-		# the convention is that each feature codename must be present at:
-		assert_dir_exists "$PWD/abc/$codename"
-		assert_dir_exists "$PWD/test/abc/$codename"
-	fi
-	info "successfully linted the feature %s" "$codename"
-}
-
 function iai-check.project () {
 	# checks the current iai-based project, assumed to be at $PWD
 	local root="${1:?'missing project root'}"
@@ -209,26 +141,8 @@ function iai-check.project () {
   info "successfully checked %s project" "${root##*/}"
 }
 
-# TODO does iai-lint.project belong here?
-function iai-lint.project () {
-	# asserts that project at $1 complains with the iai convention
-	local root="${1:?'missing the project root'}"
-
-	# a project must be a valid directory
-	assert_dir_exists "$root"
-	cd "$root" || fail "could not descend into %s" "$root"
-
-	# the convention is that each project must contain the following:
-	assert_reg_exists "$root/README.md"
-	assert_reg_exists "$root/package.json"
-	assert_dir_exists "$root/abc"
-	assert_dir_exists "$root/dojo"
-	assert_dir_exists "$root/test"
-  info "successfully linted %s project" "${root}"
-}
-
 function iai-check.done () {
-	info "All tests were run! good job :D"
+	info "All checks were run! good job :D"
 	utip <<IMPORTANT
 - Remember to commit your work if applicable
 - Continue with TDD and write more test scripts.
