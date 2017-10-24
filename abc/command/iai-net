@@ -1,0 +1,24 @@
+assert_function iai || exit
+
+function iai-net () {
+	test -n "$1" || fail "missing argument 1 (action to do)"
+
+	local cmd="$FUNCNAME-$1"
+	assert_function "$cmd"
+	shift
+	$cmd "$@"
+}
+
+function iai-net-iface () {
+	ip route show default | awk '/default/ {print $5}'
+}
+
+function iai-net-mac () {
+	local iface=$(iai-net-iface)
+	read mac </sys/class/net/$iface/address
+	echo $iface $mac
+}
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */
