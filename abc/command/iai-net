@@ -9,6 +9,42 @@ function iai-net () {
 	$cmd "$@"
 }
 
+function iai-net-wanip () {
+  # provides a way to research the system IP within the cloud.
+  # It depends on `dig`. See http://unix.stackexchange.com/a/81699
+  ##
+  dig +short myip.opendns.com @resolver1.opendns.com 2>/dev/null || {
+    iai.dependencies
+    emsg "dig command failed"
+    if ! type dig &>/dev/null; then
+      utip "dig seems not available."
+      utip "Try '%s' (debian based)" "apt install dnstools"
+      utip "or '%s' (arch based)" "pacman -S bind-tools"
+    else
+      utip "unknown error"
+      dig +short myip.opendns.com @resolver1.opendns.com
+    fi
+    exit 1
+  }
+}
+
+function iai-net-lanip () {
+  # provides a way to research the system IP within the LAN.
+  # See https://askubuntu.com/a/604691/167333
+  ##
+  ip route get 8.8.8.8 | awk '{print $7; exit}' || {
+    iai.dependencies
+    emsg "ip command failed"
+    if ! type ip &>/dev/null; then
+      utip "'ip' command is not available."
+    else
+      utip "unknown error"
+      ip route get 8.8.8.8
+    fi
+    exit 1
+  }
+}
+
 function iai-net-iface () {
 	ip route show default | awk '/default/ {print $5}'
 }
