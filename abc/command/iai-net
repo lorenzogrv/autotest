@@ -18,8 +18,9 @@ function iai-net-wanip () {
     emsg "dig command failed"
     if ! type dig &>/dev/null; then
       utip "dig seems not available."
-      utip "Try '%s' (debian based)" "apt install dnstools"
-      utip "or '%s' (arch based)" "pacman -S bind-tools"
+      utip "Try '%s' (debian/etc)" "iai pkg install dnstools"
+      utip "or '%s' (arch/etc)" "iai pkg install bind-tools"
+      utip "or '%s' (openwrt)" "iai pkg install bind-dig"
     else
       utip "unknown error"
       dig +short myip.opendns.com @resolver1.opendns.com
@@ -37,12 +38,17 @@ function iai-net-lanip () {
     emsg "ip command failed"
     if ! type ip &>/dev/null; then
       utip "'ip' command is not available."
+      utip "Try %s (openwrt based)" "iai pkg install ip"
     else
       utip "unknown error"
       ip route get 8.8.8.8
     fi
     exit 1
   }
+}
+
+function iai-net-gate () {
+  ip route show default | awk '/default/ {print $3}'
 }
 
 function iai-net-iface () {
