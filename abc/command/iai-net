@@ -48,11 +48,12 @@ function iai-net-lanip () {
 }
 
 function iai-net-gate () {
-  ip route show default | awk '/default/ {print $3}'
+	# see https://serverfault.com/a/731095/195906
+  ip route show default 0.0.0.0/0 | awk '{print $3}'
 }
 
 function iai-net-iface () {
-	ip route show default | awk '/default/ {print $5}'
+	ip route show default 0.0.0.0/0 | awk ' {print $5}'
 }
 
 function iai-net-mac () {
