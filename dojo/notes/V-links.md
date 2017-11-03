@@ -2,3 +2,8 @@ https://www.adslzone.net/internet/comparativa-internet-satelite-ofertas-tarifas-
 https://www.linuxadictos.com/actualizar-programas-arch-linux-sin-conexion-internet.html
 https://hipertextual.com/2017/09/menu-oculto-google-chrome
 https://blog.desdelinux.net/imagine-asombroso-compresor-imagenes-una-interfaz-moderna/
+https://www.softwarefreedom.org/
+https://github.com/sourcelair/xterm.js
+https://github.com/blessed-ng/blessed
+https://xnet-x.net/manual-tecnico-derechos-fundamentales-internet/
+https://www.linuxadictos.com/instalar-linset-en-kali-linux.html
