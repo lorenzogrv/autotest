@@ -24,7 +24,7 @@ exports.listen = function( ){
 // Web Socket Integration
 // Never implement here details of what to do with messages
 // Nor send messages from here!!
-/*var wss = new WebSocketServer({ server: server });
+var wss = new WebSocketServer({ server: server });
 var clients = [];
 wss.on('connection', function( ws ){
   clients.push( ws );
@@ -38,7 +38,7 @@ wss.on('connection', function( ws ){
   });
   // re-emit connection on server
   server.emit('ws:connection', ws);
-});*/
+});
 
 exports.broadcast = function( data, options, callback ){
   log.debug('broadcast to %d clients', clients.length);

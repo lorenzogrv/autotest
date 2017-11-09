@@ -1,0 +1,17 @@
+{
+  "name": "iai-abc",
+  "version": "0.1.0",
+  "description": "The iai-abc package holds the low-level api to be used within the iai-api modules",
+  "main": "lib/abc.js",
+  "scripts": {
+    "test": "tape test/*.js | tap-spec"
+  },
+  "author": "Lorenzo García Rivera",
+  "license": "SEE LICENSE IN README.md",
+  "devDependencies": {
+    "faucet": "0.0.1",
+    "tap-min": "^1.1.0",
+    "tap-spec": "^4.1.1",
+    "tape": "^4.5.1"
+  }
+}

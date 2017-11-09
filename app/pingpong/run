@@ -1,0 +1,71 @@
+#!/usr/bin/env node
+
+var iai = require('iai');
+var log = iai.log;
+var read = iai.read;
+var gui = iai.gui;
+
+var server = Object.create( iai.Server );
+server.on( 'request', require('./router') );
+
+function readSTDIN( ){
+  log.info('reading from stdin...');
+  iai.read(process.stdin, { n: 1 }).on('readable', function(){
+    var data = this.read();
+    if( data ){
+      server.broadcast( 'stdin '+ data.toString() );
+    }
+  }).once('end', function(){
+    log.warn('`process.stdin` end. Will exit now');
+  });
+}
+
+function exit(){
+  server.broadcast( 'exit', function ack(err){
+    if( err ){
+      log.warn('exit message not sent to clients');
+      log.warn( err );
+    }
+    process.exit();
+  });
+}
+
+if( require.main === module ){
+  server.on('ws:connection', function( ws ){
+    ws.on('message', function( data, flags ){
+      if( data === 'ping' ){
+        ws.send('pong');
+      } else if ( data === 'exit' ){
+        log.warn('received exit!');
+        ws.send('exit');
+      } else {
+        log.warn('received message:', data);
+        ws.send('server received unknown message: '+data)
+      }
+    });
+    ws.send('connected!');
+  });
+  server.on('listening',function(){
+    var address = this.address();
+    var address_str = 'http://'+ '127.0.0.1' +':'+ address.port;
+    log.warn('server listening @ %s', address_str);
+    iai.gui.start()
+      .on('screen', function(displays){
+        // see api/gui/test.js before cowboy-monkey this code
+        gui.createWindow({
+          show: true,
+          x: displays.primary.workArea.x,
+          y: displays.primary.workArea.y,
+          width: displays.primary.workArea.width,
+          height: displays.primary.workArea.height
+        }).once('window-created', function( window ){
+          window.loadURL(address_str);
+        });
+      })
+      .on('app:window-all-closed', function(){
+        log.warn('Closed the GUI so exiting NOW');
+        process.exit(0);
+      })
+    ;
+  }).listen(27780);
+}

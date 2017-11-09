@@ -1,0 +1,36 @@
+#!/usr/bin/env node
+
+/**
+ * # dependants
+ * 
+ * shows information about module dependencies
+ *
+ * TODO this is currently an experiment with require.main
+ */
+
+// DEPENDENCIES
+
+var path = require('path');
+var sources = require('../abc/lib/tool/sources');
+
+// ARGV
+
+var argv = process.argv.slice( 2 );
+if( argv.length > 1 || argv[0] == '--usage' || argv[0] == '--help' ){
+  console.log('Usage: dependants [path to module or package]');
+  process.exit(1);
+}
+
+try {
+  var path = require.resolve( path.resolve(argv[0] || '') );
+  var mod = require( path );
+} catch( err ){
+  if( err.code != 'MODULE_NOT_FOUND' ){
+    throw err;
+  }
+  console.error( path + ' is not a commonjs package' );
+  process.exit(1);
+}
+
+console.log( sources(require.cache[path]) );
+console.log( 'RESEARCHED', path, 'DEPENDENCIES' );

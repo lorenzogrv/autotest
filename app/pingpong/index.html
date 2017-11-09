@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      html, body { height: 100%; }
+      body { margin: 0; font-family: Monospace; }
+      header { height: 5%; padding: 1% 0; }
+        h1 { margin: 0; }
+      div {
+        height: 93%; padding: 1em; box-sizing: border-box;
+        overflow: scroll;
+        background-color: gray; white-space: pre;
+      }
+    </style>
+    <script src="/frontend.js"></script>
+  </head>
+  <body>
+    <header>
+      iai-ide
+      <button id="ping">Ping</button>
+      <input id="input" type="text" placeholder="type something to send"/>
+      <button id="send">Send</button>
+    </header>
+    <div id="view"></div>
+  </body>
+</html>
