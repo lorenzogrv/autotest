@@ -1,7 +1,14 @@
 
 var path = require('path');
 var spawn = require('child_process').spawn;
-//var electron = require('electron-prebuilt');
+try {
+  var electron = require('electron-prebuilt');
+} catch( err){
+  if( err.code != 'MODULE_NOT_FOUND' ){
+    throw err;
+  }
+  var electron = 'electron';
+}
 var EventEmitter = require('events').EventEmitter;
 var BrowserWindowRemote = require('./BrowserWindowRemote');
 var iai = require('iai-abc');
@@ -20,7 +27,7 @@ exports.visible('start', function( url ){
     throw new Error('ALREADY STARTED MOTHERFUCKER');
   }
   log.verb('Will spawn the electron process now');
-  cp = spawn('electron', [ path.join(__dirname, 'electron') ], {
+  cp = spawn(electron, [ path.join(__dirname, 'electron') ], {
     cwd: process.cwd(),
     env: process.env,
     stdio: [null, 'pipe', 'pipe', 'ipc']
