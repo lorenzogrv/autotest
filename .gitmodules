@@ -1,9 +1,6 @@
 [submodule "lib/iai-oop"]
     path = lib/iai-oop
     url = https://github.com/laconbass/iai-oop.git
-[submodule "node_modules/iai-oop"]
-    path = node_modules/iai-oop
-    url = https://github.com/laconbass/iai-oop.git
 [submodule "node_modules/iai-util"]
     path = node_modules/iai-util
     url = https://github.com/laconbass/iai-util.git
@@ -19,9 +16,6 @@
 [submodule "node_modules/iai-test"]
     path = node_modules/iai-test
     url = https://github.com/laconbass/iai-test.git
-[submodule "node_modules/iai-schema"]
-    path = node_modules/iai-schema
-    url = https://github.com/laconbass/iai-schema.git
 [submodule "dojo/doc"]
 	path = dojo/doc
 	url = https://github.com/laconbass/iai.wiki.git
