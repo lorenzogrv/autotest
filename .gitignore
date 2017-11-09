@@ -12,9 +12,16 @@ pids
 logs
 results
 
+abc/iaido/example/*
+!abc/iaido/example/empty
+
 npm-debug.log
 node_modules/*
-!node_modules/iai*
 api/*/node_modules/*
+abc/iaido/node_modules/*
+
+!node_modules/iai*
 !node_modules/ws
 !node_modules/ultron
+
+dojo/db/fixtures/fs/?0*
