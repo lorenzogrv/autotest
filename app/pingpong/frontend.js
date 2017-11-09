@@ -29,8 +29,8 @@ function connect( callback ){
   ws.onmessage = function (event) {
     if( event.data == 'exit' ){
       message( 'EXIT request from server' );
-      message( 'Closing window in 2 sec' );
-      return setTimeout( window.close.bind(window), 2000 );
+      message( 'Closing window in 1 sec' );
+      return setTimeout( window.close.bind(window), 1000 );
     }
     message( event.data );
   };
