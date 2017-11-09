@@ -17,21 +17,19 @@ function readSTDIN( ){
     }
   }).once('end', function(){
     log.warn('`process.stdin` end. Will exit now');
-  });
-}
-
-function exit(){
-  server.broadcast( 'exit', function ack(err){
-    if( err ){
-      log.warn('exit message not sent to clients');
-      log.warn( err );
-    }
-    process.exit();
+    server.broadcast( 'exit', function ack(err){
+      if( err ){
+        log.warn('exit message not sent to clients');
+        log.warn( err );
+      }
+      log.warn('waiting gui exit...')
+    });
   });
 }
 
 if( require.main === module ){
   server.on('ws:connection', function( ws ){
+    ws.send('connected to server!');
     ws.on('message', function( data, flags ){
       if( data === 'ping' ){
         ws.send('pong');
@@ -43,7 +41,6 @@ if( require.main === module ){
         ws.send('server received unknown message: '+data)
       }
     });
-    ws.send('connected!');
   });
   server.on('listening',function(){
     var address = this.address();
@@ -60,6 +57,7 @@ if( require.main === module ){
           height: displays.primary.workArea.height
         }).once('window-created', function( window ){
           window.loadURL(address_str);
+          readSTDIN();
         });
       })
       .on('app:window-all-closed', function(){
