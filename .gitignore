@@ -14,8 +14,9 @@ results
 
 npm-debug.log
 node_modules/*
-!node_modules/iai*
 api/*/node_modules/*
+!node_modules/iai*
+!node_modules/ws
 
 abc/iaido/example/*
 !abc/iaido/example/empty
