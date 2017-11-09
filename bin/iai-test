@@ -16,7 +16,8 @@ var format = require('util').format;
 
 // UTILITIES
 var iai = require('iai');
-iai.log.clean = true;
+var log = iai.log;
+log.clean = true;
 var ansi = require('iai-ansi');
 
 // ARGV
@@ -24,7 +25,7 @@ var ansi = require('iai-ansi');
 var argv = process.argv.slice( 2 );
 if( !argv.length ){
   var name = require('path').basename(__filename);
-  iai.log
+  log
     .info('')
     .info('Usage: %s [--once [--mute]] {filename} [optional argv]', name)
     .info('')
@@ -45,25 +46,25 @@ var silent = argv.shift();
 if( silent !== '--mute' ){
   argv.unshift(silent);
 } else {
-  iai.log.mute = true;
+  log.mute = true;
 }
 
 var filename = path.resolve( process.cwd(), argv.shift() );
 argv.unshift( filename );
 var runner = 'node';
 
-iai.log.info('filename is', filename);
+log.info('filename is', filename);
 
 var isModule = path.extname(filename) == '.js';
 
 if( isModule ){
-  iai.log.verb( 'It seems a commonjs module, will run with node' );
+  log.verb( 'It seems a commonjs module, will run with node' );
 } else {
-  iai.log.warn('It seems a script, will run it directly');
+  log.warn('It seems a script, will run it directly');
   runner = argv.shift();
 }
 
-iai.log.info( 'ready to run the test with "%s"', runner );
+log.info( 'ready to run the test with "%s"', runner );
 // TODO if colors disabled...
 //var log = info console.log; var error = console.error;
 
@@ -79,7 +80,7 @@ function main( ){
   // TODO think on PM2 package
   // see also https://github.com/tj/commander.js/issues/409#issuecomment-106611413
   if( child ){
-    iai.log.info( 'Killing child process to run again...' );
+    log.info( 'Killing child process to run again...' );
     return child.kill( 'SIGUSR2' );
   }
 
@@ -88,13 +89,13 @@ function main( ){
       // Refresh require.cache requiring the file to research 'sources'
       delete require.cache[filename];
 
-      iai.log.verb( 'Requiring module to research its dependencies\n* v *' );
+      log.verb( 'Requiring module to research its dependencies\n* v *' );
 
       // warn if the file outputs something to stdout when required
       var out_write = process.stdout.write;
       process.stdout.write = function(){
         process.stdout.write = out_write;
-        iai.log.error( 'The module writes to stdout when required' );
+        log.error( 'The module writes to stdout when required' );
         return out_write.apply( process.stdout, arguments );
       };
       // warn if the file outputs something to stderr when required
@@ -103,7 +104,7 @@ function main( ){
         process.stderr.write = err_write;
         // replace before or will start Infinite Loop
         // ( iai.log.error calls process.stderr.write )
-        iai.log.error( 'The module writes to stderr when required' );
+        log.error( 'The module writes to stderr when required' );
         return err_write.apply( process.stderr, arguments );
       };
 
@@ -112,19 +113,19 @@ function main( ){
       process.stdout.write = out_write;
       process.stderr.write = err_write;
 
-      iai.log.verb( '* ^ *\nRequire completed' );
+      log.verb( '* ^ *\nRequire completed' );
       watcher( iai.sources(require.main) );
     } catch( e ){
       if( e.code == 'MODULE_NOT_FOUND' ){
-        iai.log.error( 'The file %s does not resolve', filename )
+        log.error( 'The file %s does not resolve', filename )
       } else {
-        iai.log
+        log
           .error( "Error thrown while requiring module:" )
           .error( e.stack )
         ;
       }
       if( watcher([ filename, __filename ]) ){
-        iai.log.info( "will run again after any change is detected" );
+        log.info( "will run again after any change is detected" );
       } else {
         process.exit(1)
       }
@@ -133,7 +134,7 @@ function main( ){
     watcher( iai.sources(require.main).concat(filename) );
   }
 
-  iai.log.info( 'Spawn> %s %s', runner, argv.join(' ') ).verb('* v *');
+  log.info( 'Spawn> %s %s', runner, argv.join(' ') ).verb('* v *');
   var env = Object.create( process.env );
   env.NODE_ENV = 'test';
   child = spawn( runner, argv, {
@@ -143,7 +144,7 @@ function main( ){
 }
 
 function reboot( code, signal ){
-  iai.log
+  log
     .verb('* ^ *')
     .info( 'child exited with code %s and signal %s', code, signal )
   ;
@@ -152,7 +153,7 @@ function reboot( code, signal ){
   if( signal == 'SIGUSR2' ){
     return main();
   }
-  iai.log.info( once? 'Finished.' : 'waiting for a change to run again...' );
+  log.info( once? 'Finished.' : 'waiting for a change to run again...' );
 }
 
 function handle( err ){
@@ -164,7 +165,7 @@ function handle( err ){
     *   http://man7.org/linux/man-pages/man2/chmod.2.html
     */
   if( err && err.code == "EACCES" ){
-    iai.log
+    log
       .warn( err.stack )
       .warn( 'File %s is not executable, making it executable', filename )
     ;
@@ -177,21 +178,21 @@ function handle( err ){
     });
     return;
   }
-  iai.log.verb( err );
-  iai.log.fatal( 'Child process error', err.stack );
+  log.verb( err );
+  log.fatal( 'Child process error', err.stack );
 };
 
 function watcher( files ){
   if( once ){
-    iai.log.verb('asked to run only once');
+    log.verb('asked to run only once');
     return false;
   }
   if( watch_instance ){
-    iai.log.info('stopping watcher...');
+    log.info('stopping watcher...');
     watch_instance.close();
     watch_instance = null;
   }
-  iai.log.info(
+  log.info(
       'watching for changes on:\n  %s',
       files.join('\n  ').replace( RegExp( process.cwd(), 'g' ), '.' )
   );
@@ -202,10 +203,10 @@ function watcher( files ){
   }).on( 'all', function watcher( event, file ){
     this.close();
     process.stdout.write( ansi.clear )
-    iai.log.info( 'watched a %s on %s', event, file );
+    log.info( 'watched a %s on %s', event, file );
     if( event == 'change' && file == __filename ){
-      iai.log.warn( 'the test script implementation has changed' );
-      iai.log.warn( 'stopping test script, please run it again' );
+      log.warn( 'the test script implementation has changed' );
+      log.warn( 'stopping test script, please run it again' );
       process.exit( 1 );
       // this creates 1 more main() execution each time is called
       // delete require.cache[ file ];

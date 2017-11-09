@@ -1,0 +1,22 @@
+{
+  "name": "iai-api-server",
+  "version": "0.0.0",
+  "description": "A ready-to-use http server with websocket integration",
+  "main": "server.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "tape test/*.js | tap-spec",
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "SEE LICENSE IN README.md",
+  "dependencies": {
+    "iai-abc": "*"
+  },
+  "devDependencies": {
+    "tap-spec": "^4.1.1",
+    "tape": "^4.5.1"
+  }
+}

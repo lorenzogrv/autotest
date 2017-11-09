@@ -7,6 +7,7 @@ var read = iai.read;
 
 module.exports = TEST;
 if( require.main === module ){
+  process.on( 'exit', helper() );
   TEST();
 }
 
@@ -47,7 +48,11 @@ function TESTN1(){
   var plan = sequence.length;
   iai.read( input, { n: 1 }).on('readable', function(){
     var data = this.read();
-    assert.ok( data, 'expected some data' );
+    if( data === null ){
+      // input has end
+      return;
+    }
+    assert.ok( data, 'expected some data, '+data );
     assert.equal( data.length, 1, 'expected/* data length of 1');
     assert.equal( data, sequence[count] );
 
@@ -91,6 +96,7 @@ function TESTLINE(){
   var plan = --result.length;
   iai.read( input, {} ).on('readable', function(){
     var data = this.read();
+    if( data === null ) return; // input has end
     assert.ok( data, 'expected some data' );
     assert.equal( data.length, result[count].length, 'bad data length');
     assert.equal( data, result[count] );
@@ -128,33 +134,10 @@ function TESTIMEOUT(){
   }, 30);
 
   iai.read( input, { t: 15 })
-    .on('readable', function(){
-      throw new Error('it should not become readable');
-    })
     .on('error', function onError(){
       clearTimeout(to);
       assert.equal( this.read(), null, 'it should not pass through' );
       log.debug('read --timeout ok');
-      setTimeout( TESTIMEOUT2, 100 );
-    })
-  ;
-}
-
-function TESTIMEOUT2(){
-  var input = emulateKeyboard('123', { /*debug: true/**/ });
-  var count = 0;
-
-  iai.read( input, { n: 1, t: 10 })
-    .on('error', function( err ){
-      console.error( err.stack );
-      log.fatal('it should not timeout');
-    })
-    .on('readable', function(){
-      assert.equal( this.read()+'', ++count );
-    }).on('end', function(){
-      assert.equal( count, 3 );
-      assert.ok( this.read() === null, 'no more data expected' );
-      log.debug('read --timeout (clear) ok');
       setTimeout( TESTINTERRUPT, 100 );
     })
   ;
@@ -170,7 +153,9 @@ function TESTINTERRUPT(){
       throw new Error('it should not timeout');
     })
     .on('readable', function(){
-      assert.equal( this.read()+'', ++count );
+      if( this.read() !== null ){
+        count++;
+      }
     })
     .on('end', function(){
       assert.equal( count, 2 );
@@ -186,9 +171,6 @@ function TESTSTDIN(){
   iai.read( process.stdin, { n: 1, t: 1000 })
     .on('error', function onError(){
       throw new Error('it should not timeout');
-    })
-    .on('readable', function(){
-      throw new Error('it should not become readable');
     })
     .on('end', function(){
       assert.ok( !process.stdin.isRaw, 'stdin raw mode should be false' );

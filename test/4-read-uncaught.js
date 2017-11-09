@@ -12,16 +12,9 @@ function TESTSTDIN(){
     .on('error', function onError(){
       throw new Error('it should not timeout');
     })
-    .on('readable', function(){
-      throw new Error('it should not become readable');
-    })
-    .on('end', function(){
-      assert.ok( !process.stdin.isRaw, 'stdin raw mode should be false' );
-      end = true;
-    })
   ;
   process.on('exit', function( code ){
-    assert.ok( end, 'end should had emitted' );
+    assert.ok( !process.stdin.isRaw, 'stdin raw mode should be false' );
     assert.equal( code, 99, 'code should be 99' );
     process.exit(0);
   });

@@ -1,7 +1,8 @@
 var PassThrough = require('stream').PassThrough;
 var StringDecoder = require('string_decoder').StringDecoder;
 
-var log = require('./log')();
+var abc = require('../abc');
+var log = abc.log;
 /**
  * reads characters from any readable stream
  * if !n, it will read until \n (or opts.splitter) is found (and strip it)
@@ -21,18 +22,11 @@ function read( stream, opts, callback ){
     log.info( 'READ STDIN', opts, 'raw mode enabled' );
     // TODO Move this behaviour to a iai.cleanup function
     // taken from http://stackoverflow.com/a/21947851/1894803
-    process.on( 'exit', function( ){
+    process.on( 'exit', function( code ){
+      code && log.warn( 'READ STDIN', opts, 'EXIT', code );
       stream.setRawMode(false)
       log.info( 'READ STDIN', opts, 'raw mode disabled' );
-      output.emit('end');
-    });
-    process.on('SIGINT', function( ){
-      log.info( 'READ STDIN', opts, 'Got SIGINT' );
-      process.exit(2);
-    });
-    process.on('uncaughtException', function( err ){
-      log.error( 'READ STDIN', opts, 'got uncaught exception' );
-      log.fatal( 99, err.stack );
+      output.end();
     });
   }
   

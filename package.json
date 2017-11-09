@@ -3,13 +3,27 @@
   "version": "0.0.1-alpha",
   "description": "@laconbass web development framework for node.js",
   "main": "iai",
+  "bin": {
+    "iai": "./bin/iai"
+  },
+  "browser": "app/frontend.js",
   "dependencies": {
-    "iai-oop": "^2.0.0"
+    "browserify": "^13.0.0",
+    "iai-oop": "^2.0.0",
+    "ws": "^0.7.2"
   },
   "repository": {
-    "type": "git", "url": "https://github.com/laconbass/iai.git"
+    "type": "git",
+    "url": "https://github.com/laconbass/iai.git"
   },
   "scripts": {
-    "test": "./script/test"
+    "test": "./script/test",
+    "start": "./bin/iai-test ./bin/iai-ide.js",
+    "watchify": "node_modules/.bin/watchify app/frontend.js -o build/bundle.js -d -v"
+  },
+  "devDependencies": {
+    "browserify": "^13.0.0",
+    "tape": "^4.5.1",
+    "watchify": "^3.7.0"
   }
 }
