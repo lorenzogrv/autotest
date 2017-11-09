@@ -13,7 +13,19 @@ function iaido (args) {
   var resolve = (str) => path.resolve(pwd, str)
 
   console.log('running iai-do cli')
-  var pkg = require(resolve('package.json'))
+  try {
+    var pkg = require(resolve('package.json'))
+  } catch (err) {
+    if (err.code !== 'MODULE_NOT_FOUND') {
+      throw err
+    }
+    console.error('there is no package.json file at %s', pwd)
+    process.exit(1)
+  }
+
+  if (!pkg.name) throw new Error('no "name" field in package.json')
+  if (!pkg.main) throw new Error('no "main" field in package.json')
+  if (!pkg.browser) throw new Error('no "browser" field in package.json')
 
   console.log('project name: ', pkg.name)
   console.log('backend entry: ', pkg.main)
@@ -23,6 +35,7 @@ function iaido (args) {
     title: pkg.name,
     live: true,             // setup live reload
     port: 8000,             // use this port
+    dir: resolve('www'),
     browserify: {
       transform: babelify   // ES6
     },
@@ -41,5 +54,9 @@ function iaido (args) {
     })
     .on('reload', function (file) {
       console.log('reload - %s', file)
+    })
+    .on('error', function (err) {
+      console.error('got an error')
+      console.error(err)
     })
 }
