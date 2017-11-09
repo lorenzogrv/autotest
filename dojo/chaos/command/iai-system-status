@@ -1,0 +1,37 @@
+#!/bin/bash
+       
+
+DB="$(iai db "${BASH_SOURCE[0]}")"
+iai hora >> "$DB/last_update.date"
+
+push () {
+  echo "$@" >> "$DB"
+}
+tema () {
+  if [ ! -d "$DB" ]; then
+    DB=$(dirname "$DB")
+  fi
+  DB="$DB/$1"
+}
+dato () {
+    local DKEY=$1 DVAL=$2 FILE=$3
+    push "- ${DKEY}: ${DVAL}"
+}
+
+tema "uname"
+dato "all" "`uname -a`"
+dato "version" "`uname -v`"
+dato "machine" "`uname -m`"
+dato "nodename" "`uname -n`"
+dato "processor" "`uname -p`"
+dato "kernel-name" "`uname -s`"
+dato "kernel-release" "`uname -r`"
+dato "kernel-version" "`uname -v`"
+dato "operating-system" "`uname -o`"
+dato "hardware-platform" "`uname -i`"
+
+tema "lsmod"
+lsmod > "$DB"
+
+DB=$(dirname "$DB")
+tree "$DB"

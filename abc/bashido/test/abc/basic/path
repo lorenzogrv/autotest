@@ -1,0 +1,12 @@
+#!/bin/bash
+
+autotest checkup && source <(autotest) || exit
+
+bashido isref "basic.path"
+tested "basic.path is a valid bashido reference"
+
+teskip "there should be some tests for this"
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

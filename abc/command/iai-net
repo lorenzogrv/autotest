@@ -1,0 +1,67 @@
+assert_function iai || exit
+
+function iai-net () {
+	test -n "$1" || fail "missing argument 1 (action to do)"
+
+	local cmd="$FUNCNAME-$1"
+	assert_function "$cmd"
+	shift
+	$cmd "$@"
+}
+
+function iai-net-wanip () {
+  # provides a way to research the system IP within the cloud.
+  # It depends on `dig`. See http://unix.stackexchange.com/a/81699
+  ##
+  dig +short myip.opendns.com @resolver1.opendns.com 2>/dev/null || {
+    iai.dependencies
+    emsg "dig command failed"
+    if ! type dig &>/dev/null; then
+      utip "dig seems not available."
+      utip "Try '%s' (debian/etc)" "iai pkg install dnstools"
+      utip "or '%s' (arch/etc)" "iai pkg install bind-tools"
+      utip "or '%s' (openwrt)" "iai pkg install bind-dig"
+    else
+      utip "unknown error"
+      dig +short myip.opendns.com @resolver1.opendns.com
+    fi
+    exit 1
+  }
+}
+
+function iai-net-lanip () {
+  # provides a way to research the system IP within the LAN.
+  # See https://askubuntu.com/a/604691/167333
+  ##
+  ip route get 8.8.8.8 | awk '{print $7; exit}' || {
+    iai.dependencies
+    emsg "ip command failed"
+    if ! type ip &>/dev/null; then
+      utip "'ip' command is not available."
+      utip "Try %s (openwrt based)" "iai pkg install ip"
+    else
+      utip "unknown error"
+      ip route get 8.8.8.8
+    fi
+    exit 1
+  }
+}
+
+function iai-net-gate () {
+	# see https://serverfault.com/a/731095/195906
+  ip route show default 0.0.0.0/0 | awk '{print $3}'
+}
+
+function iai-net-iface () {
+	ip route show default 0.0.0.0/0 | awk ' {print $5}'
+}
+
+function iai-net-mac () {
+	local iface=$(iai-net-iface)
+	read mac </sys/class/net/$iface/address
+	echo $iface $mac
+}
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

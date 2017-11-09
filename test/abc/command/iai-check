@@ -1,0 +1,13 @@
+#!/bin/bash
+
+autotest checkup && source <(autotest) || exit
+source "$(bashido check.command)" || exit
+
+REPO_DIR=$(git rev-parse --show-toplevel)
+
+line="iai check abstract >/dev/null"
+check.command "$line" returns 0
+check.command "$line" outputs nothing
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

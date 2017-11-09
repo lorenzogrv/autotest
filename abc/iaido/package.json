@@ -1,0 +1,30 @@
+{
+  "name": "iaido",
+  "version": "1.0.0",
+  "description": "the path of personal reintegration, the fight against ego to reach the purity of mind\"",
+  "main": "lib/backend.js",
+  "browser": "lib/browser.js",
+  "scripts": {
+    "test": "standard | notify-error",
+    "fix": "standard --fix",
+    "start": "budo index.js --live -- -t babelify"
+  },
+  "keywords": [
+    "iai",
+    "javascript"
+  ],
+  "author": "Lorenzo García Rivera",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "jquery": "^3.2.1",
+    "raphael": "^2.2.7",
+    "xterm": "^2.9.2"
+  },
+  "devDependencies": {
+    "babelify": "^7.3.0",
+    "budo": "^10.0.4",
+    "notify-error": "^1.2.0",
+    "standard": "^10.0.3"
+  }
+}

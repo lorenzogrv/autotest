@@ -1,0 +1,18 @@
+#!/bin/bash
+
+##
+# This is the simplest posible way to run the example-program.bash
+##
+
+# first bashido api is sourced
+source "$(bashido api)" --source-only
+
+# then source the example-program
+source "$(bashido root)"/example/example-program.bash
+
+# and finally run it
+example-program "$@"
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

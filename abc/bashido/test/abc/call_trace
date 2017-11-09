@@ -1,0 +1,13 @@
+#!/bin/bash
+
+autotest checkup && source <(autotest) || exit
+
+bashido isref "api.call_trace"
+tested "call_trace is a function"
+
+
+teskip "write tests for the feature"
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

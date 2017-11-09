@@ -1,0 +1,15 @@
+#!/bin/bash
+
+autotest checkup && source <(autotest) || exit
+
+source "$(bashido basic-array)"
+tested "can source bashido basic-array"
+
+# tests for array_join
+a=("foo" "bar" "baz"); join="$(array_join a)"
+test "$join" == "foo,bar,baz"
+tested "array_join"
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

@@ -1,0 +1,273 @@
+# NOTE: `set -e` impedes try-catching commands
+
+##
+# SCRIPT DEPENDENCIES
+# ===================
+# - seems lighter not sourcing until something is need
+# - an error may happen when the path can't be sourced 
+# - should depend only on bashido?
+##
+
+iai.dependencies () {
+	type -t bashido >/dev/null || { echo >&2 "FATAL: missing bashido"; exit 1; }
+	source "$(bashido api)" --source-only || exit
+	log.filter () {
+		return 0 # uncomment this line for max amount of verbosity
+		#return 1 # uncomment this line to remove al logging
+
+		# log.filter receives 3 arguments:
+		# $1: "lvl" (one of EE, II, VV, etc.)
+		# $2: "fn" (the function where log output was requested)
+		# $3: "file" (the file where the function is defined)
+		echo "logs $@"
+	}
+	bashido.require "assert.common" || exit
+	iai.dependencies () { true; }
+  info "loaded iai dependencies"
+}
+
+##
+# MAIN COMMAND
+# ============
+# `iai` acts as an accessor to sub-commands.
+# When it's run without arguments, outputs some ascii art.
+##
+function iai () {
+  if test $# -eq 0
+	then
+		local artii="$(iai-path dojo db artii)"
+		cat "$artii/$(iai find in "$artii" -type f | sort -R | head -1)"
+    exit 0
+	fi
+
+	type -t verb >/dev/null && verb "exec %s" "iai-${@}"
+
+	local cmd="iai-$1"
+	local typ="$(type -t "$cmd")"
+
+	# when cmd is function, it's either builtin or an already sourced file
+	# so there aren't actions needed before running the command
+	if test "$typ" != "function"; then
+		iai.dependencies || exit
+		# when command is a file, it's assumed to be its function source file
+		if test "$typ" = "file"; then
+			local file="$(type -p $cmd)"
+			if ! test -x "$file"
+			then
+				verb "assuming command is a bash function because it's not executable"
+			  # executable files must include a shebang to be run directly
+			  source "$file" || {
+					fail "Got exit code $? while sourcing %s" "$file"
+			  }
+			  assert_function "$cmd" # or there is no function named $cmd at that file
+			  info "loaded command %s" "$cmd"
+			fi
+		else
+			if test -n "$typ"; then
+				emsg "type -t '$cmd' reports '$typ'"
+			else
+				warn "there is nothing named %s" "$cmd"
+			fi
+			emsg "unknown command %s" "$1" || exit
+			iai-help | utip
+			return 1
+		fi
+		verb "exec %s" "iai-$@"
+	fi
+
+	shift;
+	# Quoting is neccessary, otherwise quoted args are splitted
+	$cmd "$@" || exit
+}
+
+##
+# BUILT-IN COMMANDS
+# =================
+# The commands built-in are defined as bash funcions hereafter.
+# Built-in commands don't have a script file (there is no iai-command script).
+# This is because they are essential, or enought simple.
+##
+
+##
+# `iai help` outputs useful information about iai's command-line usage
+##
+
+function iai-help () {
+  iai.dependencies || exit
+  if test -f ./README.md
+	then
+		utip "try '%s' for information about this directory" "cat ./README.md"
+	else
+		warn "no README.md file was found here (%s)" "$PWD"
+	  utip "you should init README.md with a tree description, use '%s'"\
+    "iai-tree > README.md"
+	fi
+cat <<HELP
+===
+iai
+===
+
+usage: iai [command] [command arguments ...]
+
+built-in commands:
+$(while read d t fn; do echo $fn; done < <(declare -F)\
+   	| grep "iai-"\
+  	| sort\
+  	|	while read cmd; do printf "  ${cmd##iai-}"; done
+  )
+
+other available commands:
+$(find "$(iai-path abc command)" -type f -name "iai-*" -print0\
+		| sort -z\
+  	| while read -d $'\0' cmd; do printf "  ${cmd##*/iai-}"; done\
+  )
+
+other available executables:
+$(find "$(iai-path bin)" -name "iai-*" -print0\
+		| sort -z\
+  	| while read -d $'\0' cmd; do printf "  ${cmd##*/iai-}"; done\
+  )
+---
+HELP
+}
+
+##
+# `iai date` and `iai hora` standarize the date and time formats
+##
+function iai-date () { date --rfc-3339=date || exit 1; }
+function iai-time () { date --rfc-3339=seconds || exit 1; }
+
+##
+# `iai tree` standarizes the way to display the contents of a directory
+# `iai ls` standarizes the way to list the contents of a directory
+##
+function iai-tree () {
+	tree -L 2 --dirsfirst --sort=name --noreport -C --filelimit 10 "$@" || exit 1
+}
+function iai-ls () {
+	ls -lhu --color=always --group-directories-first "$@" || exit 1
+}
+
+##
+# `iai wanip` now is part of iai-net toolset
+# `iai lanip` now is part of iai-net toolset
+function iai-wanip () { iai net wanip; }
+function iai-lanip () { iai net lanip; }
+
+function iai-ssh-auth {
+	iai.dependencies || exit
+	which scp &>/dev/null || fail "scp not found"
+
+	local host="$1"
+	test -z "$host" && fail "Missing argument 1: %s" "hostname to be authorized"
+
+	local idfile=~/.ssh/"$host--id_rsa.pub"
+	test -e "$idfile" && warn "will overwrite %s" "$idfile"
+
+	info "Getting the id_rsa.pub file from %s" "$host"
+	if ! scp "$host:~/.ssh/id_rsa.pub" "$idfile"
+	then
+		emsg "something went wrong while retrieving the key"
+		utip "Does the remote machine (%s) have an id_rsa.pub file?" "$host"
+		utip "> %s" "ssh $host 'test -e ~/.ssh/id_rsa.pub && echo OK || ssh-keygen'"
+		utip "IMPORTANT: if remote machine runs dropbear, the command is"
+		utip "> %s" "dropbearkey -t rsa -f ~/.ssh/id_dropbear -s 2048"
+		utip "After that, public key data will be output"
+		utip "see https://techoverflow.net/2015/12/12/fixing-ssh-exited-string-too-long-on-openwrt/"
+		return 1
+	fi
+
+	verb "Adding the key to '~/.ssh/authorized_keys'"
+	cat "$idfile" >> ~/.ssh/authorized_keys || fail "something went wrong"
+
+	info "Successfully added %s's key" "$host"
+	utip "Now you can ssh into this system from %s" "$host"
+}
+
+##
+# `iai root` outputs the directory where iai resides (the "iai root").
+# It's probably the most basic operation besides the "artistic" bare `iai`,
+# and the `iai help` commands.
+# LINK
+# - http://stackoverflow.com/a/246128/1894803
+# : research absolute paths to this script file and its directory
+##
+iai-root () {
+	local SOURCE="${BASH_SOURCE[0]}" DIR=""
+	while [ -h "$SOURCE" ]; do
+		DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+		SOURCE="$(readlink "$SOURCE")"
+		[[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+	done
+	DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+	dirname $DIR
+}
+
+##
+# `iai dir` is an alias for `iai root`
+# TODO: `dir` is deprecated favouring `root` at it's more descriptive
+##
+function iai-dir () {
+  iai.dependencies || exit
+  warn "iai-dir is deprecated, use iai-root instead"
+	iai-root
+}
+
+##
+# `iai-path` joins each argument to `iai-root` with slashes between.
+# TODO: `iai path` is vage and not descriptive enought
+##
+function iai-path () {
+  printf "%s" $(iai-root)
+  if test $# -gt 0; then
+    # Quoting is neccessary to correctly parse arguments
+    # Ex: local args=("$@"); for arg in "$@"; do echo >&2 "arg=$arg"; done
+    printf "%s" "${@/#//}"
+  fi
+  printf "\n" # could use echo but wanted to be more explicit
+}
+
+function iai-repo () {
+	git rev-parse --show-toplevel 2>/dev/null || {
+	  iai.dependencies || exit
+		emsg "Could not find git repository"
+		exit 1
+  }
+}
+
+##
+# `iai-dependencies` is an utility to check if dependencies load
+##
+function iai-dependencies () {
+	iai.dependencies
+}
+
+##
+# `iai-working` intentionally fails to signal a place you were working at
+##
+function iai-working () {
+  local last_code=$?
+	(( last_code )) && warn "called after an exit-status %s" "$last_code"
+  iai.dependencies || exit
+	read line fn file <<<"$(caller 0)"
+	test "$fn" = "iai" && read line fn file <<<"$(caller 1)"
+	utip "You were working at function %s" $fn
+	utip "to continue working on, use: %s" "vim +$line .${file##$PWD}"
+	exit 1
+}
+
+function iai-status () {
+  "$@" && echo OK || echo KO
+}
+
+##
+# MAIN ROUTINE
+# ============
+PATH="$PATH:"$(iai-path abc command)""
+PATH="$PATH:"$(iai-path bin)""
+iai "$@"
+exit
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

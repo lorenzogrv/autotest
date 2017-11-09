@@ -1,0 +1,87 @@
+assert_function iai || exit
+
+function iai-todo () {
+	# provides an interactive api to properly manage the things to be done
+	# @argv: {cmd} [...]
+	##
+	test -n "$1" || { emsg "missing command"; iai-todo.help | utip; exit 1; }
+
+	local cmd="iai-todo.$1"
+	is_function "$cmd" || {
+	  emsg "command %s does not exist" "$1"
+		iai-todo.help | utip
+		exit 1
+  }
+	shift
+	$cmd "$@"
+}
+
+function iai-todo.files () {
+	# researches files where the todo keyword is present
+	# TODO given a directory, search in it instead of searching in PWD
+	# TODO flag -z prints only files null-separated
+	##
+  grep --color=always -d recurse -Zcw TODO $PWD/* 2>/dev/null\
+		| while read -d $'\0' file; do
+	      read count; test $count -gt 0 || continue
+				printf '%3i %s\n' $count "${file##$PWD}"
+			done\
+		|& less -R\
+		;
+}
+
+function iai-todo.view () {
+	# display todos at a given file
+	# @argv {file}
+	##
+  grep -w TODO "${1:?'missing file to view todos'}"
+}
+
+function iai.subcommand () {
+	read fn line file <<<"$(caller 0)"
+}
+
+# TODO iai.subcommand and the like
+function iai-todo.help () {
+	# this is the help help
+	##
+	cat <<HELP
+########
+iai todo
+########
+
+Usage: iai todo {command} [args]
+
+Available commands:
+$(while read d t fn; do echo $fn; done < <(declare -F)\
+	| grep "iai-todo."\
+	| sort\
+	|	while read cmd; do printf "  ${cmd##iai-todo.}"; done
+)
+
+HELP
+	if test -n "$1"
+	then
+	  local cmd="iai-todo.$1"
+		if is_function "$cmd"
+		then
+			<<<"$(caller)" read ln file
+			read -d : l <<<"$(grep -n "$cmd" "$file")"
+			local n=2 # dont understand why this bug
+			while read line; do
+				test $(( ++n )) -lt "$l" && continue
+				[[ "$line" =~ '##' ]] && break
+				echo "${line##*# }"
+			done < <(cat "$file")
+		else
+			emsg "command %s does not exist" "$1"
+		fi
+	else
+    echo 'Use `iai todo help {command}` to obtain help about a command'
+    echo 'Use `iai todo help help` to see a broader description'
+	fi
+}
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

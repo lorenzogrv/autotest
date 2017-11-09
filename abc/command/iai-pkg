@@ -1,0 +1,71 @@
+assert_function iai || exit
+
+function iai-pkg () {
+	local mode="unknown"
+	if which apt &>/dev/null; then
+		mode="apt"
+	elif which pacman &>/dev/null; then
+		mode="pacman"
+	elif which opkg &>/dev/null; then
+		mode="opkg"
+	else
+		fail "could not detect the system package tool"
+	fi
+	info "will use %s as system package management tool" "$mode"
+
+	# action to do is mandatory
+	test -z "$1" && fail "missing argument: %s" 'action to do'
+	action=$1;
+	shift;
+
+	# action should lead to an existant handler function
+	handler="iai-pkg.$mode.$action"
+	# TODO type -t and better error message
+	assert_function $handler
+
+	# here validation must be non-engine specific
+	case "$action" in
+		upgrade|cleanup) # system mainteinance actions don't need package names
+			test -z "$@" || fail "too much arguments"
+		  ;;
+		search|install|*)
+		  test -z "$1" && fail "missing argument: %s" 'package term'
+			;;
+	esac
+
+	# last but not least, execute handler with desired argument list
+	$handler "$@"
+}
+
+iai-pkg.apt.search () { apt search "$@"; }
+iai-pkg.apt.install () { sudo apt install "$@"; }
+
+# opkg search is a "which pkg provides file" command
+iai-pkg.opkg.search () { opkg find "*$@*"; }
+iai-pkg.opkg.install () { opkg install "$@"; }
+
+
+# see https://wiki.manjaro.org/index.php?title=Pacman_Tips
+iai-pkg.pacman.search () { pacman -Ss "$@"; }
+iai-pkg.pacman.install () { sudo pacman -S "$@"; }
+# removes package, its configuration files, and its non-needed dependencies
+iai-pkg.pacman.destroy () { sudo pacman -Rns "$@"; }
+# force re-sync and upgrade all system
+iai-pkg.pacman.upgrade () { sudo pacman -Syyu; }
+iai-pkg.pacman.cleanup () {
+  info "cleaning the package cache"
+  paccache -rvk2
+	info "searching for orphan packages"
+	local orphans="$(pacman -Qqdt)"
+	if test -z "$orphans"
+	then
+		info "no orphan packages found"
+	else
+		info "removing orphan packages"
+		sudo pacman -Rsn $orphans
+	fi
+}
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

@@ -1,0 +1,73 @@
+assert_function iai || exit
+
+iai-find () {
+	[[ "$@" =~ "--help" ]] && {
+		utip "here should be some help text"
+		exit 0
+	}
+	
+	local root=""
+	local args=""
+	local opts=""
+
+	# argument parsing strategy
+	test $# -gt 0 && warn "experimental behaviour to parse argument list"
+	while test -n "$1"
+	do
+		case "$1" in
+			# it's important to shift every arg or will loop infinity
+			'in') shift; root="${1:-'missing pathspec'}"; shift ;;
+			'here') shift; root="$(pwd)" ;;
+			'-maxdepth') shift; opts="-maxdepth ${1:-'missin maxdepth value'}"; shift ;;
+				*)
+					if test -z "$args" && test $# -eq 1
+					then
+						args="-name *$1*";
+					else
+						args+=" $1"
+					fi
+					shift
+					;;
+		esac
+	done
+
+	# if we have still arguments, something went wrong at parsing stage
+	test -n "$1" && fail "argument not expected"
+
+	# if no root was defined, will search within the iai root.
+	if test -z "$root"; then root="$(iai-root)"; fi
+
+	cd "$root" # ugly hack to remove the root path from output
+
+	# -O2 enables Optimization Level 2 (see `man find`)
+	# judge if supported by feature detection
+  if find -O2 -false &>/dev/null
+	then
+		opts="-O2 ${opts}"
+	else
+		warn "system's find don't support optimization level 2 (-O2)"
+		warn "this behaviour is expected on busybox binarys"
+	fi
+	# first prune ignores everything inside any .git directory
+	# second prune ignores everything inside a node_modules directory
+	#   **exceptions are entities whose name matches 'iai*' **
+	# third prune ignores any git repository except the root
+	find ${opts}\
+		-path "*/.git/*" -prune -o\
+		-path "*/node_modules/*" ! -name "iai*" -prune -o\
+		-exec test -e /"{}/.git" \; ! -path "$root" -prune -o\
+		${args} -print\
+		|| {
+    emsg "find exit status was %s" "$?"
+		verb <<DEBUG
+find -O2 "$root"
+  -path "*/.git/*" -prune -o
+  -path "*/node_modules/*" ! -name "iai*" -prune -o
+  -exec test -e /"{}/.git" \; ! -path "$iai_root" -prune -o
+  ${args} -print
+DEBUG
+  }
+}
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

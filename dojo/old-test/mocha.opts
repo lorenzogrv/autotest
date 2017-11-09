@@ -1,0 +1,8 @@
+--reporter min
+--ui bdd
+--watch
+--colors
+--debug
+--bail
+--recursive
+--debug-brk

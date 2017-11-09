@@ -1,0 +1,21 @@
+
+##
+# `iai is` performs *is-this-name-whatever* type tests.
+# Reports exit code 0 when test passes, 1 elsecase.
+# - Argument 1 is the name to test
+# - Argument 2 is the type test to perform
+##
+iai-is () {
+	local name="${1?:"$FUNCNAME: missing argument 1 (name)"}"
+	local what="${2?:"$FUNCNAME: missing argument 2 (type)"}"
+	# some especial cases may apply
+	case "$what" in
+		built-in)	what="function"; name="iai-$name"	;;
+		script)	what="executable"; name="$(iai-path)"	;;
+	esac
+	# TODO perform tests inside a subshell to avoid enviroment pollution?
+	echo >&2 "is_$what $name?"
+	iai-use bashido abc-is.bash
+	is_$what "$name" # implicit return $?
+}
+

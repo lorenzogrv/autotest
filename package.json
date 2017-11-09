@@ -1,7 +1,7 @@
 {
   "name": "iai",
-  "version": "0.0.1-alpha",
   "description": "@laconbass web development framework for node.js",
+  "version": "1.0.0",
   "main": "iai",
   "bin": {
     "iai": "./bin/iai"
@@ -10,11 +10,9 @@
   "dependencies": {
     "browserify": "^13.0.0",
     "iai-oop": "^2.0.0",
-    "ws": "^0.7.2"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/laconbass/iai.git"
+    "ws": "^0.7.2",
+    "iai-oop": "^2.0.0",
+    "bashido": "^1.0.0"
   },
   "scripts": {
     "test": "./script/test",

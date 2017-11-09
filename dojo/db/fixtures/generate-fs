@@ -1,0 +1,15 @@
+#!/bin/bash
+# TODO this script should generate a directory with files and dirs
+#      having all posible combinations of filesystem permisions,
+#      to be used by tests that require them to perform checks.
+
+cd "$(iai path dojo db fixtures)" || exit
+rm -rf fs
+mkdir fs && cd fs || exit
+
+touch f{r,0}{w,0}{x,0}
+mkdir -p dr{w,0}{x,0} # TODO a way for find to skip non-readable directories
+chmod -r *0??
+chmod -w *?0?
+chmod +x *??x
+ls -l

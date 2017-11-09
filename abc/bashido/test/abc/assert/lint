@@ -1,0 +1,12 @@
+#!/bin/bash
+
+autotest checkup && source <(autotest) || exit
+
+bashido isref "assert.lint"
+tested "assert.lint is a bashido valid reference identifier"
+
+teskip "there should be some tests for this"
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

@@ -1,0 +1,198 @@
+#!/bin/bash
+
+# if something fails, error should be handled by code flow. NEVER exit this way:
+# set -e; # it plays bad with process handling
+# - learn: http://mywiki.wooledge.org/ProcessManagement
+
+
+##
+# Use helper for sintactic sugar
+source `iai dir`/bin/helper.bash
+
+##
+# prepares environment for audio applications
+session_setup () {
+  info "Going to set up an audio session"
+  if jack_control status &>/dev/null ; then
+    warn "jack server is already running."
+    info -n "waiting jack server to quit..."
+    jack_wait -q &>/dev/null ; echoerr " ok."
+  fi
+  if ! jack_control start &>/dev/null ; then fail "jack could not start"; fi
+  on_exit 'session_clean' ; # Once session begins, ensure it's clean before script exits
+  info "Jack server started with driver = $(jack_control dg | tail -1) $(jack_bufsize)"
+}
+##
+# cleanups any thing done during session setup
+# TODO it's really neccesary waiting for jobs?
+session_clean () {
+  # TODO next line is not working as it should
+  if jobs=$(jobs -pr); then info "Waiting jobs to finish before exit: $jobs" && wait $jobs; fi
+  warn -n "Stopping Jack server before exit..."
+  jack_control stop &>/dev/null & wait $! && echo ' ok ' || warn "Something went wrong (code=$?)"
+  jack_wait -q &>/dev/null ; info "Session closed." # TODO redundant?
+}
+##
+# application "drivers" store
+declare -A _app _app_out _app_err
+# TODO use assertions instead complete expressions
+session_app_declare () {
+  local app="$1" cmd="$2" ; local out="${3:-"loog $app"}" err="${4:-"loog $app warn"}"
+  [[ -n $app ]] && [[ -n $cmd ]] || fail "app name and command are mandatory"
+  _app[$app]=$cmd ; _app_out[$app]=$out ; _app_err[$app]=$err
+}
+##
+# utility to capture command's output
+# - usage: `myprocess > >(loog fancyname warn)` or `myprocess > >(loog othername info)`
+# TODO exit (fail) when on warn mode and line matches some predefined expresssions
+loog () {
+  local prefix=$1 mode=${2:-info};
+  while read -r line; do $mode "$prefix: $line"; done;
+}
+
+# Bootstraps each app declared within the session
+# Reference about process substitution and that subshell hell
+http://tldp.org/LDP/abs/html/process-sub.html
+http://www.linuxprogrammingblog.com/pipe-in-bash-can-be-a-trap
+http://wiki.bash-hackers.org/syntax/expansion/proc_subst
+http://wiki.bash-hackers.org/syntax/redirection
+session_run () {
+  session_setup; local _pid=()
+  #set -m # TODO it seems it's better without it
+  echo "Subshell level INSIDE subshell = $BASH_SUBSHELL"
+  for app in "${!_app[@]}"; do
+    #if  { ${_app_out[$app]} ${_app[$app]} ${_app_err[$app]} ; } &
+    if  { ${_app[$app]} 1> >(${_app_out[$app]}) 2> >(${_app_err[$app]}) ; } &
+    then info "started $app (pid $!)"; else fail "could not start $app (code $?)"; fi;
+    _pid+=($!) # awesome array push: http://stackoverflow.com/a/1951523/1894803
+    # complex cmds constructs are too error prone throught on_exit
+    on_exit "kill_job $! $app"
+  done
+  #info "running child processes: ${_pid[*]}"
+  warn "EXPERIMENTAL FROM NOW"
+}
+
+# Trick or treat?
+# TODO session_state register "state-id" "description"
+#      (would be less error prone having to register an state before its use)
+#      (ussing associative array to store this will also ease "is set" checks
+# TODO session_state on|when "state-id" "command line" "sleep time"
+#      (create background process that waits state-id and runs cmd
+_status=()
+session_state () {
+  assert_str $1 && assert_str $2 || fail "expecting 2 arguments being non-empty strings"
+  # TODO assert arg2 does not contain whitespaces
+  case "$1" in
+    # not perfect, but works as "is element in" test. from: http://stackoverflow.com/a/15394738/1894803
+    is) [[ " ${_status[@]} " =~ " $2 " ]] && return 0;;
+    set)
+	# TODO assert_array $_status contains $2 "failure message"
+	[[ " ${_status[@]} " =~ " $2 " ]] && fail "status '$2' already set"
+	# session state can't be set within a subshell as writing _status will not persist
+	assert_global_scope "Can't set session state to '$2'"
+	_status+=($2); info "new session state: '$2' (${_status[*]})"; return 0
+    ;;
+    # wait accepts and optional $3 arg, the time to sleep between "heartbeats" (4 secs default)
+    wait) until session_state is "$2"; do
+    	sleep ${3-5}; echoerr "waiting session state '$2', not within '${_status[*]}' now"
+    done; return 0
+    ;;
+    *) fail 'usage: `session_state {action} {state-id} [action-args...]`';;
+  esac; return 1
+}
+
+# TODO avoid hardcoding paths (convention)
+DRUMGIZMO_LIB=/home/lolo/Proxectos/audio-libs/drums/drumgizmo-kits
+# DRUMGIZMO_MAP=DRSKit2-0-1/Midimap_minimal.xml; DRUMGIZMO_KIT=DRSKit2-0-1/DRSKit_minimal.xml
+DRUMGIZMO_KIT=ShittyKit/ShittyKit.xml; DRUMGIZMO_MAP=ShittyKit/midimap.xml
+# use shitty kit for testing purposes, it loads faster and uses less memory).
+
+# IMPORTANT: Drumgizmo will start buffering its output once kit is loaded (when not a tty?)
+# this trick allows correctly catching its output, see also http://unix.stackexchange.com/a/117502/49721
+start_drumgizmo () {
+  stdbuf -oL drumgizmo \
+	  -i jackmidi -I midimap=$DRUMGIZMO_LIB/$DRUMGIZMO_MAP \
+	  -o jackaudio $DRUMGIZMO_LIB/$DRUMGIZMO_KIT
+  #> >(stdbuf -oL tee) # TODO couldn't find a way to take precedence
+  # TODO autokill/respawn/CAREWITH: $line ~= deallocated!!
+}
+
+# notifies when drumgizmo loads hard-parsing its stdout
+drums_load="false"
+drumgizmo_load_parse () {
+  while read -r o; do [[ -n $o ]] && info "drumgizmo: $o"; [[ $o == "Using kitfile"* ]] && break; done
+  # After "Using kitfile" msg, drumgizmo starts loading the desired kit, outputting dots as it loads
+  # TODO It may also emit a warning when it detects low RAM available !!!
+  read -d '.' o; info -n "drumgizmo: $o"
+  while read -n 1 o; do echoerr -n "$o"; [[ $o != '.' ]] && break; done
+  read -r o; echoerr $o # a dirty and quick way to flush out the "done." word
+  session_state set "drums-ready" && return 0
+}
+
+##
+## SESSION FLOW
+##
+
+midi_bridge_name="tractor2gizmo"
+
+session_app_declare "qtractor" "qtractor /home/lolo/Proxectos/sesions/automated/ave/eva.qtr"
+session_app_declare "$midi_bridge_name" "a2jmidi_bridge $midi_bridge_name"
+# TODO autokill & respawn AT: $line ~= deallocated!!
+session_app_declare "drumgizmo" "start_drumgizmo" 'drumgizmo_load_parse ; loog drumgizmo'
+
+session_state set "testing"
+session_run # apps are started in the same order as were declared, and killed in reverse order
+session_state set "apps-up"
+
+session_state wait "drums-ready"
+info "BUAHAHAHAHAHAH"
+
+#echo "# Spawned watcher with pid $!"
+# avoid jack_evmon buffering output so events are notified in time
+#stdbuf -oL jack_evmon &> >(while read line; do info "Jack Monitor: $line"; done) &
+#info "Monitoring jack server environment (pid $!)";
+
+info "Everything connected and ready to rumble. Active jobs:" && jobs -l
+wait
+##
+# Useful resources:
+# - https://digitaldub.wordpress.com/2009/12/16/linux-audio-session-scripting/
+# - http://lsn.ponderworthy.com/doku.php/robust_session_management
+# - man aconnect
+# - jack_lsp --help; jack_connect --help; jack_disconnect --help
+# - apt install aj-snapshot && man aj-snapshot
+
+# TODO CLEANUP actually this is called from signal_drumgizmo_load (DIRTYYY)
+perform_connections () {
+  echo "should connect qtractor's alsa midi out to '$midi_bridge_name' midi in"
+  echo "alsa out"; aconnect -o #| grep Qtractor
+  echo "alsa in"; aconnect -i #| grep $midi_bridge_name
+  echo "should connect bridge's jack midi out to drumgizmo's jack midi in"
+  jack_lsp $midi_bridge_name
+  jack_lsp drumgizmo_midi
+  # see http://tldp.org/HOWTO/MIDI-HOWTO-10.html
+  # aconnect -i; aconnect -o
+  #QTRACT=QTRACT_PORT=GIZMO=GIZMO_PORT=
+  #aconnect $QTRAC:$QTRAC_PORT $GIZMO:$GIZMO_PORT
+
+  echo "listing jack ports"
+  jack_lsp Qtractor
+  jack_lsp DrumGizmo
+}
+perform_connections
+
+# TODO this may be useful but actually does not workecho "> press a key to launch catia"; read -n 1; catia
+#watch -n 1 -d "ps ${JOBS[@]} -p pid,tty,pcpu,size,vsize,cmd" &
+# TODO pick a Qtractor session
+# Spawns Qtractor
+start_qtractor () {
+  # find /home/lolo/Proxectos/sesions/sesions-qtractor/ -name "*.qtr"
+  #qtractor /home/lolo/Proxectos/sesions/sesions-qtractor/probando.1.qtr &
+  # stdbuf seems to not have efect with qtractor
+  qtractor /home/lolo/Proxectos/sesions/automated/ave/eva.qtr
+}
+##
+# Create a bridge to connect qtractor (ALSA midi) to drumgizmo (Jack midi)
+# reference: http://home.gna.org/a2jmidid/README
+start_bridge () { local name=${1:-"tractor2gizmo"} ; a2jmidi_bridge $name ; }
+

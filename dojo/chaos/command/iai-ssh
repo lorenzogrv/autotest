@@ -1,0 +1,46 @@
+#!/bin/bash
+
+HOST=$2 #TODO validate host names
+DB="`iai db "${BASH_SOURCE[0]}"`/$HOST"
+
+case $1 in
+  "")
+      echo "Help text or whatever thing"
+      tree $DB
+      exit 0
+  ;;
+  get)
+    [ ! -s "$DB" ] && exit 1
+    cat "$DB" && exit 0 || iai fail "empty host db: '$DB'" && exit 1
+  ;;
+  add)
+    iai ssh get $HOST > /dev/null\
+      && iai fail "hostname already exists (iai ssh mod instead?)"\
+      && exit 1
+    echo "$3" > "$DB"
+    iai info "added ssh target '$HOST' -> '$3'"
+    exit 0
+  ;;
+  mod)
+    iai ssh get $HOST > /dev/null\
+      || iai fail "hostname does not exist (iai ssh add instead?)"\
+      && exit 1
+    echo "$3" > "$DB"
+    iai info "modified ssh target '$HOST' -> '$3'"
+    exit 0
+  ;;
+  rem)
+    iai ssh get $HOST > /dev/null\
+      || iai fail "hostname does not exist (misstyped?)"\
+      && exit 1
+    rm "$DB"
+    iai info "removed ssh target '$HOST'"
+    exit 0
+  ;;
+  *)
+    HOST=$1
+    iai info "Will connect to $HOST"
+    ssh "`iai ssh get $HOST`"
+    notify-send "Iai ssh client" "Successfully connected to '$HOST'" -i network
+  ;;
+esac
