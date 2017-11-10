@@ -40,20 +40,18 @@ function iai () {
     exit 0
 	fi
 
-	type -t verb >/dev/null && verb "exec %s" "iai-${@}"
-
 	local cmd="iai-$1"
 	local typ="$(type -t "$cmd")"
 
 	# when cmd is function, it's either builtin or an already sourced file
 	# so there aren't actions needed before running the command
 	if test "$typ" != "function"; then
-		iai.dependencies || exit
 		# when command is a file, it's assumed to be its function source file
 		if test "$typ" = "file"; then
 			local file="$(type -p $cmd)"
 			if ! test -x "$file"
 			then
+		    iai.dependencies || exit
 				verb "assuming command is a bash function because it's not executable"
 			  # executable files must include a shebang to be run directly
 			  source "$file" || {
@@ -63,6 +61,7 @@ function iai () {
 			  info "loaded command %s" "$cmd"
 			fi
 		else
+		  iai.dependencies || exit
 			if test -n "$typ"; then
 				emsg "type -t '$cmd' reports '$typ'"
 			else
@@ -72,7 +71,7 @@ function iai () {
 			iai-help | utip
 			return 1
 		fi
-		verb "exec %s" "iai-$@"
+	  type -t verb >/dev/null && verb "exec %s" "iai-${@}"
 	fi
 
 	shift;

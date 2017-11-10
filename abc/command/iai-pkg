@@ -25,7 +25,8 @@ function iai-pkg () {
 
 	# here validation must be non-engine specific
 	case "$action" in
-		upgrade|cleanup) # system mainteinance actions don't need package names
+		update|upgrade|cleanup)
+			# system mainteinance actions don't need package names
 			test -z "$@" || fail "too much arguments"
 		  ;;
 		search|install|*)
@@ -37,16 +38,19 @@ function iai-pkg () {
 	$handler "$@"
 }
 
+iai-pkg.apt.update () { sudo apt update; }
 iai-pkg.apt.search () { apt search "$@"; }
 iai-pkg.apt.install () { sudo apt install "$@"; }
 
+iai-pkg.opkg.update () { opkg update; }
 # opkg search is a "which pkg provides file" command
 iai-pkg.opkg.search () { opkg find "*$@*"; }
 iai-pkg.opkg.install () { opkg install "$@"; }
 
 
 # see https://wiki.manjaro.org/index.php?title=Pacman_Tips
-iai-pkg.pacman.search () { pacman -Ss "$@"; }
+iai-pkg.pacman.update () { sudo pacman -Syy "$@"; }
+iai-pkg.pacman.search () { pacman -s "$@"; }
 iai-pkg.pacman.install () { sudo pacman -S "$@"; }
 # removes package, its configuration files, and its non-needed dependencies
 iai-pkg.pacman.destroy () { sudo pacman -Rns "$@"; }
