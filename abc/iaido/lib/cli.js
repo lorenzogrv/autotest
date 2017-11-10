@@ -13,7 +13,7 @@ function iaido (args) {
   var resolve = (str) => path.resolve(pwd, str)
 
   console.log('running iai-do cli')
-  try {
+  /*try {
     var pkg = require(resolve('package.json'))
   } catch (err) {
     if (err.code !== 'MODULE_NOT_FOUND') {
@@ -25,17 +25,18 @@ function iaido (args) {
 
   if (!pkg.name) throw new Error('no "name" field in package.json')
   if (!pkg.main) throw new Error('no "main" field in package.json')
-  if (!pkg.browser) throw new Error('no "browser" field in package.json')
+  if (!pkg.browser) throw new Error('no "browser" field in package.json')*/
 
   console.log('project name: ', pkg.name)
   console.log('backend entry: ', pkg.main)
   console.log('browser entry: ', pkg.browser)
 
-  budo('./' + pkg.browser, {
-    title: pkg.name,
-    live: true,             // setup live reload
+  //budo('./' + pkg.browser, {
+  budo('.' + pkg.browser, {
+    //title: pkg.name,
+    //live: true,             // setup live reload
     port: 8000,             // use this port
-    dir: resolve('www'),
+    dir: resolve('.'),
     browserify: {
       transform: babelify   // ES6
     },
