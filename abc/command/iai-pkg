@@ -50,7 +50,7 @@ iai-pkg.opkg.install () { opkg install "$@"; }
 
 # see https://wiki.manjaro.org/index.php?title=Pacman_Tips
 iai-pkg.pacman.update () { sudo pacman -Syy "$@"; }
-iai-pkg.pacman.search () { pacman -s "$@"; }
+iai-pkg.pacman.search () { pacman -Ss "$@"; }
 iai-pkg.pacman.install () { sudo pacman -S "$@"; }
 # removes package, its configuration files, and its non-needed dependencies
 iai-pkg.pacman.destroy () { sudo pacman -Rns "$@"; }
