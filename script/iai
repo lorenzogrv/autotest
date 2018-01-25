@@ -153,36 +153,6 @@ function iai-ls () {
 function iai-wanip () { iai net wanip; }
 function iai-lanip () { iai net lanip; }
 
-function iai-ssh-auth {
-	iai.dependencies || exit
-	which scp &>/dev/null || fail "scp not found"
-
-	local host="$1"
-	test -z "$host" && fail "Missing argument 1: %s" "hostname to be authorized"
-
-	local idfile=~/.ssh/"$host--id_rsa.pub"
-	test -e "$idfile" && warn "will overwrite %s" "$idfile"
-
-	info "Getting the id_rsa.pub file from %s" "$host"
-	if ! scp "$host:~/.ssh/id_rsa.pub" "$idfile"
-	then
-		emsg "something went wrong while retrieving the key"
-		utip "Does the remote machine (%s) have an id_rsa.pub file?" "$host"
-		utip "> %s" "ssh $host 'test -e ~/.ssh/id_rsa.pub && echo OK || ssh-keygen'"
-		utip "IMPORTANT: if remote machine runs dropbear, the command is"
-		utip "> %s" "dropbearkey -t rsa -f ~/.ssh/id_dropbear -s 2048"
-		utip "After that, public key data will be output"
-		utip "see https://techoverflow.net/2015/12/12/fixing-ssh-exited-string-too-long-on-openwrt/"
-		return 1
-	fi
-
-	verb "Adding the key to '~/.ssh/authorized_keys'"
-	cat "$idfile" >> ~/.ssh/authorized_keys || fail "something went wrong"
-
-	info "Successfully added %s's key" "$host"
-	utip "Now you can ssh into this system from %s" "$host"
-}
-
 ##
 # `iai root` outputs the directory where iai resides (the "iai root").
 # It's probably the most basic operation besides the "artistic" bare `iai`,
