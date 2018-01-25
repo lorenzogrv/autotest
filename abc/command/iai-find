@@ -22,7 +22,7 @@ iai-find () {
 				*)
 					if test -z "$args" && test $# -eq 1
 					then
-						args="-name *$1*";
+						args="-name '*$1*'";
 					else
 						args+=" $1"
 					fi
