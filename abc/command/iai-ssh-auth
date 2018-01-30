@@ -1,7 +1,7 @@
 assert_function iai || exit
 
 function iai-ssh-auth () {
-	which scp &>/dev/null || fail "scp not found"
+	which ssh &>/dev/null || fail "ssh not found"
 
 	test -n "$1" || fail "Missing argument 1: %s" "role of current machine"
 	test -n "$2" || fail "Missing argument 2: %s" "hostname of target machine"
@@ -17,7 +17,10 @@ function iai-ssh-auth () {
 			info "Connectivity ok"
 			;;
 		*)
-		  fail "role of current machine ($1) must be either 'client' or 'server'"
+			utip "Usage: $FUNCNAME client {target_server}"
+			utip "   or: $FUNCNAME server {target_client}"
+		  emsg "role of current machine ($1) must be either 'client' or 'server'"
+			exit 1
 			;;
 	esac
 	iai-ssh-auth-as-$1 "$2"
@@ -33,29 +36,28 @@ function iai-ssh-auth-as-client {
 	  test -e ~/.ssh/id_rsa.pub || fail "expected the key to be at ~/.ssh/id_rsa.pub"
 	fi
 
-  local client="$(hostname)"
-	test -n "$client" || fail "can't determine the hostname of current machine"
-	local idfile="$client--id_rsa.pub"
+	local auth_file=".ssh/authorized_keys"
 
-	info "Copying the id_rsa.pub file to %s" "$server"
-	if ! scp ~/.ssh/id_rsa.pub "$server:.ssh/$idfile"
+	info "testing if $server uses dropbear instead of openssh..."
+	if ssh $server "test -d /etc/dropbear"
+	then
+		auth_file="/etc/dropbear/authorized_keys"
+		warn "server uses dropbear, key will be appended to %s" "$auth_file"
+	fi
+
+	info "Sending the id_rsa.pub file to %s..." "$server"
+	if ! ssh $server "tee -a $auth_file" <~/.ssh/id_rsa.pub
 	then
 		emsg "something whent wrong while sending the key"
 		utip "Is current machine able to ssh into server?"
 		utip "> %s" "ssh $server"
-		utip "Take a look at %s" "~/.ssh/ssh_config"
-		utip "And if needed, see %s" "man 5 ssh_config"
+		utip "Take a look at %s," "~/.ssh/ssh_config"
+		utip "you may need to specify Username/Port or so."
+		utip "If needed, see %s" "man 5 ssh_config"
 		return 1
 	fi
 
-	verb "Adding the key to $server:.ssh/authorized_keys"
-	if ! ssh $server "cat ~/.ssh/$idfile >> ~/.ssh/authorized_keys"
-	then
-		emsg "something went wrong while remotely adding the key"
-		return 1
-	fi
-
-	info "Successfully added $client's public key to $server's authorized keys"
+	verb "Successfully added the key to %s" "$server:$auth_file"
 	utip "Now you can 'ssh $server' whithout being asked for authentication"
 }
 
