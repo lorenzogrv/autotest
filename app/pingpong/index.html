@@ -1,26 +1,45 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="utf8">
+    <title>PINGPONG!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link rel="manifest" href="site.webmanifest.json">
+
+    <link rel="stylesheet" href="css/normalize.css">
     <style>
       html, body { height: 100%; }
-      body { margin: 0; font-family: Monospace; }
-      header { height: 5%; padding: 1% 0; }
-        h1 { margin: 0; }
-      div {
-        height: 93%; padding: 1em; box-sizing: border-box;
+      body { font-family: Monospace; }
+      header, div.view { box-sizing: border-box; overflow: scroll; }
+      header { height: 8%; padding: .9em .5em; }
+        header { white-space: nowrap; overflow-y: hidden; }
+        header > * { display: inline-block; }
+        header input[type=text] { width: 8ex; }
+      div.view {
+        height: 92%; padding: .5em; box-sizing: border-box;
         overflow: scroll;
         background-color: gray; white-space: pre;
       }
+      #main_action {
+        position: fixed; right:.5em; bottom: .5em;
+	height: 4em; width: 4em;
+        border: none; border-radius: 2em;
+	box-shadow: 0 .1em .3em black;
+      }
     </style>
-    <script src="/frontend.js"></script>
   </head>
   <body>
     <header>
-      iai-ide
+      <a id="app-logo" href="/">iai-ide</a>
       <button id="ping">Ping</button>
-      <input id="input" type="text" placeholder="type something to send"/>
+      <input id="input" type="text" placeholder="type here"/>
       <button id="send">Send</button>
+      <button>Outro boton</button>
+      <button>Outro mais</button>
     </header>
-    <div id="view"></div>
+    <div class="view" id="terminal"></div>
+    <button id="main_action">+</button>
+    <script src="/frontend.js"></script>
   </body>
 </html>

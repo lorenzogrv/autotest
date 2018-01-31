@@ -37,15 +37,18 @@ function connect( callback ){
 }
 
 // TODO use https://github.com/cms/domready/blob/master/domready.js
-document.addEventListener('DOMContentLoaded', function(){
-  view = document.querySelector('#view');
-  connect();
-  document.querySelector('#ping').onclick = function(){
-    ws.send('ping');
-  };
-  var input = document.querySelector('#input');
-  document.querySelector('#send').onclick = function(){
+document.addEventListener('DOMContentLoaded', function () {
+  view = document.querySelector('#terminal')
+  connect()
+  document.querySelector('#ping').onclick = function () {
+    ws.send('ping')
+  }
+  document.querySelector('#main_action').onclick = function () {
+    ws.send('main action click')
+  }
+  var input = document.querySelector('#input')
+  document.querySelector('#send').onclick = function () {
     var msg = input.value;
-    msg? ws.send( msg ) : message('nothing to send! ');
-  };
-});
+    msg ? ws.send(msg) : message('nothing to send! ');
+  }
+})
