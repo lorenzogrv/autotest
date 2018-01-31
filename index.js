@@ -34,6 +34,7 @@ exports.lazyload('gui', require, './api/gui');
 
 // Service is a server prototype with built-in WebSocket integration
 exports.lazyload('Server', require, './api/server');
+exports.lazyload('Router', require, './api/server/Router');
 
 // View implementation
 exports.lazyload('View', require, './api/view');

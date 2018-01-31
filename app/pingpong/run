@@ -5,6 +5,8 @@ var log = iai.log;
 var read = iai.read;
 var gui = iai.gui;
 
+log.level = iai.Log.VERB
+
 var server = Object.create( iai.Server );
 server.on( 'request', require('./router') );
 
@@ -45,7 +47,7 @@ if( require.main === module ){
   server.on('listening',function(){
     var address = this.address();
     var address_str = 'http://'+ '127.0.0.1' +':'+ address.port;
-    log.warn('server listening @ %s', address_str);
+    log.info('opening gui for %s', address_str);
     iai.gui.start()
       .on('screen', function(displays){
         // see api/gui/test.js before cowboy-monkey this code
