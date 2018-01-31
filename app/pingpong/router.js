@@ -16,6 +16,7 @@ module.exports = iai.Router({
   '/': Raw('index.html'),
   '/frontend.js': Raw('frontend.js'),
   '/css/normalize.css': Raw('css/normalize.css'),
+  '/css/main.css': Raw('css/main.css'),
   '/site.webmanifest.json': Raw('site.webmanifest.json'),
   '/img/iai-icon.png': Raw('img/iai-icon.png')
 })
