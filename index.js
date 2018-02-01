@@ -23,14 +23,15 @@ iai.toString = function( ){ return '|iai|'; };
 // will use iai-oop api to expose the augmented api
 var exports = iai.oop( iai );
 
-// read is related to the node streams
-exports.lazyload('read', require, './api/read');
+// read and readkeys are related to the node stream api
+exports.lazyload('read', require, './api/read')
+exports.lazyload('readkeys', require, './api/hardware/keyboard/readkeys')
 
 // sources is related to the commonjs module system
 exports.lazyload('sources', require, './api/sources');
 
 // the gui api controls an electron process to manage the OS GUI
-exports.lazyload('gui', require, './api/gui');
+exports.lazyload('gui', require, './api/hardware/gui');
 
 // Service is a server prototype with built-in WebSocket integration
 exports.lazyload('Server', require, './api/server');

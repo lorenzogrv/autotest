@@ -2,7 +2,7 @@
 
 var iai = require('iai')
 var log = iai.log
-var read = iai.read
+var read = iai.readkeys
 
 log.level = iai.Log.VERB
 
@@ -11,10 +11,10 @@ server.on('request', require('./router'))
 
 function readSTDIN () {
   log.info('reading from stdin...')
-  read(process.stdin, { n: 1 }).on('readable', function () {
+  read().on('readable', function () {
     var data = this.read()
     if (data) {
-      server.broadcast(iai.f('stdin %j', Array.prototype.slice.call(data)))
+      server.broadcast(iai.f('stdin %s', data))
     }
   }).once('end', function () {
     log.warn('`process.stdin` end. Will exit now')

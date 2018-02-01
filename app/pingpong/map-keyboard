@@ -5,18 +5,15 @@ var iai = require('iai')
 var log = iai.log
 log.level = iai.Log.VERB
 
-var read = iai.read
+var readkeys = iai.readkeys
 
 log.info('reading from stdin...')
 
-read({ n: 0 })
+readkeys({})
   .on('readable', function () {
     var data = this.read()
     if (data) {
-      log.warn('data %j, utf8=%s, ascii=%s',
-      Array.prototype.slice.call(data),
-      JSON.stringify(data.toString('utf8')),
-      data.toString('ascii'))
+      log.warn('key is %s', data.toString('utf8'))
     }
   })
   .once('end', function () {
