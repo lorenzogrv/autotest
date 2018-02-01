@@ -9,15 +9,17 @@ var read = iai.read
 
 log.info('reading from stdin...')
 
-read(process.stdin, { n: 1 })
+read({ n: 0 })
   .on('readable', function () {
     var data = this.read()
     if (data) {
-      log.debug('Buffer %s, data %j, utf8=%s, ascii=%s',
-      data, Array.prototype.slice.call(data), data.toString('utf8'), data.toString('ascii'))
+      log.warn('data %j, utf8=%s, ascii=%s',
+      Array.prototype.slice.call(data),
+      JSON.stringify(data.toString('utf8')),
+      data.toString('ascii'))
     }
   })
   .once('end', function () {
-    log.warn('`process.stdin` end. Will exit now')
+    log.warn('read end. Will exit now')
     process.exit(0)
   })
