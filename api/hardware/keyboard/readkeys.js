@@ -3,7 +3,7 @@ const Aslice = Array.prototype.slice
 
 const abc = require('iai-abc')
 const log = abc.log
-log.level = abc.Log.INFO
+log.level = abc.Log.WARN
 
 /**
  * reads keyboard strokes from any readable stream
