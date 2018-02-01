@@ -31,17 +31,15 @@ function readSTDIN () {
 if (require.main === module) {
   var reading = false
   server.on('ws:connection', function (ws) {
-    ws.send('connected to server!')
+    ws.on('error', function (err) {
+      log.error('websocket connection error')
+      log.error(err.stack)
+    })
+    ws.send('echo connected to server!')
     ws.on('message', function (data, flags) {
-      if (data === 'ping') {
-        ws.send('pong')
-      } else if (data === 'exit') {
-        log.warn('received exit!')
-        ws.send('exit')
-      } else {
-        log.warn('received message:', data)
-        ws.send('server received unknown message: ' + data)
-      }
+      // TODO here it's supossed to delegate logic somewhere
+      log.warn('received message "%s" with flags=%j', data, flags)
+      ws.send('echo received message: ' + data)
     })
     if (!reading) {
       reading = true

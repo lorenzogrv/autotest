@@ -43,8 +43,8 @@ module.exports = {
   //
   // 32 to 126 are the printable characters
   //
-  // this keys don't need mapping
-  // 32 is the blank space: espacio
+  ' ': 'Space', // 32 is the blank space - map to 'Space' to simplify parsing
+  // following keys don't need mapping
   // values from 33 to 47 are the following symbols: !"#$%&'()*+,-./
   // values from 48 to 57 are numbers [0-9]
   // values from 58 to 64 are the following symbols: :;<=>?@

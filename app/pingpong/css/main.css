@@ -13,6 +13,10 @@ div.view {
   background-color: gray; white-space: pre;
 }
 
+#stdin {
+  position: fixed; bottom: 0;
+}
+
 #main_action {
   position: fixed; right:.5em; bottom: .5em;
   height: 4em; width: 4em;
