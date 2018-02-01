@@ -3,7 +3,6 @@
 var iai = require('iai')
 var log = iai.log
 var read = iai.read
-var gui = iai.gui
 
 log.level = iai.Log.VERB
 
@@ -15,18 +14,18 @@ function readSTDIN () {
   read(process.stdin, { n: 1 }).on('readable', function () {
     var data = this.read()
     if (data) {
+      log.debug(data)
       server.broadcast('stdin ' + data.toString())
     }
   }).once('end', function () {
     log.warn('`process.stdin` end. Will exit now')
-    process.exit(0)
     server.broadcast('exit', function ack (err) {
       if (err) {
         log.warn('exit message not sent to clients')
         log.warn(err)
       }
-      log.warn('waiting gui exit...')
     })
+    process.exit(0)
   })
 }
 
@@ -50,28 +49,5 @@ if (require.main === module) {
       readSTDIN()
     }
   })
-  server/*
-  .on('listening', function () {
-    var address = 'http://'+ '127.0.0.1' +':'+ this.address().port;
-    log.info('opening gui for %s', address);
-    iai.gui.start()
-    .on('screen', function(displays){
-      // see api/gui/test.js before cowboy-monkey this code
-      gui.createWindow({
-        show: true,
-        x: displays.primary.workArea.x,
-        y: displays.primary.workArea.y,
-        width: displays.primary.workArea.width,
-        height: displays.primary.workArea.height
-      }).once('window-created', function (window) {
-        window.loadURL(address);
-        readSTDIN();
-      });
-    })
-    .on('app:window-all-closed', function () {
-      log.warn('Closed the GUI so exiting NOW');
-      process.exit(0);
-    })
-  }) // */
-  .listen(27780)
+  server.listen(27780)
 }
