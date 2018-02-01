@@ -1,8 +1,12 @@
 var PassThrough = require('stream').PassThrough
 var StringDecoder = require('string_decoder').StringDecoder
+var Aslice = Array.prototype.slice
 
 var abc = require('iai-abc')
 var log = abc.log
+log.level = abc.Log.VERB
+
+
 /**
  * reads characters from any readable stream
  * if !n, it will read until \n (or opts.splitter) is found (and strip it)
@@ -38,9 +42,9 @@ function read (stream, opts, callback) {
   stream.on('readable', _read)
 
   if (opts.t) {
-    var to
-    function forgiveTimeout () { clearTimeout(to) }
-    function refreshTimeout () {
+    var to = null
+    var forgiveTimeout = function () { clearTimeout(to) }
+    var refreshTimeout = function () {
       to && forgiveTimeout()
       log.debug('READ', opts, 'Timeout in', opts.t)
       to = setTimeout(function () {
@@ -80,6 +84,7 @@ function read (stream, opts, callback) {
     while ((chunk = stream.read(opts.n)) !== null) {
       // TODO do not force encoding if none given (so reading n-bytes)¿?
       var str = decoder.write(chunk)
+      log.debug('READ STREAM', opts, Aslice.call(chunk))
 
       var remain = false
       if (opts.n && opts.n >= (result.length + str.length)) {
@@ -100,7 +105,7 @@ function read (stream, opts, callback) {
       // unshift if we get too much
       if (remain.length) {
         log.verb('remain', remain)
-        stream.unshift(new Buffer(remain, 'utf8'))
+        stream.unshift(Buffer.from(remain, 'utf8'))
       }
       // this can be commented but it avoids uneccesary calls
       // TODO decide if empty result pushes as splitter

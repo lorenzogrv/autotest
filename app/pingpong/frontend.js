@@ -1,39 +1,39 @@
 
-var host = document.location.host.replace(/:[^:]*$/, '');
-var wsHost = 'ws://' + host + ':27780';
-var ws = null;
-var view = null;
+var wsHost = 'ws://' + document.location.host
+var ws = null
+var view = null
 
-function message( str ){
-  view.innerHTML = str + '\n' + view.innerHTML;
+function message (str) {
+  view.innerHTML = str + '\n' + view.innerHTML
 }
 
-function connect( callback ){
-  if( ws ){
-    message('reconnecting web socket...');
-    ws.onclose = connect;
-    return ws.close();
+function connect (callback) {
+  if (ws) {
+    message('reconnecting web socket...')
+    ws.onclose = connect
+    return ws.close()
   }
-  message('connecting web socket to '+wsHost);
-  ws = new WebSocket( wsHost );
+  message('connecting web socket to ' + wsHost)
+  ws = new WebSocket(wsHost)
 
   ws.onopen = function (event) {
-    message('websocket opened');
-  };
-  ws.onerror = function( err ){
-    message('could not open websocket');
-  };
-  ws.onclose= function( event ){
-    message('websocket disconected');
-  };
+    message('websocket opened')
+  }
+  ws.onerror = function (err) {
+    message('could not open websocket')
+    message(err.stack || err.message || err)
+  }
+  ws.onclose = function (event) {
+    message('websocket disconected')
+  }
   ws.onmessage = function (event) {
-    if( event.data == 'exit' ){
-      message( 'EXIT request from server' );
-      message( 'Closing window in 1 sec' );
-      return setTimeout( window.close.bind(window), 1000 );
+    if (event.data === 'exit') {
+      message('EXIT request from server')
+      message('Closing window in 1 sec')
+      return setTimeout(window.close.bind(window), 1000)
     }
-    message( event.data );
-  };
+    message(event.data)
+  }
 }
 
 // TODO use https://github.com/cms/domready/blob/master/domready.js
@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   var input = document.querySelector('#input')
   document.querySelector('#send').onclick = function () {
-    var msg = input.value;
-    msg ? ws.send(msg) : message('nothing to send! ');
+    var msg = input.value
+    msg ? ws.send(msg) : message('nothing to send! ')
   }
 })

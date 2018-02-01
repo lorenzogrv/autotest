@@ -14,8 +14,7 @@ function readSTDIN () {
   read(process.stdin, { n: 1 }).on('readable', function () {
     var data = this.read()
     if (data) {
-      log.debug(data)
-      server.broadcast('stdin ' + data.toString())
+      server.broadcast(iai.f('stdin %j', Array.prototype.slice.call(data)))
     }
   }).once('end', function () {
     log.warn('`process.stdin` end. Will exit now')

@@ -14,6 +14,8 @@ var iai = module.exports;
 // make it prettier than [object Object]
 iai.toString = function(){ return '|iai-abc|'; };
 
+iai.f = require('util').format
+
 // from hereafter, use iai-oop to define exports
 var exports = oop( exports );
 
