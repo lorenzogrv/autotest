@@ -19,21 +19,11 @@ if (argv.length > 1 || argv[0] == '--usage' || argv[0] == '--help') {
   process.exit(1)
 }
 
-var pwd = resolve(process.cwd(), argv[0] || '')
+var packdata = require('../abc/lib/tool/packdata')
 
-while (pwd.length > 1) {
-  try {
-    // TODO if verbose console.log('TRY %s', resolve(pwd, 'package.json'))
-    var pkg = require(resolve(pwd, 'package.json'))
-    break
-  } catch (err) {
-    if (err.code !== 'MODULE_NOT_FOUND') {
-      throw err
-    }
-    pwd = dirname(pwd)
-  }
-}
-console.log('%s@%s %s', pkg.name, pkg.version, pwd)
+var pkg = packdata(argv[0])
+
+console.log('%s@%s %s', pkg.name, pkg.version, pkg.dir)
 console.log('basic info:')
 console.log('  name: ' + pkg.name)
 console.log('  ver : ' + pkg.version)
