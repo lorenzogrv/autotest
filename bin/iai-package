@@ -2,73 +2,73 @@
 
 /**
  * # package
- * 
+ *
  * shows information about the package at current working directory
  */
 
 // DEPENDENCIES
 
-var resolve = require('path').resolve;
-var format = require('util').format;
+const { basename, resolve, dirname } = require('path')
+var format = require('util').format
 
 // ARGV
 
-var argv = process.argv.slice( 2 );
-if( argv.length > 1 || argv[0] == '--usage' || argv[0] == '--help' ){
-  console.log('Usage: package [dirname]');
-  process.exit(1);
+var argv = process.argv.slice(2)
+if (argv.length > 1 || argv[0] == '--usage' || argv[0] == '--help') {
+  console.log('Usage: %s [dirname]', basename(__filename))
+  process.exit(1)
 }
 
-try {
-  var filearg = argv[0] ? argv[0] : '';
-  var pkgpath = resolve( process.cwd(), filearg, 'package.json' );
-  delete require.cache[ pkgpath ];
-  var pkg = require( pkgpath );
-} catch( err ){
-  if( err.code != 'MODULE_NOT_FOUND' ){
-    throw err;
+var pwd = resolve(process.cwd(), argv[0] || '')
+
+while (pwd.length > 1) {
+  try {
+    // TODO if verbose console.log('TRY %s', resolve(pwd, 'package.json'))
+    var pkg = require(resolve(pwd, 'package.json'))
+    break
+  } catch (err) {
+    if (err.code !== 'MODULE_NOT_FOUND') {
+      throw err
+    }
+    pwd = dirname(pwd)
   }
-  console.log( pkgpath + ' is not a commonjs package' );
-  process.exit(1);
 }
+console.log('%s@%s %s', pkg.name, pkg.version, pwd)
+console.log('basic info:')
+console.log('  name: ' + pkg.name)
+console.log('  ver : ' + pkg.version)
+console.log('  desc: ' + pkg.description)
 
-console.log( '#', pkgpath );
-console.log( 'basic info:' );
-console.log( '  name: ' + pkg.name );
-console.log( '  ver : ' + pkg.version );
-console.log( '  desc: ' + pkg.description )
+console.log()
+console.log('entry points:')
+console.log('  main: ' + pkg.main)
+console.log('  browser: ' + pkg.browser)
 
-console.log();
-console.log( 'entry points:' );
-console.log( '  main: ' + pkg.main );
-console.log( '  browser: ' + pkg.browser );
-
-function describe( dependencies ){
-  return dependencies && Object.keys( dependencies ).map(function( name ){
-    return name + '@' + dependencies[ name ];
-  }).join(', ') || undefined;
+function describe (deps) {
+  return deps
+    ? Object.keys(deps).map((name) => name + '@' + deps[name]).join(', ')
+    : 'undefined'
 }
-console.log();
-console.log( 'dependencies (need=normal, bund=bundle, opt=optional)' );
-console.log( '  need:', describe(pkg.dependencies) );
-console.log( '   dev:', describe(pkg.devDependencies) );
-console.log( '  peer:', describe(pkg.peerDependencies) );
-console.log( '  bund:', describe(pkg.bundledDependencies) );
-console.log( '   opt:', describe(pkg.optionalDependencies) );
+console.log()
+console.log('dependencies (need=normal, bund=bundle, opt=optional)')
+console.log('  need:', describe(pkg.dependencies))
+console.log('   dev:', describe(pkg.devDependencies))
+console.log('  peer:', describe(pkg.peerDependencies))
+console.log('  bund:', describe(pkg.bundledDependencies))
+console.log('   opt:', describe(pkg.optionalDependencies))
 
-if( pkg.directories ){
-  console.log();
-  console.log( 'structure: ' + JSON.stringify(pkg.directories, null, 2) );
+if (pkg.directories) {
+  console.log()
+  console.log('structure: ' + JSON.stringify(pkg.directories, null, 2))
 } else {
-  console.log( 'no directories defined' );
+  console.log('no directories defined')
 }
 
-if( pkg.scripts ){
-  console.log();
-  console.log( 'relevant scripts:' );
-  console.log( '  start: ' + pkg.scripts.start );
-  console.log( '  test : ' + pkg.scripts.test );
+if (pkg.scripts) {
+  console.log()
+  console.log('relevant scripts:')
+  console.log('  start: ' + pkg.scripts.start)
+  console.log('  test : ' + pkg.scripts.test)
 } else {
-  console.log( 'no scripts defined' );
+  console.log('no scripts defined')
 }
-
