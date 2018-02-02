@@ -41,7 +41,6 @@ exports.lazyLoad( 'Error', function(){
   return CustomError.constructor.bind(CustomError);
 });
 
-// "bindings" is reserved to setup process event bindings
+// setup process bindings
 // TODO this is too ugly (but actually process.js only binds events)
-exports.lazyLoad( 'bindings', require, './process.js' );
-
+require('./process.js')

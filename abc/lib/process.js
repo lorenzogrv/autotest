@@ -2,22 +2,27 @@
 // # Utilities to deal with common things of the node process
 //
 
-var log = require('./log').constructor(__filename);
+var Log = require('./log')
+var log = Log.constructor(__filename)
+log.level = Log.INFO
 
 /**
  * Ensure process emits 'exit' when got SIGINT or uncaughException.
  * Inspired by [an aswer at SO](http://stackoverflow.com/a/21947851/1894803)
  */
-process.on('SIGINT', function interrupt( ){
-  log.verb( 'Got SIGINT. Will exit with code 2.' );
-  log.warn( 'User interrupt.' );
-  process.exit(2);
-});
+process.on('SIGINT', function interrupt () {
+  log.warn('Got SIGINT. Will exit with code 2.')
+  process.exit(2)
+})
 
-process.on('uncaughtException', function uncaught( err ){
-  log.verb( 'Got uncaught exception - exit 99' ).verb( err.stack );
-  log.fatal( 99, err.stack );
-});
+process.on('uncaughtException', function uncaught (err) {
+  log.fatal(99, 'Got uncaught exception: %s', err.stack)
+})
+
+process.on('SIGUSR2', function restart () {
+  log.warn('Got SIGUSR2. Will exit with code 0.')
+  process.exit(0)
+})
 
 /**
  * Ignore EPIPE errors when appropiate.
@@ -33,11 +38,14 @@ process.on('uncaughtException', function uncaught( err ){
  * [stdout](https://nodejs.org/api/process.html#process_process_stdout) and
  * [stderr](https://nodejs.org/api/process.html#process_process_stderr).
  */
-//process.stdout.on( 'error', epipebomb );process.stderr.on( 'error', epipebomb );
-function epipebomb( err ){
-  if( err.code === 'EPIPE' ) process.exit();
+/*
+function epipebomb (err) {
+  if (err.code === 'EPIPE') process.exit()
   // throw errors when they should be thrown
-  if( this.listeners('error').length <= 1 ) throw err;
+  if (this.listeners('error').length <= 1) throw err
 }
+process.stdout.on( 'error', epipebomb );
+process.stderr.on( 'error', epipebomb );
+*/
 
-
+log.info('process bindings were defined')
