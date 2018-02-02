@@ -19,8 +19,8 @@ server
         server.broadcast(iai.f('stdin %s', this.read()))
       })
       .once('end', function () {
-        log.info('keyboard input end')
-	kb = null
+        log.info('Done reading stdin.')
+        kb = null
       })
     }
   })

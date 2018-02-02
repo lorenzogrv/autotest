@@ -30,20 +30,20 @@ function readkeys (opts, callback) {
   var output = new PassThrough()
 
   delete opts.stream
-  log.info('KEYS STREAM', opts, 'Begin')
+  log.info('key stream begins')
 
   if (stream === process.stdin) {
     stream.setRawMode(true)
-    log.info('KEYS STDIN', opts, 'raw mode enabled')
+    log.warn('raw mode enabled')
     // TODO Move this behaviour to a iai.cleanup function
     // basics from http://stackoverflow.com/a/21947851/1894803
     var disableRaw = function () {
       stream.setRawMode(false)
-      log.info('KEYS STDIN', opts, 'raw mode disabled')
+      log.warn('raw mode disabled')
     }
     var onExit = function (code) {
+      log[code ? 'warn' : 'verb']('Caught exit with code %s', code)
       disableRaw()
-      code && log.error('KEYS STDIN', opts, 'main proces EXIT', code)
     }
     process.on('exit', onExit)
     output.on('end', function () {
@@ -51,8 +51,6 @@ function readkeys (opts, callback) {
       process.removeListener('exit', onExit)
     })
   }
-
-  stream.on('readable', _read)
 
   if (opts.t) {
     var to = null
@@ -84,10 +82,13 @@ function readkeys (opts, callback) {
     callback(null, this.read())
   })
 
-  stream.on('end', output.end.bind(output))
+  stream.on('readable', _read)
+  var end = output.end.bind(output)
+  stream.on('end', end)
   output.on('end', function () {
+    stream.removeListener('end', end)
     stream.removeListener('readable', _read)
-    log.info('KEYS STREAM', opts, 'End')
+    log.info('key stream has end')
   })
 
   return output
@@ -98,7 +99,7 @@ function readkeys (opts, callback) {
       // detect user interrupt via ^C
       // TODO ^C detection should be deactivable via options
       if (~chunk.indexOf(3)) {
-        log.debug('KEYS', opts, 'Push null (^C)')
+        log.debug('Push null (^C)')
         output.push(null)
         output.end()
         return
