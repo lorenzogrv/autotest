@@ -7,7 +7,10 @@ module.exports = Router
 
 function handle (req, res, next) {
   res.on('finish', function () {
-    log.info('%s %s', res.statusCode, req.url)
+    var code = res.statusCode
+    log[code < 400 ? 'info' : code < 500 ? 'warn' : 'error'](
+      '%s %s', res.statusCode, req.url
+    )
   })
 
   if (typeof this[req.url] === 'function') {
@@ -16,10 +19,8 @@ function handle (req, res, next) {
 
   // TODO foreach this[req.url] there may be regexps (string starts with ^)
   if (typeof next === 'function') {
-    // YAGNI?
-    return next()
+    return next() // YAGNI?
   }
-  log.warn('404 %s', req.url)
   res.writeHead(404, {
     'Connection': 'close',
     'Content-Type': 'text/plain'
