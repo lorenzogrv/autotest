@@ -100,6 +100,7 @@ function readkeys (opts, callback) {
       if (~chunk.indexOf(3)) {
         log.debug('KEYS', opts, 'Push null (^C)')
         output.push(null)
+        output.end()
         return
       }
       // assume each chunk is a keystroke
