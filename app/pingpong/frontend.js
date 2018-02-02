@@ -64,8 +64,8 @@ command.stdin = function stdin (key) {
       inh1.innerHTML = inh1.innerHTML.slice(0, -1)
       break
     case 'Enter':
-      command(inh1.innerHTML.slice(2))
-      inh1.innerHTML = inh1.innerHTML.slice(0, 2)
+      command(inh1.innerHTML)
+      inh1.innerHTML = ''
       break
     default:
       if (key === 'Space') key = ' '

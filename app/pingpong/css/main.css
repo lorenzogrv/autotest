@@ -16,6 +16,7 @@ div.view {
 #stdin {
   position: fixed; bottom: 0;
 }
+  #stdin::before { content: '$ '; }
 
 #main_action {
   position: fixed; right:.5em; bottom: .5em;
@@ -23,5 +24,6 @@ div.view {
   border: none; border-radius: 2em;
   box-shadow: 0 .05em .2em rgba(0,0,0,.7);
 }
-#main_action:active { background-color: #555; color: #fff; }
-#main_action:focus { outline: none; }
+  #main_action:hover { background-color: #555; }
+  #main_action:active { background-color: #555; color: #fff; }
+  #main_action:focus { outline: none; }
