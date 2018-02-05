@@ -4,3 +4,13 @@ var Job = require('./Job')
 
 Job('node', ['-e', "require('./server').listen(27780)"])
   .start()
+
+const { resolve } = require('path')
+var iai = require('iai')
+var pkg = iai.packdata()
+var bin = resolve(pkg.dir, 'node_modules', '.bin')
+
+Job(resolve(bin, 'watchify'), [
+  './browser', '-o', './www/js/bundle.js', '-d', '-v'
+], { watch: './browser' })
+  .start()
