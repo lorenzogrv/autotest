@@ -13,13 +13,19 @@ div.view {
   background-color: gray; white-space: pre;
 }
 
+div.view#terminal {
+  font-size: 1.4em;
+}
+
 #stdin {
   position: fixed; bottom: 0;
+  font-size: 1.5em;
 }
   #stdin::before { content: '$ '; }
+  #stdin.reading::before { content: '> $ '; }
 
 #main_action {
-  position: fixed; right:.5em; bottom: .5em;
+  position: fixed; right: .5em; bottom: .5em;
   height: 4em; width: 4em;
   border: none; border-radius: 2em;
   box-shadow: 0 .05em .2em rgba(0,0,0,.7);
