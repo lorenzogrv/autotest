@@ -41,7 +41,9 @@ exports.lazyLoad('Error', function () {
   return CustomError.constructor.bind(CustomError)
 })
 
+// tools related to the commonjs module system
 exports.lazyLoad('packdata', require, './tool/packdata')
+exports.lazyLoad('sources', require, './tool/sources')
 
 // setup process bindings
 // TODO this is too ugly (but actually process.js only binds events)
