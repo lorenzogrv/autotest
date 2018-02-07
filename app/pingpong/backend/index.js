@@ -13,13 +13,13 @@ server
   .on('ws:connection', function (ws) {
     ws.send('echo connected to server!')
     if (!kb) {
-      log.info('reading from stdin...')
+      log.info('Sending stdin to all clients...')
       kb = read()
       .on('readable', function () {
         server.broadcast(iai.f('stdin %s', this.read()))
       })
       .once('end', function () {
-        log.info('Done reading stdin.')
+        log.info('Done sending stdin.')
         kb = null
       })
     }
