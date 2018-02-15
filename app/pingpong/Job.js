@@ -74,6 +74,16 @@ Job.start = function start () {
 
   log.info('%s: spawned child with pid %s', this, this.cp.pid)
 
+  if (this.stdio === 'pipe') {
+    // TODO pipe into log api?
+    this.cp.stdout.on('data', function (data) {
+      console.log('%s: %s', job, data)
+    })
+    this.cp.stderr.on('data', function (data) {
+      console.error('%s: %s', job, data)
+    })
+  }
+
   if (!this.watch.length) return this
   log.info('%s: watching for changes on %s paths', this, this.watch.length)
   log.verb('watching %j', this.watch)
