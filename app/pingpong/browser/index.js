@@ -1,6 +1,7 @@
 
-var wsHost = 'ws://' + document.location.host
-var ws = null
+const wsock = require('./wsocket.js')
+
+var sock = Object.create(wsock)
 
 // DOM elements
 var inh1 = null
@@ -8,30 +9,6 @@ var view = null
 
 function message (str) {
   view.innerHTML = str + '\n' + view.innerHTML
-}
-
-function connect (callback) {
-  if (ws) {
-    message('reconnecting web socket...')
-    ws.onclose = connect
-    return ws.close()
-  }
-  message('connecting web socket to ' + wsHost)
-  ws = new WebSocket(wsHost)
-
-  ws.onopen = function (event) {
-    message('websocket opened')
-  }
-  ws.onerror = function (err) {
-    message('could not open websocket')
-    message(err.stack || err.message || err)
-  }
-  ws.onclose = function (event) {
-    message('websocket disconected')
-  }
-  ws.onmessage = function (event) {
-    command(event.data)
-  }
 }
 
 function command (cmdline) {
@@ -53,13 +30,24 @@ command.run = function run (cmdline) {
 command.echo = function echo () {
   message(Array.prototype.slice.call(arguments).join(' '))
 }
+// TODO not sure if sock.send should be called from here
+command.ping = function ping () {
+  sock.send('ping')
+}
 command.exit = function exit () {
   message('EXIT request from server')
   message('Closing window in 2 sec')
   return setTimeout(window.close.bind(window), 2000)
 }
 command.stdin = function stdin (key) {
+  if (key.length === 1) {
+    inh1.innerHTML += key
+    return
+  }
   switch (key) {
+    case 'Space':
+      inh1.innerHTML += ' '
+      break
     case 'Backspace':
       inh1.innerHTML = inh1.innerHTML.slice(0, -1)
       break
@@ -68,8 +56,7 @@ command.stdin = function stdin (key) {
       inh1.innerHTML = ''
       break
     default:
-      if (key === 'Space') key = ' '
-      inh1.innerHTML = inh1.innerHTML + key
+      message('unbound key: ' + key)
   }
 }
 
@@ -77,16 +64,18 @@ command.stdin = function stdin (key) {
 document.addEventListener('DOMContentLoaded', function () {
   view = document.querySelector('#terminal')
   inh1 = document.querySelector('#stdin')
-  connect()
-  document.querySelector('#ping').onclick = function () {
-    ws.send('ping')
-  }
+
+  sock
+    .on('message', message)
+    .on('command', command)
+    .connect()
+
   document.querySelector('#main_action').onclick = function () {
-    ws.send('main action click')
+    sock.send('main action click')
   }
+})
   var input = document.querySelector('#input')
   document.querySelector('#send').onclick = function () {
     var msg = input.value
-    msg ? ws.send(msg) : message('nothing to send! ')
+    msg ? sock.send(msg) : message('nothing to send! ')
   }
-})
