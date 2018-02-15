@@ -34,8 +34,9 @@ sock.onclose = function (event) {
 
   var t = 5
   setTimeout(this.connect.bind(this), t * 1000 + 1)
+  var sock = this
   var i = setInterval(function () {
-    this.emit('message', 'reconnecting in ' + t)
+    sock.emit('message', 'reconnecting in ' + t)
     if (!--t) clearInterval(i)
   }, 1000)
 }
