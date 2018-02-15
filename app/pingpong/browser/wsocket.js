@@ -9,14 +9,11 @@ sock.ws = null
 
 sock.connect = function () {
   var sock = this
-  if (sock === module.exports) {
-    sock = Object.create(this)
-  }
   if (sock.ws) {
     sock.emit('message', 'websocket already connected!')
     return sock.ws.close()
   }
-  sock.emit('message', 'connecting to ' + sock.url)
+  sock.emit('message', 'connecting to ' + sock.uri)
   sock.ws = new WebSocket(sock.uri)
   sock.ws.onopen = sock.onopen.bind(sock)
   sock.ws.onerror = sock.onerror.bind(sock)
