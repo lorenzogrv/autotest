@@ -20,5 +20,5 @@ require('child_process')
   .stdout.toString('utf8').split('\n')
   .filter((file) => file && !~file.indexOf('index.html'))
   .forEach(function (file) { urls[file.slice(5)] = Raw(file) })
-console.log(urls)
+
 module.exports = iai.Router(urls)

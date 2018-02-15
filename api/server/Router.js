@@ -1,7 +1,7 @@
 var iai = require('iai-abc')
 var log = iai.log
 
-log.level = iai.Log.VERB
+log.level = iai.Log.WARN
 
 module.exports = Router
 
