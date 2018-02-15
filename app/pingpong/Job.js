@@ -23,7 +23,7 @@ function Job (cmd, argv, opts) {
 
   argv = argv || []
   opts = opts || {}
-  opts.watch = opts.watch || [process.cwd()]
+  opts.watch = opts.watch || []
 
   oop(instance)
     .internal('cp', null)
@@ -73,10 +73,11 @@ Job.start = function start () {
     })
 
   log.info('%s: spawned child with pid %s', this, this.cp.pid)
-  if (!watch.length) return this
 
+  if (!this.watch.length) return this
   log.info('%s: watching for changes on %s paths', this, this.watch.length)
   log.verb('watching %j', this.watch)
+
   watch(this.watch, {
     persistent: true,
     ignoreInitial: true

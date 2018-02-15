@@ -16,5 +16,5 @@ var bin = resolve(pkg.dir, 'node_modules', '.bin')
 
 Job(resolve(bin, 'watchify'), [
   './browser', '-o', './www/js/bundle.js', '-d', '-v'
-], { watch: './browser' })
+], {})
   .start()
