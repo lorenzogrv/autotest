@@ -32,8 +32,11 @@ div.view#terminal {
   position: fixed; right: .5em; bottom: .5em;
   height: 4em; width: 4em;
   border: none; border-radius: 2em;
-  box-shadow: 0 .05em .2em rgba(0,0,0,.7);
 }
   #main_action:hover { background-color: #555; }
   #main_action:active { background-color: #555; color: #fff; }
   #main_action:focus { outline: none; }
+
+#stdin, #main_action {
+  box-shadow: 0 .05em .2em rgba(0,0,0,.7);
+}
