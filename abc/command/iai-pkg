@@ -2,14 +2,14 @@ assert_function iai || exit
 
 function iai-pkg () {
 	local mode="unknown"
-	if which apt &>/dev/null; then
+	if which apt >/dev/null; then
 		mode="apt"
-	elif which pacman &>/dev/null; then
+	elif which pacman >/dev/null; then
 		mode="pacman"
-	elif which opkg &>/dev/null; then
+	elif which opkg >/dev/null; then
 		mode="opkg"
 	else
-		fail "could not detect the system package tool"
+		fail "could not detect the system package management tool"
 	fi
 	info "will use %s as system package management tool" "$mode"
 
@@ -69,6 +69,7 @@ iai-pkg.pacman.cleanup () {
 		sudo pacman -Rsn $orphans
 	fi
 }
+iai-pkg.pacman.fix-newer-than () { sudo pacman -Suu; }
 
 ##
 # vim modeline
