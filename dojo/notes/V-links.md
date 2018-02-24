@@ -7,3 +7,5 @@ https://github.com/sourcelair/xterm.js
 https://github.com/blessed-ng/blessed
 https://xnet-x.net/manual-tecnico-derechos-fundamentales-internet/
 https://www.linuxadictos.com/instalar-linset-en-kali-linux.html
+http://www.pcpaudio.com/pcpfiles/doc_amplificadores/encapsulado/rectificador.GIF
+https://www.redeszone.net/2018/02/17/aplicaciones-seguridad-opensource/
