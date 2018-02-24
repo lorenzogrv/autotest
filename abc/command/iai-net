@@ -1,7 +1,15 @@
 assert_function iai || exit
 
 function iai-net () {
-	test -n "$1" || fail "missing argument 1 (action to do)"
+	if test -z "$1"
+  then
+		echo "iface: $(iai-net-iface)"
+		echo "  mac: $(iai-net-mac)"
+		echo "lanip: $(iai-net-lanip)"
+		echo " gate: $(iai-net-gate)"
+		echo "wanip: $(iai-net-wanip -q || echo NO CONNECTION)"
+		return
+	fi
 
 	local cmd="$FUNCNAME-$1"
 	assert_function "$cmd"
@@ -14,6 +22,7 @@ function iai-net-wanip () {
   # It depends on `dig`. See http://unix.stackexchange.com/a/81699
   ##
   dig +short myip.opendns.com @resolver1.opendns.com 2>/dev/null || {
+		test "$1" = "-q" && return 1 # silent mode
     iai.dependencies
     emsg "dig command failed"
     if ! type dig &>/dev/null; then
@@ -25,7 +34,7 @@ function iai-net-wanip () {
       utip "unknown error"
       dig +short myip.opendns.com @resolver1.opendns.com
     fi
-    exit 1
+    return 1
   }
 }
 
@@ -43,7 +52,7 @@ function iai-net-lanip () {
       utip "unknown error"
       ip route get 8.8.8.8
     fi
-    exit 1
+    return 1
   }
 }
 
@@ -57,9 +66,7 @@ function iai-net-iface () {
 }
 
 function iai-net-mac () {
-	local iface=$(iai-net-iface)
-	read mac </sys/class/net/$iface/address
-	echo $iface $mac
+	cat /sys/class/net/$(iai-net-iface)/address
 }
 
 ##
