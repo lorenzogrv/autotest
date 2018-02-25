@@ -2,28 +2,39 @@ html, body { height: 100%; }
 body { font-family: Monospace; }
 
 header, div.view { box-sizing: border-box; overflow: scroll; }
-header { padding: .9em .5em; }
+header { padding: .5em; }
 header { white-space: nowrap; overflow-y: hidden; }
-  header > * { display: inline-block; }
+  header img { max-height: 3em; }
+  header > * { display: inline-block; vertical-align: middle; }
   header input[type=text] { width: 8ex; }
 
-body > header::before { content: 'loading interface'; }
-body.loaded > header::before { content: '' }
+body.loaded > header::after { content: '' }
+body > header::after {
+  content: 'A cargar...';
+  display: block;
+  text-align: center;
+}
 
 div.view {
-  padding: .5em; box-sizing: border-box;
-  overflow: scroll;
-  background-color: gray; white-space: pre;
+  box-sizing: border-box;
+  padding: .5em;
   min-height: 2em;
+  overflow: scroll;
+  background-color: gray;
+  transition: background-color 1s ease-out;
 }
 div.view.loading {
+  position: relative;
   background-color: purple;
 }
   div.view.loading::before {
-    content: 'the view is loading';
+    content: 'loading view...';
+    display: block;
+    /*position: absolute; top: 0; right: 0; bottom: 0; left: 0;/**/
   }
 
 div.view#terminal {
+  white-space: pre;
   font-size: 1.4em;
 }
 
