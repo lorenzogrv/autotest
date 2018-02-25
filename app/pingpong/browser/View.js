@@ -1,22 +1,24 @@
+const { EventEmitter } = require('events')
+const { format } = require('util')
 const $ = require('jquery')
 
-module.exports = View
+var View = module.exports = new EventEmitter()
 
-View.prototype = View
-View.prototype.constructor = View
-
-function View (id) {
+View.create = function View (id) {
+  // TODO assert this context is either View or inherits view
   if (!id) {
     throw new Error('views must have an id')
   }
-  // YAGNI!!
-  if (View.cache[id]) {
-    return View.cache[id]
+  // YAGNI!! TODO this.cache stores "childs"
+  if (this.cache[id]) {
+    return this.cache[id]
   }
 
-  var instance = Object.create(View)
-  View.cache[id] = instance
+  // this create procedure may lead to bugs, it's experimental
+  var instance = Object.create(this)
+  this.cache[id] = instance
 
+  EventEmitter.call(instance) // initialize emitter or pray something
   instance.id = id // TODO this data descriptor should be non-writable
 
   return instance
@@ -27,7 +29,19 @@ View.cache = Object.create(null) // TODO this should be a set?
 View.toString = function () {
   // TODO this.id may be undefined (SURE?)
   // TODO output string should be based on this.$
-  return '<div id="' + this.id + '" class="view"></div>'
+  return '[View #' + this.id + ']'
+  // return '<div id="' + this.id + '" class="view"></div>'
+}
+
+View.log = function (msg) {
+  if (arguments.length > 1) {
+    msg = format.apply(null, arguments)
+  }
+  try {
+    return this.emit('message', format('%s: %s', this, msg))
+  } catch (err) {
+    alert(err)
+  }
 }
 
 View.display = function () {
@@ -45,13 +59,13 @@ View.display = function () {
   this.$ = document.createElement('div')
   this.$.id = this.id
   document.body.appendChild(this.$)
-  var view = $(this.$).addClass('view loading')
+  $(this.$).addClass('view loading')
 
-  // TODO should return emitter instead?
+  var view = this
   return $.get({url: this.id, dataType: 'json'})
     .fail(function (xhr, ts, error) {
       console.log(error)
-      alert(error.message || error.stack || error)
+      view.log(error.message || error.stack || error)
     })
     .done(function (data) {
       if (typeof data.html === 'string') {
@@ -60,22 +74,22 @@ View.display = function () {
       if (data.html) {
         Object.keys(data.html)
           .filter((key) => /html|append|prepend|after|before/.test(key))
-          .forEach((key) => view[key](data.html[key]))
+          .forEach((key) => $(view.$)[key](data.html[key]))
       }
       var loading = []
       function loaded (url) {
         if (!loading.length) {
-          alert('all resources loaded')
-          return view.removeClass('loading')
+          view.log('all resources loaded')
+          return $(view.$).removeClass('loading')
         }
         loading.splice(loading.indexOf(url), 1)
-        alert(url + 'loaded' + loading.length + 'resources left' + loading)
+        view.log(url + 'loaded' + loading.length + 'resources left' + loading)
       }
       if (!(data.css && data.css.length) && !(data.js && data.js.length)) {
         return loaded()
       }
       if (data.css && data.css.length) {
-        alert('now i will instert css')
+        view.log('insterting %s css stylesheets...', data.css.length)
         data.css
           // avoid duplicating existing stylesheets
           .filter((url) => !$('link[href="' + url + '"]').length)
@@ -90,7 +104,7 @@ View.display = function () {
           .foreach((link) => document.head.appendChild(link))
       }
       if (data.js && data.js.length) {
-        alert('now i will instert js')
+        view.log('insterting %s js scripts...', data.js.length)
         data.js
           // avoid duplicating existing scripts
           .filter((url) => !$('script[src="' + url + '"]').length)
