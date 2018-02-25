@@ -1,32 +1,34 @@
-
+const $ = require('jquery')
 const sock = require('./wsocket')
 const command = require('./command')
 
 const View = require('./View')
 
-// DOM elements
-var inh1 = null
-var view = null
-
-function message (str) {
-  view.innerHTML = str + '\n' + view.innerHTML
+var terminal = View('terminal')
+terminal.display = function () {
+  return View.display.call(this).done(function () {
+    terminal.inh1 = document.querySelector('#stdin')
+    $('#home').hide()
+  })
 }
-
-function keypress (key) {
+terminal.log = function message (str) {
+  this.$.innerHTML = str + '\n' + this.$.innerHTML
+}
+terminal.keypress = function keypress (key) {
   if (key.length === 1) {
-    inh1.innerHTML += key
+    this.inh1.append(key)
     return
   }
   switch (key) {
     case 'Space':
-      inh1.innerHTML += ' '
+      this.inh1.innerHTML += ' '
       break
     case 'Backspace':
-      inh1.innerHTML = inh1.innerHTML.slice(0, -1)
+      this.inh1.innerHTML = this.inh1.innerHTML.slice(0, -1)
       break
     case 'Enter':
-      command.run(inh1.innerHTML)
-      inh1.innerHTML = ''
+      command.run(this.inh1.innerHTML)
+      this.inh1.innerHTML = ''
       break
     default:
       this.emit('stdout', 'unbound key: ' + key)
@@ -34,34 +36,26 @@ function keypress (key) {
 }
 
 command
-  .on('stdin', keypress)
-  .on('stdout', message)
+  .on('stdin', terminal.keypress.bind(terminal))
+  .on('stdout', terminal.log.bind(terminal))
 
 sock
-  .on('message', message)
+  .on('message', terminal.log.bind(terminal))
   .on('command', function (cmdline) {
     try {
       command.run(cmdline)
     } catch (err) {
-      message(err.stack)
-      message('an error raised when running: ' + cmdline)
+      terminal.log(err.stack)
+      terminal.log('an error raised when running: ' + cmdline)
     }
   })
 
 // TODO use https://github.com/cms/domready/blob/master/domready.js
 document.addEventListener('DOMContentLoaded', function () {
-  var terminal = View('terminal')
-  terminal.toString = function () {
-    return View.toString.call(this) + '<h1 id="stdin"></h1>'
-  }
-  terminal.display()
-
-  view = document.querySelector('#terminal')
-  inh1 = document.querySelector('#stdin')
-
-  sock.connect()
+  terminal.display().done(() => sock.connect())
 
   document.querySelector('#main_action').onclick = function () {
     sock.send('main action click')
   }
+  $(document.body).addClass('loaded')
 })
