@@ -7,11 +7,21 @@ header { white-space: nowrap; overflow-y: hidden; }
   header > * { display: inline-block; }
   header input[type=text] { width: 8ex; }
 
+body > header::before { content: 'loading interface'; }
+body.loaded > header::before { content: '' }
+
 div.view {
   padding: .5em; box-sizing: border-box;
   overflow: scroll;
   background-color: gray; white-space: pre;
+  min-height: 2em;
 }
+div.view.loading {
+  background-color: purple;
+}
+  div.view.loading::before {
+    content: 'the view is loading';
+  }
 
 div.view#terminal {
   font-size: 1.4em;
