@@ -2,11 +2,11 @@ assert_function iai || exit
 
 function iai-pkg () {
 	local mode="unknown"
-	if which apt >/dev/null; then
+	if which apt &>/dev/null; then
 		mode="apt"
-	elif which pacman >/dev/null; then
+	elif which pacman &>/dev/null; then
 		mode="pacman"
-	elif which opkg >/dev/null; then
+	elif which opkg &>/dev/null; then
 		mode="opkg"
 	else
 		fail "could not detect the system package management tool"
