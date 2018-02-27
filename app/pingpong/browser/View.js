@@ -38,7 +38,7 @@ View.log = function (msg) {
     msg = format.apply(null, arguments)
   }
   try {
-    return this.emit('message', format('%s: %s', this, msg))
+    return this.emit('message', format('#%s: %s', this.id, msg))
   } catch (err) {
     alert(err)
   }

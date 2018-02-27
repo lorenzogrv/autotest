@@ -30,6 +30,6 @@ terminal.keypress = function keypress (key) {
       this.inh1.innerHTML = ''
       break
     default:
-      this.emit('message', 'unbound key: ' + key)
+      this.log('unbound key: ' + key)
   }
 }
