@@ -139,6 +139,7 @@ function iai-time () { date --rfc-3339=seconds || exit 1; }
 ##
 # `iai tree` standarizes the way to display the contents of a directory
 # `iai ls` standarizes the way to list the contents of a directory
+# `iai pager` standarizes the way to invoke a pager
 ##
 function iai-tree () {
 	tree -L 2 --dirsfirst --sort=name --noreport -C --filelimit 10 "$@" || exit 1
@@ -146,10 +147,18 @@ function iai-tree () {
 function iai-ls () {
 	ls -lhu --color=always --group-directories-first "$@" || exit 1
 }
+function iai-pager () {
+	# -i ignore case when searching, but respect case if term contains uppercase
+	# -X do not clear screen on exit
+	# -F exits if text is less than one screen long
+	# -E automatically exit the second time it reaches end-of-file
+	# -R bypasses ANSI color sequences (-r bypasses all ANSI sequences)
+	##
+	less -iXFER "$@" || exit 1
+}
 
 ##
-# `iai wanip` now is part of iai-net toolset
-# `iai lanip` now is part of iai-net toolset
+# `iai wanip` and `iai lanip` are now part of iai-net toolset
 function iai-wanip () { iai net wanip; }
 function iai-lanip () { iai net lanip; }
 
