@@ -2,9 +2,8 @@
 // # Utilities to deal with common things of the node process
 //
 
-var Log = require('./log')
-var log = Log.constructor(__filename)
-log.level = Log.INFO
+const Log = require('./log')
+const log = Log.constructor(__filename)
 
 /**
  * Ensure process emits 'exit' when got SIGINT or uncaughException.
@@ -48,4 +47,8 @@ process.stdout.on( 'error', epipebomb );
 process.stderr.on( 'error', epipebomb );
 */
 
+log.level = Log.INFO
 log.info('process bindings were defined')
+delete log.level
+
+log.clean = true
