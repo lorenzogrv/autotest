@@ -25,10 +25,10 @@ exports.visible('oop', oop)
 exports.lazyload('is', require, 'iai-is')
 
 // the "path" namespace is reserved (not writable) for the path api
-exports.lazyLoad('path', require, './path')
+exports.visible('path', require('./path'))
 
 // the "Log" and "log" namespaces are reserved for accessing the logger api
-exports.lazyLoad('Log', require, './log')
+exports.visible('Log', require('./log'))
 exports.accessor('log', function getLog () {
   return iai.Log.constructor(getLog)
 })

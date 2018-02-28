@@ -15,7 +15,9 @@ var pkg = iai.packdata()
 var bin = resolve(pkg.dir, 'node_modules', '.bin')
 
 Job(resolve(bin, 'watchify'), [
-  './browser', '-o', './www/js/bundle.js', '-d', '-v'
+  './browser',
+  '-o', resolve(bin, 'exorcist') + ' ./www/js/bundle.js.map > ./www/js/bundle.js',
+  '-d', '-v'
 ], { stdio: 'pipe'
 })
   .start()

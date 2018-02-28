@@ -1,18 +1,21 @@
+const { inspect } = require('util')
+
+function fatal (msg, file, line, column, error) {
+  var title = error ? error.message || error : msg
+  var stack = error.stack || Error('no stack trace').stack
+  document.body.innerHTML = '<h1>' + title + '</h1>'
+  document.body.innerHTML += '<pre>' + stack + '</pre>'
+  document.body.innerHTML += '<pre>' + inspect(error, { showHidden: true, depth: 4, showProxy: true }) + '</pre>'
+  return true
+}
+
+window.onerror = fatal
+
 const $ = require('jquery')
+const iai = require('iai')
 const sock = require('./wsocket')
 const command = require('./command')
-
-var terminal
-try {
-  terminal = require('./terminal')
-} catch (err) {
-  fatal(err)
-}
-
-function fatal (error) {
-  error = error ? error.stack || error.message || error : new Error('FATAL!')
-  document.body.innerHTML = '<pre>' + error + '</pre>'
-}
+const terminal = require('./terminal')
 
 function execute (cmdline) {
   try {
@@ -37,6 +40,7 @@ sock
 
 // TODO use https://github.com/cms/domready/blob/master/domready.js
 document.addEventListener('DOMContentLoaded', function () {
+  alert(iai)
   try {
     terminal.display().done(() => $('#home').hide() && sock.connect())
   } catch (err) {

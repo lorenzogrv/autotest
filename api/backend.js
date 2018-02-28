@@ -3,13 +3,13 @@
  * License: MIT
  */
 
-var abc = require('../abc');
+var agnostic = require('./agnostic')
 
-// the iai object inherits the iai-abc exposed api
-var iai = module.exports = Object.create(abc);
+// the iai object for backend inherits everything from iai agnostic object
+var iai = module.exports = Object.create(agnostic)
 
 //
-// This file is the main entry point.
+// This file is the main entry point for backend api
 // Define here only the namespace aliases or accessors
 //
 

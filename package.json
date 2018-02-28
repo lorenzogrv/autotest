@@ -2,16 +2,19 @@
   "name": "iai",
   "description": "@laconbass web development framework for node.js",
   "version": "1.0.0",
-  "main": "./api",
   "bin": {
     "iai": "./bin/iai"
   },
-  "browser": "app/frontend.js",
+  "main": "./api/backend.js",
+  "browser": "./api/browser.js",
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
     "chokidar": "^2.0.0",
+    "exorcist": "^1.0.1",
     "iai-oop": "^2.0.0",
     "jquery": "^3.3.1",
+    "marked": "^0.3.17",
+    "marked-terminal": "^2.0.0",
     "ws": "^4.0.0"
   },
   "scripts": {
@@ -20,8 +23,8 @@
     "watchify": "node_modules/.bin/watchify app/frontend.js -o build/bundle.js -d -v"
   },
   "devDependencies": {
-    "browserify": "^13.0.0",
+    "browserify": "^16.1.0",
     "tape": "^4.5.1",
-    "watchify": "^3.7.0"
+    "watchify": "^3.10.0"
   }
 }

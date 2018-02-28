@@ -2,18 +2,19 @@
   "name": "iai-api-view",
   "version": "0.1.0",
   "description": "View engine for iai application, an alternative aproach to typical template systems.",
-  "main": "View.js",
-  "scripts": {
-    "test": "tape test/*.js | tap-spec"
-  },
-  "author": "",
+  "author": "Lorenzo García Rivera",
   "license": "SEE LICENSE IN README.md",
+  "main": "View-backend-mess.js",
+  "browser": {
+    "./View-backend-mess.js": "View-browser.js",
+    "cheerio": "jquery"
+  },
+  "scripts": {
+    "test": "tape test/*.js | tap-spec && standard --fix"
+  },
   "dependencies": {
     "cheerio": "^0.20.0",
     "jquery": "^2.2.3"
-  },
-  "browser": {
-    "cheerio": "jquery"
   },
   "devDependencies": {
     "tap-spec": "^4.1.1",

@@ -1,4 +1,4 @@
-const View = require('./View')
+const { View } = require('iai')
 
 var terminal = module.exports = View.create('terminal')
 
