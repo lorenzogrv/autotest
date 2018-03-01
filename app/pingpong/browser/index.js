@@ -1,16 +1,3 @@
-const { inspect } = require('util')
-
-function fatal (msg, file, line, column, error) {
-  var title = error ? error.message || error : msg
-  var stack = error.stack || Error('no stack trace').stack
-  document.body.innerHTML = '<h1>' + title + '</h1>'
-  document.body.innerHTML += '<pre>' + stack + '</pre>'
-  document.body.innerHTML += '<pre>' + inspect(error, { showHidden: true, depth: 4, showProxy: true }) + '</pre>'
-  return true
-}
-
-window.onerror = fatal
-
 const $ = require('jquery')
 const iai = require('iai')
 const sock = require('./wsocket')

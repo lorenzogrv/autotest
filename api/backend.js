@@ -32,6 +32,8 @@ exports.lazyload('gui', require, './hardware/gui')
 
 // Service is a server prototype with built-in WebSocket integration
 exports.lazyload('Server', require, './server')
+exports.lazyload('answer', require, './server/answer')
+// TODO omg this dummy router should be an answer too? SURE
 exports.lazyload('Router', require, './server/Router')
 
 // View implementation

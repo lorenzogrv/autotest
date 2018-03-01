@@ -106,14 +106,17 @@ function Log (from) {
   from = callsite(typeof from === 'function' ? from : Log)
 
   var instance = oop.create(this)
+    // filename and line number where log instance is created
     .visible('filename', from.getFileName())
     .visible('line', from.getLineNumber())
+    // configurable flags
     .flag('muted', false)
     .flag('clean', false)
     .internal('level', exports.WARN)
-    // TODO option to redirect stdout and stderr without overriding defaults
-    .internal('stdout', this.stdout)
-    .internal('stderr', this.stderr)
+    // TODO option to redirect output stream without overriding default
+    // above is no-sense because idea is to keep all logs output to ONE stream
+    // Log should write everything to stderr, any level
+    .internal('output', this.output)
     .o
 
   // Use Log "depth" control to enable this message (Log.level=Log.VERB)
@@ -134,9 +137,10 @@ function Log (from) {
 }
 
 oop(exports)
-  // default output streams
-  .internal('stdout', process.stdout || new PassThrough())
-  .internal('stderr', process.stderr || new PassThrough())
+  // filename for 'Master' log instance (this file)
+  .internal('filename', __filename)
+  // default output stream (fallback to PassThrough for browser)
+  .internal('output', process.stderr || new PassThrough())
   /**
    * Configurable flags
    *
@@ -178,14 +182,13 @@ Log.findOne = function (re) {
 // provide a string representation of this object
 exports.toString = function () {
   return '[' +
-    relative(process.cwd(), this.filename || __filename) +
+    relative(process.cwd(), this.filename) +
     '@' + process.pid +
     ']'
 }
 
-// output functions (for internal use)
-
-// outputs a report as string
+// outputs a report as string (meant for internal use)
+// report is an 'arguments' object suitable to be apply'd to util.format
 exports.msg = function (report, options) {
   if (this.muted || options.level > this.level) return this
 
@@ -205,16 +208,8 @@ exports.msg = function (report, options) {
   msg += ((format.apply(0, report).split('\n').join('\n' + msg)))
   msg += ((color ? ansi.reset : ''))
 
-  options.stream.write(msg + '\n')
+  this.output.write(msg + '\n')
   return this
-}
-exports.out = function (report, opts) {
-  opts.stream = this.stdout
-  return this.msg(report, opts)
-}
-exports.err = function (report, opts) {
-  opts.stream = this.stderr
-  return this.msg(report, opts)
 }
 
 //
@@ -223,28 +218,28 @@ exports.err = function (report, opts) {
 exports.fatal = function (code) {
   var hasCode = (typeof code === 'number')
   this.error('FATAL ERROR%s!', hasCode ? (' with exit code ' + code) : '')
-  this.err(hasCode ? [].slice.call(arguments, 1) : arguments, {
+  this.msg(hasCode ? [].slice.call(arguments, 1) : arguments, {
     color: 'red', prepend: 'EE ', level: exports.FATAL
   })
   process.exit(hasCode ? code : 1)
 }
 exports.error = function () {
-  return this.err(arguments, {
+  return this.msg(arguments, {
     color: 'red', prepend: 'EE ', level: exports.ERROR
   })
 }
 exports.warn = function () {
-  return this.err(arguments, {
+  return this.msg(arguments, {
     color: 'yellow', prepend: 'WW ', level: exports.WARN
   })
 }
 exports.info = function () {
-  return this.out(arguments, {
+  return this.msg(arguments, {
     color: 'blue', prepend: 'II ', level: exports.INFO
   })
 }
 exports.verb = exports.debug = function () {
-  return this.out(arguments, { prepend: 'VV ', level: exports.VERB })
+  return this.msg(arguments, { prepend: 'VV ', level: exports.VERB })
 }
 // TODO decide if debug messages do not prepend "VV"
 
@@ -10530,19 +10525,6 @@ sock.send = function () {
 }
 
 },{"events":20}],14:[function(require,module,exports){
-const { inspect } = require('util')
-
-function fatal (msg, file, line, column, error) {
-  var title = error ? error.message || error : msg
-  var stack = error.stack || Error('no stack trace').stack
-  document.body.innerHTML = '<h1>' + title + '</h1>'
-  document.body.innerHTML += '<pre>' + stack + '</pre>'
-  document.body.innerHTML += '<pre>' + inspect(error, { showHidden: true, depth: 4, showProxy: true }) + '</pre>'
-  return true
-}
-
-window.onerror = fatal
-
 const $ = require('jquery')
 const iai = require('iai')
 const sock = require('./wsocket')
@@ -10585,7 +10567,7 @@ document.addEventListener('DOMContentLoaded', function () {
   $(document.body).addClass('loaded')
 })
 
-},{"./command":11,"./terminal":12,"./wsocket":13,"iai":22,"jquery":27,"util":50}],15:[function(require,module,exports){
+},{"./command":11,"./terminal":12,"./wsocket":13,"iai":22,"jquery":27}],15:[function(require,module,exports){
 (function (global){
 //
 // hardcoded utilities to avoid depending on the whole iai-is module
