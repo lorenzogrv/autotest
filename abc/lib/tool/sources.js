@@ -6,11 +6,13 @@ module.exports = sources;
  * @returns Array
  */
 
-function sources( mod ){
-  return []
-    .concat.apply( [], mod.children.map(sources) )
-    .concat( mod.filename )
+function sources (mod) {
+  return mod.children
+     // avoid recursing indefinitely! module may have a child referencing itself
+    .filter((module) => module === mod)
+    .map(sources)
+    .concat(mod.filename)
     // remove duplicates
-    .filter(function( name, pos, arr ){ return arr.indexOf(name) == pos; })
+    .filter((name, pos, arr) => arr.indexOf(name) === pos)
   ;
 }
