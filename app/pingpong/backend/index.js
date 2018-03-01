@@ -4,19 +4,19 @@ var read = iai.readkeys
 
 log.level = iai.Log.VERB
 
-var server = module.exports = Object.create(iai.Server)
+var service = module.exports = Object.create(iai.Service)
 
 var kb = null
 
-server
+service
   .on('request', require('./router'))
   .on('ws:connection', function (ws) {
-    ws.send('echo connected to server!')
+    ws.send('echo connected to websocket service!')
     if (!kb) {
       log.info('Sending stdin to all clients...')
       kb = read()
       .on('readable', function () {
-        server.broadcast(iai.f('stdin %s', this.read()))
+        service.broadcast(iai.f('stdin %s', this.read()))
       })
       .once('end', function () {
         log.info('Done sending stdin.')

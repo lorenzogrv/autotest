@@ -30,8 +30,10 @@ exports.lazyload('readkeys', require, './hardware/keyboard/readkeys')
 // the gui api controls an electron process to manage the OS GUI
 exports.lazyload('gui', require, './hardware/gui')
 
-// Service is a server prototype with built-in WebSocket integration
+// TODO deprecate this 'Server' namespace
 exports.lazyload('Server', require, './service')
+// Service is a server prototype with built-in WebSocket integration
+exports.lazyload('Service', require, './service')
 exports.lazyload('answer', require, './service/answer')
 // TODO omg this dummy router should be an answer too? SURE
 exports.lazyload('Router', require, './service/Router')
