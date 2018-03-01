@@ -142,10 +142,12 @@ function iai-time () { date --rfc-3339=seconds || exit 1; }
 # `iai pager` standarizes the way to invoke a pager
 ##
 function iai-tree () {
-	tree -L 2 --dirsfirst --sort=name --noreport -C --filelimit 10 "$@" || exit 1
+	tree -L 2	--dirsfirst --sort=name --noreport -C --filelimit 20 "$@"\
+	 	| iai-pager || exit 1
 }
 function iai-ls () {
-	ls -lhu --color=always --group-directories-first "$@" || exit 1
+	ls -lhu --color=always --group-directories-first "$@"\
+		| iai-pager || exit 1
 }
 function iai-pager () {
 	# -i ignore case when searching, but respect case if term contains uppercase
@@ -154,7 +156,7 @@ function iai-pager () {
 	# -E automatically exit the second time it reaches end-of-file
 	# -R bypasses ANSI color sequences (-r bypasses all ANSI sequences)
 	##
-	less -iXFER "$@" || exit 1
+	less -iXFR "$@" || exit 1
 }
 
 ##
