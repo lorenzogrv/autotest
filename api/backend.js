@@ -31,10 +31,10 @@ exports.lazyload('readkeys', require, './hardware/keyboard/readkeys')
 exports.lazyload('gui', require, './hardware/gui')
 
 // Service is a server prototype with built-in WebSocket integration
-exports.lazyload('Server', require, './server')
-exports.lazyload('answer', require, './server/answer')
+exports.lazyload('Server', require, './service')
+exports.lazyload('answer', require, './service/answer')
 // TODO omg this dummy router should be an answer too? SURE
-exports.lazyload('Router', require, './server/Router')
+exports.lazyload('Router', require, './service/Router')
 
 // View implementation
 exports.lazyload('View', require, './view')

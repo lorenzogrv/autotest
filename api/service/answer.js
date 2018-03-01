@@ -3,24 +3,25 @@ const iai = require('iai-abc')
 const log = iai.log
 
 // EXPOSED OBJ
-var handle = module.exports = {}
+var answer = module.exports = {}
 
-// this is the simplest possible handle: serve a file "as-is"
-handle.Raw = function (file) {
+// this is the simplest possible answer: serve a file "as-is"
+answer.Raw = function (file) {
   return (req, res) => fs.createReadStream(file).pipe(res)
 }
 
 // TODO i.e. convert a markdown document to html
-handle.Document = function (file) {
+answer.Document = function (file) {
   throw new Error('not implemented')
   // something like Raw, piping through transforms
 }
 
-handle.View = function (view) {
+answer.View = function (view) {
   return function (req, res) {
     if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
       log.warn('AJAX REQUEST! %s', req.url)
       log.warn('accept is %s', req.headers.accept)
+      // TODO this is actually a kind of answer.JSON
       res.write(JSON.stringify(view))
       return res.end()
     }
@@ -29,4 +30,4 @@ handle.View = function (view) {
   }
 }
 
-handle.Router = require('./Router')
+answer.Router = require('./Router')
