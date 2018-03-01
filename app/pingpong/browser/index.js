@@ -1,6 +1,6 @@
 const $ = require('jquery')
 const iai = require('iai')
-const sock = require('./wsocket')
+const sock = iai.Service
 const command = require('./command')
 const terminal = require('./terminal')
 

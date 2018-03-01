@@ -2,7 +2,8 @@
   "name": "iai-api-service",
   "version": "0.0.0",
   "description": "A ready-to-use http service with websocket integration",
-  "main": "Service.js",
+  "main": "Service-backend.js",
+  "browser": "Service-browser.js",
   "directories": {
     "test": "test"
   },

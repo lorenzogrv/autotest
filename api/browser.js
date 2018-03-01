@@ -52,5 +52,8 @@ iai.debug = function debug (obj, title) {
 //
 var exports = iai.oop(iai)
 
-// View implementation
+// View prototype implementation
+exports.visible('Service', require('./service'))
+
+// View prototype implementation
 exports.visible('View', require('./view'))
