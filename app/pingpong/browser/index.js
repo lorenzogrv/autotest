@@ -1,6 +1,6 @@
 const $ = require('jquery')
 const iai = require('iai')
-const sock = iai.Service
+const sock = iai.service
 const command = require('./command')
 const terminal = require('./terminal')
 
@@ -21,7 +21,7 @@ terminal
   .on('message', terminal.stdout)
   .on('command', execute)
 
-sock
+iai.service
   .on('message', (str) => terminal.stdout('sock: ' + str))
   .on('command', execute)
 
@@ -29,7 +29,9 @@ sock
 document.addEventListener('DOMContentLoaded', function () {
   alert(iai)
   try {
-    terminal.display().done(() => $('#home').hide() && sock.connect())
+    terminal.display()
+      .done(() => $('#home').hide())
+      .done(() => iai.service.connect())
   } catch (err) {
     fatal(err)
   }

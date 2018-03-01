@@ -1,51 +1,70 @@
 const { EventEmitter } = require('events')
+const abc = require('iai-abc')
+const oop = require('iai-oop')
 
-const sock = module.exports = new EventEmitter()
+const Service = module.exports = new EventEmitter()
 
-// TODO document may not exist on non-browser environment
-sock.uri = 'ws://' + document.location.host
+Service.create = function (uri) {
+  // TODO assert this context is either Service or inherits Service
 
-sock.ws = null
+  // this create procedure may lead to bugs, it's experimental
+  var instance = Object.create(this)
+  // initialize emitter or pray something
+  EventEmitter.call(instance)
 
-sock.connect = function () {
-  var sock = this
-  if (sock.ws) {
-    sock.emit('message', 'websocket already connected!')
-    return sock.ws.close()
+  return oop(instance)
+    // it's supossed this code is for browser so seems safe using document
+    .visible('uri', uri || ('ws://' + document.location.host))
+    .internal('_ws', null)
+    .o
+  instance.uri = uri // TODO this data descriptor should be non-writable
+
+  return instance
+}
+
+Service.connect = function () {
+  if (this._ws) {
+    // TODO if already connected, should raise error instead?
+    return this.emit('message', 'websocket already connected!')
+    // if already connected, reconnect via 'onclose' event
+    this._ws.close()
+    return this
   }
-  sock.emit('message', 'connecting to ' + sock.uri)
-  sock.ws = new WebSocket(sock.uri)
-  sock.ws.onopen = sock.onopen.bind(sock)
-  sock.ws.onerror = sock.onerror.bind(sock)
-  sock.ws.onclose = sock.onclose.bind(sock)
-  sock.ws.onmessage = sock.onmessage.bind(sock)
+  this.emit('message', 'connecting to ' + this.uri)
+  this._ws = new WebSocket(this.uri)
+  // TODO, define handlers here
+  this._ws.onopen = this.onopen.bind(this)
+  this._ws.onerror = this.onerror.bind(this)
+  this._ws.onclose = this.onclose.bind(this)
+  this._ws.onmessage = this.onmessage.bind(this)
+  return this
 }
 
 // Websocket event handlers
-sock.onopen = function (event) {
+Service.onopen = function (event) {
   this.emit('message', 'websocket opened')
 }
-sock.onerror = function (event) {
+Service.onerror = function (event) {
   this.emit('message', 'could not open websocket')
 }
-sock.onclose = function (event) {
+Service.onclose = function (event) {
   this.emit('message', 'websocket disconected.')
-  this.ws = null
+  this._ws = null
 
   var t = 5
   setTimeout(this.connect.bind(this), t * 1000 + 1)
-  var sock = this
+  var Service = this
   var i = setInterval(function () {
-    sock.emit('message', 'reconnecting in ' + t)
+    Service.emit('message', 'reconnecting in ' + t)
     if (!--t) clearInterval(i)
   }, 1000)
 }
-sock.onmessage = function (event) {
+Service.onmessage = function (event) {
   // TODO just now, shoud re-think the whole thing
   this.emit('command', event.data)
 }
 // this is just a quick-n-dirty way to get it working now
-sock.send = function () {
-  this.ws.send.apply(this.ws, arguments)
+Service.send = function () {
+  this._ws.send.apply(this._ws, arguments)
   return this
 }

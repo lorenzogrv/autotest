@@ -1,5 +1,5 @@
 const { EventEmitter } = require('events')
-const sock = require('./wsocket.js')
+const iai = require('iai')
 
 var command = module.exports = new EventEmitter()
 
@@ -22,9 +22,9 @@ command.run = function run (cmdline) {
 command.echo = function echo () {
   this.emit('stdout', Array.prototype.slice.call(arguments).join(' '))
 }
-// TODO not sure if sock.send should be called from here
+// TODO not sure if iai.service.send should be called from here
 command.ping = function ping () {
-  sock.send('ping')
+  iai.service.send('ping')
 }
 command.exit = function exit () {
   this.emit('stdout', 'EXIT request from server')
