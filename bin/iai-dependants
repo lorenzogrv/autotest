@@ -21,15 +21,21 @@ if( argv.length > 1 || argv[0] == '--usage' || argv[0] == '--help' ){
   process.exit(1);
 }
 
+var modpath = path.resolve(argv[0] || '')
+
 try {
-  var path = require.resolve( path.resolve(argv[0] || '') );
+  var path = require.resolve(modpath);
   var mod = require( path );
 } catch( err ){
-  if( err.code != 'MODULE_NOT_FOUND' ){
-    throw err;
+  if( err.code === 'MODULE_NOT_FOUND' ){
+    if(!~err.message.indexOf(modpath)){
+      // not found module error may be related to a missing dependency
+      throw err
+    }
+    console.error( path + ' is not a commonjs package' );
+    process.exit(1);
   }
-  console.error( path + ' is not a commonjs package' );
-  process.exit(1);
+  throw err;
 }
 
 console.log( sources(require.cache[path]) );
