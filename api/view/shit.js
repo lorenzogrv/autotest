@@ -2,8 +2,7 @@
 var fs = require('fs')
 var path = require('path')
 var cheerio = require('cheerio')
-var iai = require('iai-abc')
-var log = iai.log
+var oop = require('iai-oop')
 
 // View inherits from nothing for now. Maybe it becomes a stream?
 // Could be awesome to pipe html sources into but it's senseless browser-side
@@ -22,7 +21,7 @@ function View (source) {
     // should be neccessary, so assets are suposed to be there?
   }
   source = source || ''
-  iai.oop(instance)
+  oop(instance)
     .visible('$', cheerio.load(source))
     .visible('block', Object.create(null))
 
@@ -41,7 +40,7 @@ exports.define = function (id, selector) {
   }
   this.block[id] = this.$(selector)
   if (this.block[id].length !== 1) {
-    throw iai.Error('block selector "%s" should match 1 node', selector)
+    throw Error('block selector "%s" should match 1 node', selector)
   }
   return this
 }
@@ -61,10 +60,10 @@ exports.assets
  * defined URL's are unique system-wide.
  */
 
-iai.oop(exports).visible('media', Object.create(null))
+oop(exports).visible('media', Object.create(null))
 exports.source = function (url, filename) {
   if (url === '/') {
-    throw iai.Error('cannot map a media source for "/" (root)')
+    throw Error('cannot map a media source for "/" (root)')
   }
   if (this.media[url]) {
     log.warn('overrided media url "%s"')
@@ -87,7 +86,7 @@ exports.answer = function (req, res) {
   // views, view.answer should be inserted on the router middleware chain.
   if (!exports.isPrototypeOf(this)) {
     // TODO this should produce a 500 response and keep the node process runing
-    throw iai.Error('expecting context to be instanceof View')
+    throw Error('expecting context to be instanceof View')
   }
   var filename = this.media[req.url]
   if (filename) {

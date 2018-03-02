@@ -4,11 +4,8 @@
   "description": "View engine for iai application, an alternative aproach to typical template systems.",
   "author": "Lorenzo García Rivera",
   "license": "SEE LICENSE IN README.md",
-  "main": "View-backend-mess.js",
-  "browser": {
-    "./View-backend-mess.js": "View-browser.js",
-    "cheerio": "jquery"
-  },
+  "main": "View-backend.js",
+  "browser": "View-browser.js",
   "scripts": {
     "test": "tape test/*.js | tap-spec && standard --fix"
   },

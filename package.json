@@ -8,7 +8,7 @@
   "main": "./api/backend.js",
   "browser": "./api/browser.js",
   "dependencies": {
-    "cheerio": "^1.0.0-rc.2",
+    "cheerio": "^0.22.0",
     "chokidar": "^2.0.0",
     "exorcist": "^1.0.1",
     "iai-oop": "^2.0.0",
