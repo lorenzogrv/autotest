@@ -11,6 +11,8 @@ const { basename, resolve } = require('path')
 const { PassThrough } = require('stream')
 const fs = require('fs')
 const marked = require('marked')
+const chalk = require('chalk')
+chalk.enabled = true // TODO this should be a --force-color or so
 const TerminalRenderer = require('marked-terminal')
 
 // Define custom markdown renderer
