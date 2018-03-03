@@ -3,8 +3,9 @@ const log = iai.log
 
 log.level = iai.Log.VERB
 
-const Raw = iai.answer.Raw
 const File = iai.answer.File
+
+const RootView = iai.View
 
 function View (view) {
   return function (req, res) {
@@ -15,10 +16,10 @@ function View (view) {
       res.write(JSON.stringify(view))
       return res.end()
     }
-    log.warn('NOn-AJAX REQUEST! %s', req.url)
+    log.warn('NON-AJAX REQUEST! %s', req.url)
     var parts = req.url.split('/').slice(1)
     var cumbs = []
-    var v = iai.View
+    var v = RootView
     while (parts.length) {
       v = v.create(parts.shift())
       cumbs.push(v)
@@ -33,33 +34,46 @@ function View (view) {
     log.warn('here it should insert view on index and pipe it to response')
     var $ = cheerio.load(index)
     while (cumbs.length) {
-      cumbs.shift().insert($)
+      cumbs.shift().inlay($)
     }
     res.write($.html())
     res.end()
   }
 }
 
-
 const path = iai.path(__dirname, '..')
 const fs = require('fs')
 const index = fs.readFileSync(path.to('www/index.html'), 'utf8')
 const cheerio = require('cheerio')
+
+const Section = iai.Section
+
+var home = Section.create('home')
+  .create('section-one')
+  .add('section-one-one')
+  .add('section-one-two')
+  .master
+  .add('section-two')
+  .create('section-three')
+  .add('section-three-one')
+  .add('section-three-two')
+  .master
+  .add('section-four')
+
+console.log(home.urls())
+
 var urls = {
-  '/': File(path.to('www/index.html')),
   '/terminal': View({
     html: { 'after': '<h1 id="stdin"></h1>' },
     css: [],
     js: []
+  }),
+  '/urls': View({
+    html: () => iai.f('%o', home.urls())
   })
 }
 
-// automatically add handlers for assets
-require('child_process')
-  .spawnSync('find', ['./www', '-type', 'f'])
-  .stdout.toString('utf8').split('\n')
-  .filter((file) => file && !~file.indexOf('index.html'))
-  .forEach((file) => { urls[file.slice(5)] = File(path.to(file)) })
-
-
-module.exports = iai.answer.Router(urls)
+module.exports = iai.answer.Router({
+  urls: urls,
+  www: path.to('www')
+})
