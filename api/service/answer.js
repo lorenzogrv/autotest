@@ -5,12 +5,46 @@ const log = iai.log
 // EXPOSED OBJ
 var answer = module.exports = {}
 
-// this is the simplest possible answer: serve a file "as-is"
+// There is NO next function here as answers ARE NOT middleware
+
+// creates a request handler to route requests based on url
+answer.Router = function (urimap) {
+  const uris = urimap
+  // TODO in uris there may be regexps (string starts with ^)
+  // TODO convert uris to a suitable object (reusable regexps)
+  const NotFound = answer.NotFound()
+  return function handle (req, res) {
+    res.on('finish', function () {
+      var code = res.statusCode
+      log[code < 400 ? 'info' : code < 500 ? 'warn' : 'error'](
+        '%s %s', res.statusCode, req.url
+      )
+    })
+    if (typeof uris[req.url] === 'function') {
+      return uris[req.url](req, res)
+    }
+    return NotFound(req, res)
+  }
+}
+
+// creates a request handler to answer a 404 Not Found response
+answer.NotFound = function (opts) {
+  // TODO opts?
+  return function (req, res) {
+    res.writeHead(404, {
+      'Connection': 'close',
+      'Content-Type': 'text/plain'
+    })
+    res.end('url not found: ' + req.url)
+  }
+}
+
+// creates a request handler to serve file "as-is"
 answer.File = function (file) {
   return (req, res) => fs.createReadStream(file).pipe(res)
 }
 
-// another simple answer example: write given data "as-is"
+// creates a request handler to write given data "as-is"
 answer.Raw = function (data) {
   return (req, res) => res.write(data) + res.end()
 }
@@ -20,5 +54,3 @@ answer.Document = function (file) {
   throw new Error('not implemented')
   // something like Raw, piping through transforms
 }
-
-answer.Router = require('./Router')
