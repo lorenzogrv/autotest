@@ -37,4 +37,4 @@ exports.lazyload('answer', require, './service/answer')
 exports.visible('Router', iai.answer.Router)
 
 // View implementation
-exports.lazyload('View', require, './view')
+exports.lazyload('View', require, './section')

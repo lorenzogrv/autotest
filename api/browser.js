@@ -53,4 +53,5 @@ iai.debug = function debug (obj, title) {
 var exports = iai.oop(iai)
 
 // View prototype implementation
-exports.visible('View', require('./view'))
+// TODO deprecate this
+exports.visible('View', require('./section'))

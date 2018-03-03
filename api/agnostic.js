@@ -26,3 +26,5 @@ var exports = iai.oop(module.exports)
 exports.visible('Service', require('./service'))
 // master service
 exports.visible('service', iai.Service.create())
+// Section prototype implementation
+exports.visible('Section', require('./section'))
