@@ -9,7 +9,7 @@ test('Section#add', function (t) {
 
 test('Section create/add/master example', function (t) {
   t.plan(2)
-  var home, one, two, three, four, one1, one2, three1, three2
+  var home
   t.doesNotThrow(function () {
     home = Section.create('home')
       .create('section-one')
@@ -36,22 +36,22 @@ test('Section create/add/master example', function (t) {
   ], 'should be converted to an array as expected')
 })
 
-test('Section#descendants example', function (t) {
+test('Section#descendants and Section#urlmap example', function (t) {
   t.plan(2)
   var home, one, two, three, four, one1, one2, three1, three2
-  t.doesNotThrow(function () {
-    home = Section.create('home')
-    one = home.create('section-one')
-    one1 = one.create('section-one-one')
-    one2 = one.create('section-one-two')
-    two = home.create('section-two')
-    three = home.create('section-three')
-    three1 = three.create('section-three-one')
-    three2 = three.create('section-three-two')
-    four = home.create('section-four')
-  }, 'should be exectutable without throwing errors')
-  t.deepEqual(home.descendants(), {
-    '/home': home,
+  home = Section.create('home')
+  one = home.create('section-one')
+  one1 = one.create('section-one-one')
+  one2 = one.create('section-one-two')
+  two = home.create('section-two')
+  three = home.create('section-three')
+  three1 = three.create('section-three-one')
+  three2 = three.create('section-three-two')
+  four = home.create('section-four')
+  t.deepEqual(home.descendants(), [
+    one, one1, one2, two, three, three1, three2, four
+  ], 'should be converted by descentants to an array as expected')
+  t.deepEqual(home.urlmap(), {
     '/home/section-one': one,
     '/home/section-one/section-one-one': one1,
     '/home/section-one/section-one-two': one2,
@@ -60,5 +60,5 @@ test('Section#descendants example', function (t) {
     '/home/section-three/section-three-one': three1,
     '/home/section-three/section-three-two': three2,
     '/home/section-four': four
-  }, 'should be converted to an object as expected')
+  }, 'should be converted by urlmap to an object as expected')
 })

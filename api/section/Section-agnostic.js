@@ -57,10 +57,24 @@ Section.toString = function () {
   // TODO YAGNI toString('html') better => toHTML()
 }
 
-// research a sitemap for this view
+// research the urls aplicable to this section
 Section.urls = function () {
-  return [this.url].concat(Object.keys(this.cache)
-    .map((slug) => this.cache[slug].urls())
+  return [this.url].concat(Object.values(this.cache)
+    .map((section) => section.urls())
     .reduce((a, b) => a.concat(b), [])
   )
+}
+
+// research the descendant sections for this section
+Section.descendants = function () {
+  return Object.values(this.cache)
+    .map((section) => [section].concat(section.descendants()))
+    .reduce((a, b) => a.concat(b), [])
+}
+
+// research an "url: view" map aplicable to this view
+Section.urlmap = function () {
+  var map = {}
+  this.descendants().forEach(function (section) { map[section.url] = section })
+  return map
 }
