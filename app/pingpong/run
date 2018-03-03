@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-var iai = require('iai')
+var iai = require('iai-api')
 var Job = require('./Job')
 
+// populate require.cache before using iai.sources
 require('./backend')
 
 Job('node', ['-e', "require('./backend').listen(27780)"], {

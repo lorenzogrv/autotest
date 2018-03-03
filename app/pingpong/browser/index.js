@@ -1,5 +1,5 @@
 const $ = require('jquery')
-const iai = require('iai')
+const iai = require('iai-api')
 const sock = iai.service
 const command = require('./command')
 const terminal = require('./terminal')
@@ -27,14 +27,13 @@ iai.service
 
 // TODO use https://github.com/cms/domready/blob/master/domready.js
 document.addEventListener('DOMContentLoaded', function () {
-  alert(iai)
   try {
     terminal.display()
       .done(() => $('#home').hide())
       .done(() => iai.service.connect())
   } catch (err) {
-    fatal(err)
-  }
+    iai.fatal(err)
+  }//*/
 
   document.querySelector('#main_action').onclick = function () {
     sock.send('main action click')
