@@ -50,7 +50,7 @@ exports.lazyLoad('sources', require, './tool/sources')
 // TODO this is too ugly (but actually process.js only binds events)
 require('./process.js')
 
-},{"./error/CustomError":2,"./log":3,"./path":4,"./process.js":5,"iai-oop":15,"util":50}],2:[function(require,module,exports){
+},{"./error/CustomError":2,"./log":3,"./path":4,"./process.js":5,"iai-oop":16,"util":51}],2:[function(require,module,exports){
 var format = require('util').format;
 
 // CustomError inherits from Error
@@ -81,7 +81,7 @@ function CustomError( message ){
 module.exports.name = module.exports.constructor.name;
 
 
-},{"util":50}],3:[function(require,module,exports){
+},{"util":51}],3:[function(require,module,exports){
 (function (process,__filename){
 const { PassThrough } = require('stream')
 
@@ -245,7 +245,7 @@ exports.verb = exports.debug = function () {
 
 }).call(this,require('_process'),"/../../abc/lib/log.js")
 
-},{"./tool/callsite":6,"_process":30,"iai-ansi":21,"iai-oop":15,"path":28,"stream":45,"util":50}],4:[function(require,module,exports){
+},{"./tool/callsite":6,"_process":31,"iai-ansi":22,"iai-oop":16,"path":29,"stream":46,"util":51}],4:[function(require,module,exports){
 (function (__dirname){
 var path = require('path')
 var slice = Array.prototype.slice
@@ -273,7 +273,7 @@ exports.to = function () {
 
 }).call(this,"/../../abc/lib")
 
-},{"path":28}],5:[function(require,module,exports){
+},{"path":29}],5:[function(require,module,exports){
 (function (process,__filename){
 //
 // # Utilities to deal with common things of the node process
@@ -332,7 +332,7 @@ log.clean = true
 
 }).call(this,require('_process'),"/../../abc/lib/process.js")
 
-},{"./log":3,"_process":30}],6:[function(require,module,exports){
+},{"./log":3,"_process":31}],6:[function(require,module,exports){
 
 module.exports = callsite;
 
@@ -394,9 +394,21 @@ const iai = module.exports = Object.create(abc)
  */
 
 // override the iai-abc toString data descriptor
-iai.toString = function () { return '|iai|' }
+iai.toString = () => '|iai-api|'
 
-},{"../abc":1}],8:[function(require,module,exports){
+// FROM HERE ONWARDS
+// will use iai-oop api to expose the augmented api
+//
+var exports = iai.oop(module.exports)
+
+// Service prototype implementation
+exports.visible('Service', require('./service'))
+// master service
+exports.visible('service', iai.Service.create())
+// Section prototype implementation
+exports.visible('Section', require('./section'))
+
+},{"../abc":1,"./section":10,"./service":12}],8:[function(require,module,exports){
 /**
  * Author: Lorenzo García Rivera
  * License: MIT
@@ -452,97 +464,27 @@ iai.debug = function debug (obj, title) {
 var exports = iai.oop(iai)
 
 // View prototype implementation
-exports.visible('Service', require('./service'))
-exports.visible('service', iai.Service.create())
+// TODO deprecate this
+exports.visible('View', require('./section'))
 
-// View prototype implementation
-exports.visible('View', require('./view'))
-
-},{"./agnostic":7,"./service":9,"./view":10,"util":50}],9:[function(require,module,exports){
+},{"./agnostic":7,"./section":10,"util":51}],9:[function(require,module,exports){
 const { EventEmitter } = require('events')
 const abc = require('iai-abc')
-const oop = require('iai-oop')
+const oop = abc.oop
+const log = abc.log
 
-const Service = module.exports = new EventEmitter()
+log.level = abc.Log.VERB
 
-Service.create = function (uri) {
-  // TODO assert this context is either Service or inherits Service
+var Section = module.exports = new EventEmitter()
 
-  // this create procedure may lead to bugs, it's experimental
-  var instance = Object.create(this)
-  // initialize emitter or pray something
-  EventEmitter.call(instance)
-
-  return oop(instance)
-    // it's supossed this code is for browser so seems safe using document
-    .visible('uri', uri || ('ws://' + document.location.host))
-    .internal('_ws', null)
-    .o
-  instance.uri = uri // TODO this data descriptor should be non-writable
-
-  return instance
-}
-
-Service.connect = function () {
-  if (this._ws) {
-    // TODO if already connected, should raise error instead?
-    return this.emit('message', 'websocket already connected!')
-    // if already connected, reconnect via 'onclose' event
-    this._ws.close()
-    return this
-  }
-  this.emit('message', 'connecting to ' + this.uri)
-  this._ws = new WebSocket(this.uri)
-  // TODO, define handlers here
-  this._ws.onopen = this.onopen.bind(this)
-  this._ws.onerror = this.onerror.bind(this)
-  this._ws.onclose = this.onclose.bind(this)
-  this._ws.onmessage = this.onmessage.bind(this)
-  return this
-}
-
-// Websocket event handlers
-Service.onopen = function (event) {
-  this.emit('message', 'websocket opened')
-}
-Service.onerror = function (event) {
-  this.emit('message', 'could not open websocket')
-}
-Service.onclose = function (event) {
-  this.emit('message', 'websocket disconected.')
-  this._ws = null
-
-  var t = 5
-  setTimeout(this.connect.bind(this), t * 1000 + 1)
-  var Service = this
-  var i = setInterval(function () {
-    Service.emit('message', 'reconnecting in ' + t)
-    if (!--t) clearInterval(i)
-  }, 1000)
-}
-Service.onmessage = function (event) {
-  // TODO just now, shoud re-think the whole thing
-  this.emit('command', event.data)
-}
-// this is just a quick-n-dirty way to get it working now
-Service.send = function () {
-  this._ws.send.apply(this._ws, arguments)
-  return this
-}
-
-},{"events":20,"iai-abc":1,"iai-oop":15}],10:[function(require,module,exports){
-const { EventEmitter } = require('events')
-const { format } = require('util')
-const $ = require('jquery')
-
-var View = module.exports = new EventEmitter()
-
-View.create = function View (id) {
-  // TODO assert this context is either View or inherits view
+Section.create = function Section (id) {
+  // TODO assert this context is either Section or inherits from it
   if (!id) {
-    throw new Error('views must have an id')
+    throw ReferenceError('views must have a valid Slug as id')
   }
-  // YAGNI!! TODO this.cache stores "childs"
+  // TODO assert id is a valid "Slug"
+  // this.cache stores "childs". Each section must have an unique id
+  // within its parent section, even for top-level sections
   if (this.cache[id]) {
     return this.cache[id]
   }
@@ -553,18 +495,53 @@ View.create = function View (id) {
 
   EventEmitter.call(instance) // initialize emitter or pray something
   instance.id = id // TODO this data descriptor should be non-writable
+  // keep a reference to the section that created the instance
+  instance.master = this
+  // each instance has its own "child" cache
+  instance.cache = Object.create(null) // TODO this should be a set?
 
+  oop(instance)
+    .accessor('id', () => this.id ? this.id + '-' + id : id)
+    .accessor('url', () => (this.url || '') + '/' + id)
+
+  log.info('created %s', instance)
   return instance
 }
 
-View.cache = Object.create(null) // TODO this should be a set?
+Section.cache = Object.create(null)
 
-View.toString = function () {
-  // TODO this.id may be undefined (SURE?)
-  // TODO output string should be based on this.$
-  return '[View #' + this.id + ']'
-  // return '<div id="' + this.id + '" class="view"></div>'
+// fix instance instanceof Section
+Section.constructor = Section.create
+Section.constructor.prototype = Section
+
+// same as Section.create, but returns the current context instead of the new Section
+Section.add = function () {
+  this.create.apply(this, arguments)
+  return this
 }
+
+// provide a string representation of this view
+Section.toString = function () {
+  // TODO this.id may be undefined (SURE?->YES, for Section Prototype)
+  return '[Section #' + this.id + ']'
+  // TODO YAGNI toString('html') better => toHTML()
+}
+
+// research a sitemap for this view
+Section.urls = function () {
+  return [this.url].concat(Object.keys(this.cache)
+    .map((slug) => this.cache[slug].urls())
+    .reduce((a, b) => a.concat(b), [])
+  )
+}
+
+},{"events":21,"iai-abc":1}],10:[function(require,module,exports){
+const Parent = require('./Section-agnostic')
+
+const { format } = require('util')
+const $ = require('jquery')
+
+var View = module.exports = Object.create(Parent)
 
 View.log = function (msg) {
   if (arguments.length > 1) {
@@ -653,7 +630,7 @@ View.display = function () {
     })
 }
 
-},{"events":20,"jquery":11,"util":50}],11:[function(require,module,exports){
+},{"./Section-agnostic":9,"jquery":11,"util":51}],11:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.2.4
  * http://jquery.com/
@@ -10471,6 +10448,72 @@ return jQuery;
 
 },{}],12:[function(require,module,exports){
 const { EventEmitter } = require('events')
+const oop = require('iai-oop')
+// const abc = require('iai-abc')
+// const log = abc.log
+
+const Service = module.exports = new EventEmitter()
+
+Service.create = function (uri) {
+  // TODO assert this context is either Service or inherits Service
+
+  // this create procedure may lead to bugs, it's experimental
+  var instance = Object.create(this)
+  // initialize emitter or pray something
+  EventEmitter.call(instance)
+
+  oop(instance)
+    // it's supossed this code is for browser so seems safe using document
+    .visible('uri', uri || ('ws://' + document.location.host))
+    .internal('_ws', null)
+
+  return instance
+}
+
+Service.connect = function () {
+  if (this._ws) {
+    // TODO if already connected, should raise error instead?
+    this.emit('message', 'websocket already connected!')
+    // if already connected, reconnect via 'onclose' event
+    this._ws.close()
+    return this
+  }
+  this.emit('message', 'connecting to ' + this.uri)
+  this._ws = new WebSocket(this.uri)
+  // TODO, define handlers here
+  // Websocket event handlers
+  this._ws.onopen = (event) => {
+    this.emit('message', 'websocket opened')
+  }
+  this._ws.onerror = (event) => {
+    this.emit('message', 'could not open websocket')
+  }
+  this._ws.onclose = (event) => {
+    this.emit('message', 'websocket disconected.')
+    this._ws = null
+
+    var t = 5
+    setTimeout(this.connect.bind(this), t * 1000 + 1)
+    var Service = this
+    var i = setInterval(function () {
+      Service.emit('message', 'reconnecting in ' + t)
+      if (!--t) clearInterval(i)
+    }, 1000)
+  }
+  this._ws.onmessage = (event) => {
+    // TODO just now, shoud re-think the whole thing
+    this.emit('command', event.data)
+  }
+}
+
+// this is just a quick-n-dirty way to get it working now
+Service.send = function () {
+  this._ws.send.apply(this._ws, arguments)
+  return this
+}
+
+},{"events":21,"iai-oop":16}],13:[function(require,module,exports){
+const { EventEmitter } = require('events')
 const iai = require('iai')
 
 var command = module.exports = new EventEmitter()
@@ -10510,7 +10553,7 @@ command.reload = function reload () {
   window.location.reload()
 }
 
-},{"events":20,"iai":22}],13:[function(require,module,exports){
+},{"events":21,"iai":23}],14:[function(require,module,exports){
 const { View } = require('iai')
 
 var terminal = module.exports = View.create('terminal')
@@ -10547,9 +10590,9 @@ terminal.keypress = function keypress (key) {
   }
 }
 
-},{"iai":22}],14:[function(require,module,exports){
+},{"iai":23}],15:[function(require,module,exports){
 const $ = require('jquery')
-const iai = require('iai')
+const iai = require('iai-api')
 const sock = iai.service
 const command = require('./command')
 const terminal = require('./terminal')
@@ -10577,14 +10620,13 @@ iai.service
 
 // TODO use https://github.com/cms/domready/blob/master/domready.js
 document.addEventListener('DOMContentLoaded', function () {
-  alert(iai)
   try {
     terminal.display()
       .done(() => $('#home').hide())
       .done(() => iai.service.connect())
   } catch (err) {
-    fatal(err)
-  }
+    iai.fatal(err)
+  }//*/
 
   document.querySelector('#main_action').onclick = function () {
     sock.send('main action click')
@@ -10592,7 +10634,7 @@ document.addEventListener('DOMContentLoaded', function () {
   $(document.body).addClass('loaded')
 })
 
-},{"./command":12,"./terminal":13,"iai":22,"jquery":27}],15:[function(require,module,exports){
+},{"./command":13,"./terminal":14,"iai-api":8,"jquery":28}],16:[function(require,module,exports){
 (function (global){
 //
 // hardcoded utilities to avoid depending on the whole iai-is module
@@ -10854,7 +10896,7 @@ OOPAPI.toString = function(){
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -11349,7 +11391,7 @@ var objectKeys = Object.keys || function (obj) {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"util/":50}],17:[function(require,module,exports){
+},{"util/":51}],18:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -11465,9 +11507,9 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],18:[function(require,module,exports){
-
 },{}],19:[function(require,module,exports){
+
+},{}],20:[function(require,module,exports){
 (function (Buffer){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -11579,7 +11621,7 @@ function objectToString(o) {
 
 }).call(this,{"isBuffer":require("../../is-buffer/index.js")})
 
-},{"../../is-buffer/index.js":25}],20:[function(require,module,exports){
+},{"../../is-buffer/index.js":26}],21:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -11883,7 +11925,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 (function (process,__filename){
 "use strict";
 
@@ -11986,10 +12028,10 @@ if( process.env.NODE_ENV == 'test' && require.main == module ){
 
 }).call(this,require('_process'),"/../../node_modules/iai-ansi.js")
 
-},{"_process":30,"assert":16}],22:[function(require,module,exports){
+},{"_process":31,"assert":17}],23:[function(require,module,exports){
 module.exports = require('..');
 
-},{"..":8}],23:[function(require,module,exports){
+},{"..":8}],24:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -12075,7 +12117,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -12100,7 +12142,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],25:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 /*!
  * Determine if an object is a Buffer
  *
@@ -12123,14 +12165,14 @@ function isSlowBuffer (obj) {
   return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
 
-},{}],26:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],27:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v3.3.1
  * https://jquery.com/
@@ -22496,7 +22538,7 @@ if ( !noGlobal ) {
 return jQuery;
 } );
 
-},{}],28:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -22725,7 +22767,7 @@ var substr = 'ab'.substr(-1) === 'b'
 
 }).call(this,require('_process'))
 
-},{"_process":30}],29:[function(require,module,exports){
+},{"_process":31}],30:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -22773,7 +22815,7 @@ function nextTick(fn, arg1, arg2, arg3) {
 
 }).call(this,require('_process'))
 
-},{"_process":30}],30:[function(require,module,exports){
+},{"_process":31}],31:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -22959,10 +23001,10 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],31:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 module.exports = require('./lib/_stream_duplex.js');
 
-},{"./lib/_stream_duplex.js":32}],32:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":33}],33:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -23087,7 +23129,7 @@ function forEach(xs, f) {
     f(xs[i], i);
   }
 }
-},{"./_stream_readable":34,"./_stream_writable":36,"core-util-is":19,"inherits":24,"process-nextick-args":29}],33:[function(require,module,exports){
+},{"./_stream_readable":35,"./_stream_writable":37,"core-util-is":20,"inherits":25,"process-nextick-args":30}],34:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -23135,7 +23177,7 @@ function PassThrough(options) {
 PassThrough.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
-},{"./_stream_transform":35,"core-util-is":19,"inherits":24}],34:[function(require,module,exports){
+},{"./_stream_transform":36,"core-util-is":20,"inherits":25}],35:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -24146,7 +24188,7 @@ function indexOf(xs, x) {
 }
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"./_stream_duplex":32,"./internal/streams/BufferList":37,"./internal/streams/destroy":38,"./internal/streams/stream":39,"_process":30,"core-util-is":19,"events":20,"inherits":24,"isarray":26,"process-nextick-args":29,"safe-buffer":44,"string_decoder/":46,"util":18}],35:[function(require,module,exports){
+},{"./_stream_duplex":33,"./internal/streams/BufferList":38,"./internal/streams/destroy":39,"./internal/streams/stream":40,"_process":31,"core-util-is":20,"events":21,"inherits":25,"isarray":27,"process-nextick-args":30,"safe-buffer":45,"string_decoder/":47,"util":19}],36:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -24361,7 +24403,7 @@ function done(stream, er, data) {
 
   return stream.push(null);
 }
-},{"./_stream_duplex":32,"core-util-is":19,"inherits":24}],36:[function(require,module,exports){
+},{"./_stream_duplex":33,"core-util-is":20,"inherits":25}],37:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -25029,7 +25071,7 @@ Writable.prototype._destroy = function (err, cb) {
 };
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"./_stream_duplex":32,"./internal/streams/destroy":38,"./internal/streams/stream":39,"_process":30,"core-util-is":19,"inherits":24,"process-nextick-args":29,"safe-buffer":44,"util-deprecate":47}],37:[function(require,module,exports){
+},{"./_stream_duplex":33,"./internal/streams/destroy":39,"./internal/streams/stream":40,"_process":31,"core-util-is":20,"inherits":25,"process-nextick-args":30,"safe-buffer":45,"util-deprecate":48}],38:[function(require,module,exports){
 'use strict';
 
 /*<replacement>*/
@@ -25104,7 +25146,7 @@ module.exports = function () {
 
   return BufferList;
 }();
-},{"safe-buffer":44}],38:[function(require,module,exports){
+},{"safe-buffer":45}],39:[function(require,module,exports){
 'use strict';
 
 /*<replacement>*/
@@ -25177,13 +25219,13 @@ module.exports = {
   destroy: destroy,
   undestroy: undestroy
 };
-},{"process-nextick-args":29}],39:[function(require,module,exports){
+},{"process-nextick-args":30}],40:[function(require,module,exports){
 module.exports = require('events').EventEmitter;
 
-},{"events":20}],40:[function(require,module,exports){
+},{"events":21}],41:[function(require,module,exports){
 module.exports = require('./readable').PassThrough
 
-},{"./readable":41}],41:[function(require,module,exports){
+},{"./readable":42}],42:[function(require,module,exports){
 exports = module.exports = require('./lib/_stream_readable.js');
 exports.Stream = exports;
 exports.Readable = exports;
@@ -25192,13 +25234,13 @@ exports.Duplex = require('./lib/_stream_duplex.js');
 exports.Transform = require('./lib/_stream_transform.js');
 exports.PassThrough = require('./lib/_stream_passthrough.js');
 
-},{"./lib/_stream_duplex.js":32,"./lib/_stream_passthrough.js":33,"./lib/_stream_readable.js":34,"./lib/_stream_transform.js":35,"./lib/_stream_writable.js":36}],42:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":33,"./lib/_stream_passthrough.js":34,"./lib/_stream_readable.js":35,"./lib/_stream_transform.js":36,"./lib/_stream_writable.js":37}],43:[function(require,module,exports){
 module.exports = require('./readable').Transform
 
-},{"./readable":41}],43:[function(require,module,exports){
+},{"./readable":42}],44:[function(require,module,exports){
 module.exports = require('./lib/_stream_writable.js');
 
-},{"./lib/_stream_writable.js":36}],44:[function(require,module,exports){
+},{"./lib/_stream_writable.js":37}],45:[function(require,module,exports){
 /* eslint-disable node/no-deprecated-api */
 var buffer = require('buffer')
 var Buffer = buffer.Buffer
@@ -25262,7 +25304,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
   return buffer.SlowBuffer(size)
 }
 
-},{"buffer":51}],45:[function(require,module,exports){
+},{"buffer":52}],46:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -25391,7 +25433,7 @@ Stream.prototype.pipe = function(dest, options) {
   return dest;
 };
 
-},{"events":20,"inherits":24,"readable-stream/duplex.js":31,"readable-stream/passthrough.js":40,"readable-stream/readable.js":41,"readable-stream/transform.js":42,"readable-stream/writable.js":43}],46:[function(require,module,exports){
+},{"events":21,"inherits":25,"readable-stream/duplex.js":32,"readable-stream/passthrough.js":41,"readable-stream/readable.js":42,"readable-stream/transform.js":43,"readable-stream/writable.js":44}],47:[function(require,module,exports){
 'use strict';
 
 var Buffer = require('safe-buffer').Buffer;
@@ -25664,7 +25706,7 @@ function simpleWrite(buf) {
 function simpleEnd(buf) {
   return buf && buf.length ? this.write(buf) : '';
 }
-},{"safe-buffer":44}],47:[function(require,module,exports){
+},{"safe-buffer":45}],48:[function(require,module,exports){
 (function (global){
 
 /**
@@ -25736,16 +25778,16 @@ function config (name) {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{}],48:[function(require,module,exports){
-arguments[4][24][0].apply(exports,arguments)
-},{"dup":24}],49:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
+arguments[4][25][0].apply(exports,arguments)
+},{"dup":25}],50:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],50:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -26336,7 +26378,7 @@ function hasOwnProperty(obj, prop) {
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"./support/isBuffer":49,"_process":30,"inherits":48}],51:[function(require,module,exports){
+},{"./support/isBuffer":50,"_process":31,"inherits":49}],52:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -28074,5 +28116,5 @@ function numberIsNaN (obj) {
   return obj !== obj // eslint-disable-line no-self-compare
 }
 
-},{"base64-js":17,"ieee754":23}]},{},[14])
+},{"base64-js":18,"ieee754":24}]},{},[15])
 //# sourceMappingURL=bundle.js.map
