@@ -2,7 +2,7 @@ const fs = require('fs')
 const abc = require('iai-abc')
 const log = abc.log
 
-// log.level = abc.Log.INFO
+log.level = abc.Log.VERB
 
 // EXPOSED OBJ
 var answer = module.exports = {}
@@ -16,17 +16,6 @@ answer.Router = function (urimap) {
   // TODO convert uris to a suitable object (reusable regexps)
   const NotFound = answer.NotFound()
   return function handle (req, res) {
-    const tinit = Date.now()
-    res.on('finish', function () {
-      var code = res.statusCode
-      var time = Date.now() - tinit
-      log[code < 400 ? 'info' : code < 500 ? 'warn' : 'error'](
-        '%s %s %sms', res.statusCode, req.url, Date.now() - tinit
-      )
-      if (time > 1000) {
-        log.warn('it took %s seconds to handle %s', time / 1000, req.url)
-      }
-    })
     if (typeof uris[req.url] === 'function') {
       return uris[req.url](req, res)
     }
