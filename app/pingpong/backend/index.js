@@ -4,7 +4,7 @@ var read = iai.readkeys
 
 log.level = iai.Log.VERB
 
-var service = module.exports = Object.create(iai.Service)
+var service = module.exports = iai.service
 
 var kb = null
 
@@ -15,13 +15,13 @@ service
     if (!kb) {
       log.info('Sending stdin to all clients...')
       kb = read()
-      .on('readable', function () {
-        service.broadcast(iai.f('stdin %s', this.read()))
-      })
-      .once('end', function () {
-        log.info('Done sending stdin.')
-        kb = null
-      })
+        .on('readable', function () {
+          service.broadcast(iai.f('stdin %s', this.read()))
+        })
+        .once('end', function () {
+          log.info('Done sending stdin.')
+          kb = null
+        })
     }
   })
   .on('ws:message', function (ws, data) {
