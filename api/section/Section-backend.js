@@ -1,47 +1,22 @@
-const { EventEmitter } = require('events')
-const { format } = require('util')
-//const iai = require('iai-abc')
-//const log = iai.log
+const Parent = require('./Section-agnostic')
 
-var View = module.exports = new EventEmitter()
+const abc = require('iai-abc')
+const log = abc.log
 
-View.create = function View (id) {
-  // TODO assert this context is either View or inherits view
-  if (!id) {
-    throw new Error('views must have an id')
-  }
-  // YAGNI!! TODO this.cache stores "childs"
-  if (this.cache[id]) {
-    return this.cache[id]
-  }
+log.level = abc.Log.VERB
 
-  // this create procedure may lead to bugs, it's experimental
-  var instance = Object.create(this)
-  this.cache[id] = instance
+var View = module.exports = Object.create(Parent)
 
-  EventEmitter.call(instance) // initialize emitter or pray something
-  instance.id = id // TODO this data descriptor should be non-writable
-  // TODO YAGNI not all views will be "root" views? SURE?
-  //instance.cache = Object.create(null) // TODO this should be a set?
-
-  return instance
-}
-
-View.cache = Object.create(null) // TODO this should be a set?
-
-View.toString = function () {
-  // TODO this.id may be undefined (SURE?)
-  // TODO output string should be based on this.$
-  return '[View #' + this.id + ']'
-  // return '<div id="' + this.id + '" class="view"></div>'
-}
-
-View.insert = function ($) { 
+// insert this view into HTML document accesible through '$'
+View.inlay = function ($) {
   if ($('#' + this.id).length) {
-    throw new ReferenceError("can't duplicate id " + this.id)
-  } else {
-    console.dir($('#'+this.id).length)
+    throw ReferenceError("can't duplicate id " + this.id)
   }
+  this.$ = $('<section></section>')
+    .attr('id', this.id)
+    .addClass('view loading')
+    .appendTo('div[role=main]') // TODO it may have to be appended on master view
+  return this
 }
 
 View.display = function () {
@@ -67,8 +42,9 @@ View.display = function () {
         data.html = { html: data.html }
       }
       if (data.html) {
+        var allow = /html|append|prepend|after|before/
         Object.keys(data.html)
-          .filter((key) => /html|append|prepend|after|before/.test(key))
+          .filter(allow.test.bind(allow))
           .forEach((key) => $(view.$)[key](data.html[key]))
       }
       var loading = []

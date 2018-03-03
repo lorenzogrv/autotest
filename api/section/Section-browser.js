@@ -1,37 +1,9 @@
-const { EventEmitter } = require('events')
+const Parent = require('./Section-agnostic')
+
 const { format } = require('util')
 const $ = require('jquery')
 
-var View = module.exports = new EventEmitter()
-
-View.create = function View (id) {
-  // TODO assert this context is either View or inherits view
-  if (!id) {
-    throw new Error('views must have an id')
-  }
-  // YAGNI!! TODO this.cache stores "childs"
-  if (this.cache[id]) {
-    return this.cache[id]
-  }
-
-  // this create procedure may lead to bugs, it's experimental
-  var instance = Object.create(this)
-  this.cache[id] = instance
-
-  EventEmitter.call(instance) // initialize emitter or pray something
-  instance.id = id // TODO this data descriptor should be non-writable
-
-  return instance
-}
-
-View.cache = Object.create(null) // TODO this should be a set?
-
-View.toString = function () {
-  // TODO this.id may be undefined (SURE?)
-  // TODO output string should be based on this.$
-  return '[View #' + this.id + ']'
-  // return '<div id="' + this.id + '" class="view"></div>'
-}
+var View = module.exports = Object.create(Parent)
 
 View.log = function (msg) {
   if (arguments.length > 1) {

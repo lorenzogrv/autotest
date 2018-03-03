@@ -1,11 +1,11 @@
 {
-  "name": "iai-api-view",
-  "version": "0.1.0",
+  "name": "iai-api-section",
+  "version": "1.0.0",
   "description": "View engine for iai application, an alternative aproach to typical template systems.",
   "author": "Lorenzo García Rivera",
   "license": "SEE LICENSE IN README.md",
-  "main": "View-backend.js",
-  "browser": "View-browser.js",
+  "main": "Section-backend.js",
+  "browser": "Section-browser.js",
   "scripts": {
     "test": "tape test/*.js | tap-spec && standard --fix"
   },
