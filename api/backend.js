@@ -32,11 +32,9 @@ exports.lazyload('gui', require, './hardware/gui')
 
 // TODO deprecate this 'Server' namespace
 exports.lazyload('Server', require, './service')
-// Service is a server prototype with built-in WebSocket integration
-exports.lazyload('Service', require, './service')
 exports.lazyload('answer', require, './service/answer')
 // TODO omg this dummy router should be an answer too? SURE
-exports.lazyload('Router', require, './service/Router')
+exports.visible('Router', iai.answer.Router)
 
 // View implementation
 exports.lazyload('View', require, './view')

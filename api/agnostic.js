@@ -15,4 +15,14 @@ const iai = module.exports = Object.create(abc)
  */
 
 // override the iai-abc toString data descriptor
-iai.toString = function () { return '|iai|' }
+iai.toString = () => '|iai-api|'
+
+// FROM HERE ONWARDS
+// will use iai-oop api to expose the augmented api
+//
+var exports = iai.oop(module.exports)
+
+// Service prototype implementation
+exports.visible('Service', require('./service'))
+// master service
+exports.visible('service', iai.Service.create())
