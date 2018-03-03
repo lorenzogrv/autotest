@@ -50,7 +50,6 @@ Service.connect = function () {
       Service.emit('message', 'reconnecting in ' + t)
       if (!--t) clearInterval(i)
     }, 1000)
-    this.onmessage.bind(this)
   }
   this._ws.onmessage = (event) => {
     // TODO just now, shoud re-think the whole thing
