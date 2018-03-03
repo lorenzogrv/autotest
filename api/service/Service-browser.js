@@ -1,6 +1,7 @@
 const { EventEmitter } = require('events')
-const abc = require('iai-abc')
 const oop = require('iai-oop')
+// const abc = require('iai-abc')
+// const log = abc.log
 
 const Service = module.exports = new EventEmitter()
 
@@ -12,12 +13,10 @@ Service.create = function (uri) {
   // initialize emitter or pray something
   EventEmitter.call(instance)
 
-  return oop(instance)
+  oop(instance)
     // it's supossed this code is for browser so seems safe using document
     .visible('uri', uri || ('ws://' + document.location.host))
     .internal('_ws', null)
-    .o
-  instance.uri = uri // TODO this data descriptor should be non-writable
 
   return instance
 }
@@ -25,7 +24,7 @@ Service.create = function (uri) {
 Service.connect = function () {
   if (this._ws) {
     // TODO if already connected, should raise error instead?
-    return this.emit('message', 'websocket already connected!')
+    this.emit('message', 'websocket already connected!')
     // if already connected, reconnect via 'onclose' event
     this._ws.close()
     return this
@@ -33,36 +32,32 @@ Service.connect = function () {
   this.emit('message', 'connecting to ' + this.uri)
   this._ws = new WebSocket(this.uri)
   // TODO, define handlers here
-  this._ws.onopen = this.onopen.bind(this)
-  this._ws.onerror = this.onerror.bind(this)
-  this._ws.onclose = this.onclose.bind(this)
-  this._ws.onmessage = this.onmessage.bind(this)
-  return this
+  // Websocket event handlers
+  this._ws.onopen = (event) => {
+    this.emit('message', 'websocket opened')
+  }
+  this._ws.onerror = (event) => {
+    this.emit('message', 'could not open websocket')
+  }
+  this._ws.onclose = (event) => {
+    this.emit('message', 'websocket disconected.')
+    this._ws = null
+
+    var t = 5
+    setTimeout(this.connect.bind(this), t * 1000 + 1)
+    var Service = this
+    var i = setInterval(function () {
+      Service.emit('message', 'reconnecting in ' + t)
+      if (!--t) clearInterval(i)
+    }, 1000)
+    this.onmessage.bind(this)
+  }
+  this._ws.onmessage = (event) => {
+    // TODO just now, shoud re-think the whole thing
+    this.emit('command', event.data)
+  }
 }
 
-// Websocket event handlers
-Service.onopen = function (event) {
-  this.emit('message', 'websocket opened')
-}
-Service.onerror = function (event) {
-  this.emit('message', 'could not open websocket')
-}
-Service.onclose = function (event) {
-  this.emit('message', 'websocket disconected.')
-  this._ws = null
-
-  var t = 5
-  setTimeout(this.connect.bind(this), t * 1000 + 1)
-  var Service = this
-  var i = setInterval(function () {
-    Service.emit('message', 'reconnecting in ' + t)
-    if (!--t) clearInterval(i)
-  }, 1000)
-}
-Service.onmessage = function (event) {
-  // TODO just now, shoud re-think the whole thing
-  this.emit('command', event.data)
-}
 // this is just a quick-n-dirty way to get it working now
 Service.send = function () {
   this._ws.send.apply(this._ws, arguments)

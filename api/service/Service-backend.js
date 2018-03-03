@@ -8,6 +8,8 @@ log.level = iai.Log.INFO
 
 var server = http.createServer()
 
+server.create = () => server
+
 server.on('listening', function () {
   var url = 'http://' + os.hostname() + ':' + this.address().port
   log.info('server listening @ %s', url)
