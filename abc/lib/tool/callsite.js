@@ -1,5 +1,5 @@
 
-module.exports = callsite;
+module.exports = callsite
 
 /**
  * @function callsite: Get a CallSite object describing the place where this
@@ -27,16 +27,16 @@ module.exports = callsite;
  * - isConstructor: is this a constructor call?
  */
 
-function callsite( from ){
-  var v8Handler = Error.prepareStackTrace;
-  Error.prepareStackTrace = function( error, stack ){ return stack };
+function callsite (from) {
+  var v8Handler = Error.prepareStackTrace
+  Error.prepareStackTrace = (error, stack) => stack
 
-  var dummy = {};
-  Error.captureStackTrace( dummy, from || callsite );
+  var dummy = {}
+  Error.captureStackTrace(dummy, from || callsite)
 
   // accessing the stack property triggers `prepareStackTrace`
-  var CallSite = dummy.stack[0];
-  Error.prepareStackTrace = v8Handler;
+  var CallSite = dummy.stack[0]
+  Error.prepareStackTrace = v8Handler
 
-  return CallSite;
+  return CallSite
 }

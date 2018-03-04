@@ -24,11 +24,12 @@ iai.path.__dirname = '/'
 // ugly but working hack to display an error on-screen
 iai.fatal = function fatal (msg, file, line, column, error) {
   var title = error ? error.message || error : msg
-  var stack = error.stack || Error('no stack trace').stack
+  var stack = error ? error.stack : Error('no stack trace').stack
   document.body.innerHTML = '<h1>' + title + '</h1>'
   document.body.innerHTML += '<pre>' + stack + '</pre>'
   document.body.innerHTML += '<pre>' + inspect(error, { showHidden: true, depth: 4, showProxy: true }) + '</pre>'
-  return true
+  // TODO don't prevent default handler to run until callsite is fixed
+  return false
 }
 
 // The hack above is meant for window.onerror
@@ -46,6 +47,9 @@ iai.debug = function debug (obj, title) {
   }
   throw new Error('execution should stop')
 }
+
+// ugly hack to pipe logging to browser console
+iai.Log.output.on('data', (data) => console.log(data.toString('utf8')))
 
 // FROM HERE ONWARDS
 // will use iai-oop api to expose the augmented api

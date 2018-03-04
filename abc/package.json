@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "The iai-abc package holds the low-level api to be used within the iai-api modules",
   "main": "lib/abc.js",
+  "browser": {
+    "./lib/tool/callsite.js": "./lib/tool/callsite-browser.js"
+  },
   "scripts": {
     "test": "tape test/*.js | tap-spec"
   },
