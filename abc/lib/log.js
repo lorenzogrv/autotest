@@ -114,14 +114,14 @@ exports.msg = function (report, options) {
 
   var color = options.color
   var msg = ''
-  msg += ((color ? ansi.reset : ''))
+  msg += ((color ? ansi.reset || '' : ''))
   msg += ((this.clean ? '' : (this + ' ')))
   // TODO think if another option for "not prepending"
   msg += ((this.clean ? '' : (options.prepend || '')))
-  msg += ((color ? ansi[color] : ''))
+  msg += ((color ? ansi[color] || '' : ''))
   // TODO decide if join without "this+' '" - use Array(msg.length).join(' ')
   msg += ((format.apply(0, report).split('\n').join('\n' + msg)))
-  msg += ((color ? ansi.reset : ''))
+  msg += ((color ? ansi.reset || '' : ''))
 
   this.output.write(msg + '\n')
   return this
