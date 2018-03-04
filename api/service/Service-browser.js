@@ -1,7 +1,7 @@
 const { EventEmitter } = require('events')
 const oop = require('iai-oop')
-// const abc = require('iai-abc')
-// const log = abc.log
+const abc = require('iai-abc')
+const log = abc.log
 
 const Service = module.exports = new EventEmitter()
 
@@ -23,37 +23,53 @@ Service.create = function (uri) {
 
 Service.connect = function () {
   if (this._ws) {
-    // TODO if already connected, should raise error instead?
-    this.emit('message', 'websocket already connected!')
     // if already connected, reconnect via 'onclose' event
+    // TODO if already connected, should raise error instead?
+    log.warn('websocket already connected, closing to reconnect...')
     this._ws.close()
     return this
   }
-  this.emit('message', 'connecting to ' + this.uri)
+  log.info('connecting to %s...', this.uri)
   this._ws = new WebSocket(this.uri)
   // TODO, define handlers here
   // Websocket event handlers
   this._ws.onopen = (event) => {
-    this.emit('message', 'websocket opened')
+    console.log(event)
+    log.info('connected to %s', this.uri)
+    this.emit('connection')
   }
   this._ws.onerror = (event) => {
-    this.emit('message', 'could not open websocket')
+    console.log(event)
+    log.error('could not open websocket')
   }
   this._ws.onclose = (event) => {
-    this.emit('message', 'websocket disconected.')
+    console.log(event)
+    log.warn('websocket disconected')
     this._ws = null
 
     var t = 5
     setTimeout(this.connect.bind(this), t * 1000 + 1)
-    var Service = this
     var i = setInterval(function () {
-      Service.emit('message', 'reconnecting in ' + t)
+      log.verb('reconnecting in ' + t)
       if (!--t) clearInterval(i)
     }, 1000)
   }
   this._ws.onmessage = (event) => {
-    // TODO just now, shoud re-think the whole thing
-    this.emit('command', event.data)
+    try {
+      event = JSON.parse(event.data)
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        // no valid JSON response, asume it's a string command
+        // TODO just now, shoud re-think the whole thing
+        return this.emit('command', event.data)
+      }
+      // throw unknow errors
+      throw err
+    }
+    if (event.name && event.data) {
+      return this.emit(event.name, event.data)
+    }
+    throw new Error('invalid websocket response')
   }
 }
 
