@@ -18,6 +18,7 @@ exports.constructor.prototype = exports
  * @returns Log object
  */
 function Log (from) {
+  // TODO how to provide a representation on browser?
   from = callsite(typeof from === 'function' ? from : Log)
 
   var instance = oop.create(this)
@@ -25,8 +26,8 @@ function Log (from) {
     .visible('filename', from.getFileName())
     .visible('line', from.getLineNumber())
     // configurable flags
-    .flag('muted', false)
-    .flag('clean', false)
+    .flag('muted', this.muted)
+    .flag('clean', this.clean)
     .internal('level', exports.WARN)
     // TODO option to redirect output stream without overriding default
     // above is no-sense because idea is to keep all logs output to ONE stream
@@ -64,7 +65,7 @@ oop(exports)
    *   - clean: whenever to omit prepending `this.toString() + ' '` to messages.
    */
   .flag('muted', false)
-  .flag('clean', false) // TODO clean seems useless at the moment
+  .flag('clean', !process.pid) // clean by default on browser environment
   // "constants" defining log levels
   .visible('FATAL', 0)
   .visible('ERROR', 1)
@@ -98,7 +99,7 @@ Log.findOne = function (re) {
 exports.toString = function () {
   return '[' +
     relative(process.cwd(), this.filename) +
-    '@' + process.pid +
+    '@' + (process.pid || 'browser') +
     ']'
 }
 
@@ -114,14 +115,14 @@ exports.msg = function (report, options) {
 
   var color = options.color
   var msg = ''
-  msg += ((color ? ansi.reset : ''))
+  msg += ((color ? ansi.reset || '' : ''))
   msg += ((this.clean ? '' : (this + ' ')))
   // TODO think if another option for "not prepending"
   msg += ((this.clean ? '' : (options.prepend || '')))
-  msg += ((color ? ansi[color] : ''))
+  msg += ((color ? ansi[color] || '' : ''))
   // TODO decide if join without "this+' '" - use Array(msg.length).join(' ')
   msg += ((format.apply(0, report).split('\n').join('\n' + msg)))
-  msg += ((color ? ansi.reset : ''))
+  msg += ((color ? ansi.reset || '' : ''))
 
   this.output.write(msg + '\n')
   return this
