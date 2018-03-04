@@ -2,9 +2,11 @@
   "name": "iai-abc",
   "version": "0.1.0",
   "description": "iai-abc holds the low-level api shared between iai-api modules",
-  "main": "lib/abc.js",
+  "main": "lib/abc-backend.js",
   "browser": {
-    "./lib/tool/callsite.js": "./lib/tool/callsite.js"
+    "./lib/abc-backend.js": "./lib/abc-browser.js",
+    "./lib/tool/callsite.js": "./lib/tool/callsite.js",
+    "./lib/process.js": "./lib/window.js"
   },
   "scripts": {
     "test": "tape test/*.js | tap-spec"
