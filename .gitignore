@@ -18,7 +18,7 @@ abc/iaido/example/*
 
 npm-debug.log
 node_modules/*
-api/*/node_modules/*
+lib/*/node_modules/*
 abc/iaido/node_modules/*
 
 !node_modules/iai*
