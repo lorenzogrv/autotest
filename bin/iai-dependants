@@ -11,7 +11,7 @@
 // DEPENDENCIES
 
 var path = require('path');
-var sources = require('../abc/lib/tool/sources');
+var sources = require('iai-abc/lib/tool/sources');
 
 // ARGV
 

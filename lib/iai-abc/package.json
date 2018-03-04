@@ -1,7 +1,7 @@
 {
   "name": "iai-abc",
   "version": "0.1.0",
-  "description": "The iai-abc package holds the low-level api to be used within the iai-api modules",
+  "description": "iai-abc holds the low-level api shared between iai-api modules",
   "main": "lib/abc.js",
   "browser": {
     "./lib/tool/callsite.js": "./lib/tool/callsite.js"

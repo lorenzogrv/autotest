@@ -19,7 +19,7 @@ if (argv.length > 1 || argv[0] == '--usage' || argv[0] == '--help') {
   process.exit(1)
 }
 
-var packdata = require('../abc/lib/tool/packdata')
+var packdata = require('iai-abc/lib/tool/packdata')
 
 var pkg = packdata(argv[0])
 

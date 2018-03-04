@@ -3,7 +3,7 @@
  * License: MIT
  */
 
-const abc = require('../abc')
+const abc = require('iai-abc')
 
 // the iai object inherits the iai-abc exposed api
 const iai = module.exports = Object.create(abc)
