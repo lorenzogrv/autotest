@@ -32,9 +32,20 @@ answer.Router = function (opts) {
       delete urls['/index.html']
     }
   }
+  if (opts.menu) {
+    // opts.menu automatically adds url handlers for given section hierarchy
+    log.warn('experimental menu bind based on %s', opts.menu)
+    opts.menu.descendants().forEach(function (section) {
+      // TODO if section.url already in urls¿? !!!
+      // HTML document source is assumed to be the output from '/' answer
+      urls[section.url] = answer.Section(urls['/'], section)
+    })
+    // TODO opts.root => redirect '/' to given url (value from opts.root)
+  }
   // TODO YAGNI opts.NotFound
   const NotFound = answer.NotFound()
-  log.verb('Created Router answer (%s urls total)', Object.keys(urls).length)
+  log.info('Created Router answer (%s urls total)', Object.keys(urls).length)
+  log.verb('Created Router answer %o', Object.keys(urls))
   return function handle (req, res) {
     if (typeof urls[req.url] === 'function') {
       return urls[req.url](req, res)
@@ -69,4 +80,57 @@ answer.Raw = function (data) {
 answer.Document = function (file) {
   throw new Error('not implemented')
   // something like Raw, piping through transforms
+}
+
+// creates a request handler to write given object as JSON string
+answer.JSON = function (obj) {
+  return (req, res) => res.write(JSON.stringify(obj)) + res.end()
+}
+
+const { PassThrough } = require('stream')
+const cheerio = require('cheerio')
+answer.Section = function (root, section) {
+  const JsonAnswer = answer.JSON(section.data)
+  return function (req, res) {
+    if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
+      log.warn('AJAX REQUEST! %s', req.url)
+      log.warn('accept is %s', req.headers.accept)
+      return JsonAnswer(req, res)
+    }
+    log.warn('NON-AJAX REQUEST! %s => %s', req.url, section)
+    var html = ''
+    var mock = new PassThrough()
+    mock._transform = function (data, encoding, callback) {
+      html += data.toString('utf8')
+      callback()
+    }
+    return root({}, mock.on('end', function () {
+      var $ = cheerio.load(html)
+      section.inlay($)
+      log.verb('section %s rendered to\n%s', section, $.html())
+      res.write($.html())
+      res.end()
+    }).resume())
+    var parts = req.url.split('/').slice(1)
+    var cumbs = []
+    var v = RootView
+    while (parts.length) {
+      v = v.create(parts.shift())
+      cumbs.push(v)
+      continue
+      // TODO this should be pushed instead
+      cumbs.push({
+        ref: null, // the parts.shift() thing
+        url: cumbs[cumbs.length - 1].url + '/' + 'name', // or "/"
+        obj: view
+      })
+    }
+    log.warn('here it should insert view on index and pipe it to response')
+    var $ = cheerio.load(index)
+    while (cumbs.length) {
+      cumbs.shift().inlay($)
+    }
+    res.write($.html())
+    res.end()
+  }
 }
