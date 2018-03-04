@@ -3,6 +3,8 @@ const oop = require('iai-oop')
 const abc = require('iai-abc')
 const log = abc.log
 
+log.level = abc.Log.VERB
+
 const Service = module.exports = new EventEmitter()
 
 Service.create = function (uri) {

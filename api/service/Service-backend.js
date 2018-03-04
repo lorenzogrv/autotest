@@ -35,8 +35,8 @@ Service.listen = function () {
   // Never implement here details of what to do with messages, nor send data
   this._wss.on('connection', (ws) => {
     log.info('ws client connected, %d total', this._wss.clients.size)
-    // re-emit websocket connection on server
-    this._server.emit('ws:connection', ws
+    // re-emit websocket connection
+    this.emit('ws:connection', ws
       // re-emit message events from this websocket on service object
       .on('message', (data) => this.emit('ws:message', ws, data))
       // handle websocket errors
@@ -44,11 +44,12 @@ Service.listen = function () {
         log.error('ws client error %s', err.message)
         log.error(err.stack)
       })
+      // re-emit websocket closes
       // close codes are defined on Web Socket RFC
       // see https://tools.ietf.org/html/rfc6455#section-7.4
       .on('close', (code, msg) => {
         log.info('ws client close (%d) "%s", %s left', code, msg, this._wss.clients.size)
-        this._server.emit('ws:close', this._wss.clients)
+        this.emit('ws:close', this._wss.clients)
       })
     )
   })
@@ -60,13 +61,15 @@ Service.listen = function () {
     })
     // log each request received
     .on('request', (req, res) => {
-      log.verb('%s requested %s', req.connection.remoteAddress, req.url)
+      const ip = req.connection.remoteAddress
+      log.verb('%s %s from %s', req.method, req.url, ip)
       const tinit = Date.now()
       res.on('finish', function () {
         var code = res.statusCode
         var time = Date.now() - tinit
         log[code < 400 ? 'info' : code < 500 ? 'warn' : 'error'](
-          '%s %s %sms', res.statusCode, req.url, Date.now() - tinit
+          '%s %s %sms',
+	  res.statusCode, req.url, Date.now() - tinit
         )
         if (time > 1000) {
           log.warn('it took %s seconds to handle %s', time / 1000, req.url)
@@ -79,7 +82,7 @@ Service.listen = function () {
 }
 
 Service.broadcast = function (data, options, callback) {
-  log.debug('broadcast "%s" to %d clients', data, this._wss.clients.size)
+  log.debug('broadcast %j to %d clients', data, this._wss.clients.size)
   for (let ws of this._wss.clients) ws.send(data, options, callback)
   return this
 }
