@@ -7,16 +7,21 @@ log.level = abc.Log.VERB
 
 var View = module.exports = Object.create(Parent)
 
-// insert this view into HTML document accesible through '$'
+// insert this view into HTML document accesible through jquery/cheerio api '$'
 View.inlay = function ($) {
   if ($('#' + this.id).length) {
     throw ReferenceError("can't duplicate id " + this.id)
   }
   this.$ = $('<section></section>')
-    .attr('id', this.id)
+  this.id && this.$.attr('id', this.id) // this.id may be undefined for root section
+  this.$
     .addClass('view loading')
-    .appendTo('div[role=main]') // TODO it may have to be appended on master view
-  return this
+    // TODO it may have to be appended on master view <section>
+    .appendTo('div[role=main]')
+  return this.render(
+    this.data && this.data.html ? this.data.html : this.toString()
+  )
+  // TODO assets? => NOT HERE
 }
 
 View.display = function () {

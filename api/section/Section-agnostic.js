@@ -7,7 +7,7 @@ log.level = abc.Log.VERB
 
 var Section = module.exports = new EventEmitter()
 
-Section.create = function Section (id) {
+Section.create = function Section (id, data) {
   // TODO assert this context is either Section or inherits from it
   if (!id) {
     throw ReferenceError('views must have a valid Slug as id')
@@ -16,6 +16,7 @@ Section.create = function Section (id) {
   // this.cache stores "childs". Each section must have an unique id
   // within its parent section, even for top-level sections
   if (this.cache[id]) {
+    // TODO if data??!!!
     return this.cache[id]
   }
 
@@ -24,11 +25,12 @@ Section.create = function Section (id) {
   this.cache[id] = instance
 
   EventEmitter.call(instance) // initialize emitter or pray something
-  instance.id = id // TODO this data descriptor should be non-writable
   // keep a reference to the section that created the instance
   instance.master = this
   // each instance has its own "child" cache
   instance.cache = Object.create(null) // TODO this should be a set?
+  // TODO not sure if this belongs here
+  if (data) instance.data = data
 
   oop(instance)
     .accessor('id', () => this.id ? this.id + '-' + id : id)
@@ -39,6 +41,8 @@ Section.create = function Section (id) {
 }
 
 Section.cache = Object.create(null)
+// Section prototype is the "root" section, so it's master section is itself
+Section.master = Section
 
 // fix instance instanceof Section
 Section.constructor = Section.create
@@ -53,7 +57,7 @@ Section.add = function () {
 // provide a string representation of this view
 Section.toString = function () {
   // TODO this.id may be undefined (SURE?->YES, for Section Prototype)
-  return '[Section #' + this.id + ']'
+  return '[Section #' + (this.id || 'RootPrototype') + ']'
   // TODO YAGNI toString('html') better => toHTML()
 }
 
@@ -77,4 +81,22 @@ Section.urlmap = function () {
   var map = {}
   this.descendants().forEach(function (section) { map[section.url] = section })
   return map
+}
+
+Section.render = function (htmldata) {
+  if (!this.$) {
+    throw ReferenceError(this + ' has no DOM (cannot render)')
+  }
+  if (!htmldata) return this // throw this is absurd
+  if (typeof htmldata === 'string') {
+    htmldata = { html: htmldata }
+  }
+  const allow = /html|append|prepend|after|before/
+  Object.keys(htmldata)
+    .filter(allow.test.bind(allow))
+    // todo data.html strings may be dinamically generated
+    // .map(key => data.html[key].toString())
+    .forEach((key) => this.$[key](htmldata[key]))
+
+  return this
 }
