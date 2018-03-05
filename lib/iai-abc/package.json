@@ -1,6 +1,6 @@
 {
   "name": "iai-abc",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "iai-abc holds the low-level api shared between iai-api modules",
   "main": "lib/abc-backend.js",
   "browser": {
