@@ -9,7 +9,7 @@
     "./lib/process.js": "./lib/window.js"
   },
   "scripts": {
-    "test": "tape test/*.js | tap-spec"
+    "test": "$(iai nbin tape) test/*.js | $(iai nbin tap-spec) && standard --fix"
   },
   "author": "Lorenzo García Rivera",
   "license": "SEE LICENSE IN README.md",
