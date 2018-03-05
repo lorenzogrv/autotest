@@ -207,6 +207,13 @@ function iai-path () {
   printf "\n" # could use echo but wanted to be more explicit
 }
 
+##
+# `iai-nbin` syntactic sugar for `iai-path node_modules/.bin/$@`
+##
+function iai-nbin () {
+	iai-path "node_modules/.bin/$@"
+}
+
 function iai-repo () {
 	git rev-parse --show-toplevel 2>/dev/null || {
 	  iai.dependencies || exit
