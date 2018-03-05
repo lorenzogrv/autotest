@@ -8,14 +8,14 @@ header { white-space: nowrap; overflow-y: hidden; }
   header > * { display: inline-block; vertical-align: middle; }
   header input[type=text] { width: 8ex; }
 
-body.loaded > header::after { content: '' }
 body > header::after {
   content: 'A cargar...';
   display: block;
   text-align: center;
 }
+body.loaded > header::after { content: '' }
 
-.view {
+section {
   box-sizing: border-box;
   padding: .5em;
   min-height: 2em;
@@ -23,17 +23,17 @@ body > header::after {
   background-color: gray;
   transition: background-color 1s ease-out;
 }
-.view.loading {
+section.loading {
   position: relative;
   background-color: purple;
 }
-  .view.loading::before {
-    content: 'loading view...';
+  section.loading::before {
+    content: 'loading section...';
     display: block;
     /*position: absolute; top: 0; right: 0; bottom: 0; left: 0;/**/
   }
 
-.view#terminal {
+section#terminal {
   white-space: pre;
   font-size: 1.4em;
 }
@@ -45,14 +45,17 @@ body > header::after {
   background: #eee;
   font-size: 1.5em;
   word-wrap: break-word;
+  width: 1em; max-height: 1em; overflow: hidden;
 }
   #stdin::before { content: '$ '; }
-  #stdin.reading::before { content: '> $ '; }
+  #stdin.reading { width: auto; max-height: auto; }
+  #stdin.reading::before { content: '> '; }
 
 #main_action {
   position: fixed; right: .5em; bottom: .5em;
   height: 4em; width: 4em;
   border: none; border-radius: 2em;
+  background: #eee;
 }
   #main_action:hover { background-color: #555; }
   #main_action:active { background-color: #555; color: #fff; }

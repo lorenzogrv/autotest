@@ -3,7 +3,6 @@ const iai = require('iai-api')
 const log = iai.log
 const service = iai.service
 const command = require('./command')
-const terminal = require('./terminal')
 
 log.level = iai.Log.VERB
 
@@ -16,23 +15,48 @@ function execute (cmdline) {
   }
 }
 
+var stdin = $('#stdin')[0]
+function keypress (key) {
+  if (!key) return
+  if (!stdin) stdin = $('#stdin')[0]
+  if (key.length === 1) {
+    stdin.innerHTML += key
+    return
+  }
+  switch (key) {
+    case 'Space':
+      stdin.innerHTML += ' '
+      break
+    case 'Backspace':
+      stdin.innerHTML = stdin.innerHTML.slice(0, -1)
+      break
+    case 'Enter':
+      execute(stdin.innerHTML)
+      stdin.innerHTML = ''
+      break
+    default:
+      log.warn('unbound key: ' + key)
+  }
+}
+
 command
-  .on('stdin', terminal.keypress.bind(terminal))
   .on('stdout', (str) => log.info('cmd: ' + str))
 
-terminal
-  .on('message', log.info.bind(log))
-  .on('command', execute)
-
 service
+  .on('stdin:begin', () => $(stdin).addClass('reading'))
+  .on('stdin', keypress)
+  .on('stdin:end', () => $(stdin).removeClass('reading'))
   .on('command', execute)
   .on('connection', () => {
     log.info('iai.service has connected')
+    service.send({ name: 'stdin:request' })
     // TODO belongs here?
     document.querySelector('#main_action').onclick = function () {
       service.send('main action click')
     }
+    $('#stdin').on('click', () => service.send({ name: 'stdin:request' }))
     $(document.body).addClass('loaded')
+    $('section.selected').removeClass('loading')
   })
   .connect()
 
