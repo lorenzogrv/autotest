@@ -8,7 +8,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "tape test/*.js | tap-spec"
+    "test": "$(iai nbin tape) test/*.js | $(iai nbin tap-spec) && standard --fix"
   },
   "author": "",
   "license": "SEE LICENSE IN README.md",
