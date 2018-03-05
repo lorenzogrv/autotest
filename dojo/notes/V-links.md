@@ -7,5 +7,15 @@ https://github.com/sourcelair/xterm.js
 https://github.com/blessed-ng/blessed
 https://xnet-x.net/manual-tecnico-derechos-fundamentales-internet/
 https://www.linuxadictos.com/instalar-linset-en-kali-linux.html
+<<<<<<< HEAD
 http://www.pcpaudio.com/pcpfiles/doc_amplificadores/encapsulado/rectificador.GIF
 https://www.redeszone.net/2018/02/17/aplicaciones-seguridad-opensource/
+||||||| merged common ancestors
+=======
+http://www.openculture.com/2016/12/download-20-free-ebooks-on-design-from-oreilly-media.html
+http://www.openculture.com/2017/08/take-a-90-minute-crash-course-in-design-thinking-from-stanfords-design-school.html
+https://hipertextual.com/2017/11/honor-9-1-euro
+http://lamiradadelreplicante.com/2017/11/26/tldr-las-paginas-del-manual-simplificadas-en-linux/
+https://www.genbeta.com/web/30-seconds-of-code-minilecciones-de-javascript-para-entender-en-30-segundos-o-menos
+https://www.pluralsight.com/courses/hack-yourself-first
+>>>>>>> pingpong

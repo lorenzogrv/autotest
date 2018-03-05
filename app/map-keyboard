@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+
+var iai = require('iai')
+
+var log = iai.log
+log.level = iai.Log.VERB
+
+var readkeys = iai.readkeys
+
+log.info('reading from stdin...')
+
+readkeys({})
+  .on('readable', function () {
+    var data = this.read()
+    if (data) {
+      log.warn('key is %s', data.toString('utf8'))
+    }
+  })
+  .once('end', function () {
+    log.warn('read end. Will exit now')
+    process.exit(0)
+  })

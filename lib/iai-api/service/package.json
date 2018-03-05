@@ -1,0 +1,22 @@
+{
+  "name": "iai-api-service",
+  "version": "0.0.0",
+  "description": "A ready-to-use http service with websocket integration",
+  "main": "Service-backend.js",
+  "browser": "Service-browser.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "$(iai nbin tape) test/*.js | $(iai nbin tap-spec) && standard --fix"
+  },
+  "author": "",
+  "license": "SEE LICENSE IN README.md",
+  "dependencies": {
+    "iai-abc": "*"
+  },
+  "devDependencies": {
+    "tap-spec": "^4.1.1",
+    "tape": "^4.5.1"
+  }
+}

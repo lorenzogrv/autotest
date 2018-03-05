@@ -1,0 +1,14 @@
+{
+  "name": "iai-api",
+  "description": "iai aplication programing interface",
+  "version": "1.0.0",
+  "main": "./backend.js",
+  "browser": "./browser.js",
+  "dependencies": {
+    "iai-abc": "*"
+  },
+  "scripts": {
+  },
+  "devDependencies": {
+  }
+}
