@@ -37,6 +37,8 @@ try {
   }
   throw err;
 }
-
-console.log( sources(require.cache[path]) );
-console.log( 'RESEARCHED', path, 'DEPENDENCIES' );
+var t = Date.now()
+var result = sources(require.cache[path])
+t = Date.now() - t
+console.log(JSON.stringify(result, null, 4))
+console.error('%s DEPENDS ON %s FILES (%sms)', path, result.length, t)
