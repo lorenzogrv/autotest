@@ -11,6 +11,9 @@
     "cheerio": "^0.22.0",
     "chokidar": "^2.0.0",
     "exorcist": "^1.0.1",
+    "iai-abc": "file:lib/iai-abc",
+    "iai-ansi": "file:lib/iai-ansi",
+    "iai-api": "file:lib/iai-api",
     "iai-oop": "^2.0.0",
     "jquery": "^3.3.1",
     "marked": "^0.3.17",
@@ -20,12 +23,14 @@
   "scripts": {
     "test": "./script/test",
     "start": "./bin/iai-test ./bin/iai-ide.js",
-    "watchify": "node_modules/.bin/watchify app/frontend.js -o build/bundle.js -d -v"
+    "watch": "gulp watch"
   },
   "devDependencies": {
     "browserify": "^16.1.0",
+    "gulp": "^3.9.1",
+    "gulp-sourcemaps": "^2.6.4",
+    "tap-spec": "^4.1.1",
     "tape": "^4.5.1",
-    "tap-spec": "*",
     "watchify": "^3.10.0"
   }
 }

@@ -12,12 +12,14 @@ test_mod(){
   MNAME=${MNAME//\//-}
   echo "going to test $MNAME ($MPATH)"
   CURR=$(pwd)
-  cd $MPATH && npm test && cd $CURR || (echo "$MNAME tests failed" && exit 1)
+  cd $MPATH && npm test || (echo "$MNAME tests failed" && exit 1)
+  cd $CURR
 }
 
-test_mod "./abc"
-test_mod "./api/view"
-test_mod "./api/server"
+test_mod "./lib/iai-abc"
+test_mod "./lib/iai-ansi"
+test_mod "./lib/iai-api/section"
+test_mod "./lib/iai-api/service"
 #cd ./api/view && npm test && cd .. || echo "iai-api-view tests do not pass" && exit 1
 #cd ./api/server && npm test && cd .. || echo "iai-api-server tests do not pass" && exit 1
 
