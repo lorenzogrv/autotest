@@ -3,7 +3,6 @@ var spawn = require('child_process').spawn
 var watch = require('chokidar').watch
 
 var oop = require('iai-oop')
-
 var iai = require('iai-abc')
 
 var log = iai.log
@@ -38,30 +37,32 @@ function Job (cmd, argv, opts) {
 }
 
 Job.toString = function () {
-  if (!this.cp) return `Job#${basename(this.cmd)}`
-  return `Job#${basename(this.cmd)}@${this.cp.pid}`
+  if (!this.cp) {
+    return 'Job#' + basename(this.cmd)
+  }
+  return basename(this.cmd) + '@' + this.cp.pid
 }
 
 Job.start = function start () {
   if (this.cp) return this.restart()
 
-  log.verb('%s: spawning child...', this)
-  log.verb('%s %j', this.cmd, this.argv)
-
   var job = this
 
   var onExit = function (code) {
     if (job.cp === null) return
-    log.warn('%s: still running on exit %s. Killing...', job, code)
+    log.warn('%s is still running on exit %s. Killing...', job, code)
     job.cp.kill()
   }
 
   process.on('exit', onExit)
 
+  log.warn('%s spawning now...', this)
+  log.info('>', this.cmd, this.argv.join(' '))
+
   this.cp = spawn(this.cmd, this.argv, { stdio: this.stdio })
     .on('exit', function (code, signal) {
       log[code ? 'error' : 'info'](
-        '%s: child exited with code %s and signal %s', job, code, signal
+        '%s exited with code %s and signal %s', job, code, signal
       )
       job.cp = null
       process.removeListener('exit', onExit)
@@ -72,37 +73,41 @@ Job.start = function start () {
       log.error(err.stack)
     })
 
-  log.info('%s: spawned child with pid %s', this, this.cp.pid)
+  log.info('%s spawned successfully', this)
 
   if (this.stdio === 'pipe') {
     // TODO pipe into log api?
-    this.cp.stdout.on('data', function (data) {
-      console.log('%s: %s', job, data)
-    })
-    this.cp.stderr.on('data', function (data) {
-      console.error('%s: %s', job, data)
-    })
+    var writer = function (stream) {
+      var bol = true // begin of line
+      return function (data) {
+        data = data.toString('utf8')
+        stream.write(
+          bol ? iai.f('%s: %s', job, data) : data
+        )
+        bol = !!~data.indexOf('\n')
+      }
+    }
+    this.cp.stdout.on('data', writer(process.stdout))
+    this.cp.stderr.on('data', writer(process.stderr))
   }
 
-  if (!this.watch.length) return this
-  log.info('%s: watching for changes on %s paths', this, this.watch.length)
-  log.verb('watching %j', this.watch)
+  if (!this.watch.length) {
+    return this
+  }
 
-  watch(this.watch, {
-    persistent: true,
-    ignoreInitial: true
-  })
+  log.warn('%s is watching for changes on %s paths', this, this.watch.length)
+  watch(this.watch, { persistent: true, ignoreInitial: true })
     .on('all', function watcher (event, file) {
-      this.close()
-      log.verb('%s: watched %s %s', job, event, file)
-      job.start()
+      this.close() // close the watcher, restart will spawn a new one
+      log.info('%s watched %s %s', job, event, file)
+      job.restart()
     })
   return this
 }
 
 Job.restart = function restart () {
   if (!this.cp) throw new Error('this Job has no child process')
-  log.info('%s: Killing child process to restart...', this)
+  log.warn('%s is being killed to restart...', this)
   this.cp
     .once('exit', this.start.bind(this))
     .kill('SIGUSR2')
