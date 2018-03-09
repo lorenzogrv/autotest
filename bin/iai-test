@@ -1,0 +1,220 @@
+#!/usr/bin/env node
+
+/**
+ * # iai-test
+ * executes a js file with NODE_ENV=test inmediately, and
+ * execs it again every time the file contents change.
+ */
+
+// DEPENDENCIES
+
+var spawn = require('child_process').spawn;
+var watch = require('chokidar').watch;
+var path = require('path');
+var fs = require('fs');
+var format = require('util').format;
+
+// UTILITIES
+var iai = require('iai');
+var log = iai.log;
+log.clean = true;
+var ansi = require('iai-ansi');
+
+// ARGV
+// TODO better argv description
+var argv = process.argv.slice( 2 );
+if( !argv.length ){
+  var name = require('path').basename(__filename);
+  log
+    .info('')
+    .info('Usage: %s [--once [--mute]] {filename} [optional argv]', name)
+    .info('')
+    .info('   --once: deactivates the file watcher (run filename only once)')
+    .info('   --mute: mute iai-test messages on stdout')
+    .info('')
+    .fatal('bad argument list')
+  ;
+}
+
+var once = argv.shift();
+if( once !== '--once' ){
+  argv.unshift(once);
+  once = '';
+}
+
+var silent = argv.shift();
+if( silent !== '--mute' ){
+  argv.unshift(silent);
+} else {
+  log.mute = true;
+}
+
+var filename = path.resolve( process.cwd(), argv.shift() );
+argv.unshift( filename );
+var runner = 'node';
+
+log.info('filename is', filename);
+
+var isModule = path.extname(filename) == '.js';
+
+if( isModule ){
+  log.verb( 'It seems a commonjs module, will run with node' );
+} else {
+  log.warn('It seems a script, will run it directly');
+  runner = argv.shift();
+}
+
+log.info( 'ready to run the test with "%s"', runner );
+// TODO if colors disabled...
+//var log = info console.log; var error = console.error;
+
+// BOOTSTRAP
+
+var child = null;
+var watch_instance = null;
+main();
+
+function main( ){
+
+  // TODO killing that process
+  // TODO think on PM2 package
+  // see also https://github.com/tj/commander.js/issues/409#issuecomment-106611413
+  if( child ){
+    log.info( 'Killing child process to run again...' );
+    return child.kill( 'SIGUSR2' );
+  }
+
+  if( isModule ){
+    try {
+      // Refresh require.cache requiring the file to research 'sources'
+      delete require.cache[filename];
+
+      log.verb( 'Requiring module to research its dependencies\n* v *' );
+
+      // warn if the file outputs something to stdout when required
+      var out_write = process.stdout.write;
+      process.stdout.write = function(){
+        process.stdout.write = out_write;
+        log.error( 'The module writes to stdout when required' );
+        return out_write.apply( process.stdout, arguments );
+      };
+      // warn if the file outputs something to stderr when required
+      var err_write = process.stderr.write;
+      process.stderr.write = function(){
+        process.stderr.write = err_write;
+        // replace before or will start Infinite Loop
+        // ( iai.log.error calls process.stderr.write )
+        log.error( 'The module writes to stderr when required' );
+        return err_write.apply( process.stderr, arguments );
+      };
+
+      require( filename );
+
+      process.stdout.write = out_write;
+      process.stderr.write = err_write;
+
+      log.verb( '* ^ *\nRequire completed' );
+      watcher( iai.sources(require.main) );
+    } catch( e ){
+      if( e.code == 'MODULE_NOT_FOUND' ){
+        log.error( 'The file %s does not resolve', filename )
+      } else {
+        log
+          .error( "Error thrown while requiring module:" )
+          .error( e.stack )
+        ;
+      }
+      if( watcher([ filename, __filename ]) ){
+        log.info( "will run again after any change is detected" );
+      } else {
+        process.exit(1)
+      }
+    }
+  } else {
+    watcher( iai.sources(require.main).concat(filename) );
+  }
+
+  log.info( 'Spawn> %s %s', runner, argv.join(' ') ).verb('* v *');
+  var env = Object.create( process.env );
+  env.NODE_ENV = 'test';
+  child = spawn( runner, argv, {
+    stdio: 'inherit',
+    env: env
+  }).on( 'close', reboot ).on( 'error', handle );
+}
+
+function reboot( code, signal ){
+  log
+    .verb('* ^ *')
+    .info( 'child exited with code %s and signal %s', code, signal )
+  ;
+  child = null;
+  // re-run on SIGUSR2
+  if( signal == 'SIGUSR2' ){
+    return main();
+  }
+  log.info( once? 'Finished.' : 'waiting for a change to run again...' );
+}
+
+function handle( err ){
+  /**
+    * Check if the script file is executable
+    * Use bitmasks to change permisions to make it executable
+    * See also:
+    *   http://www.perlmonks.org/bare/?node_id=323977
+    *   http://man7.org/linux/man-pages/man2/chmod.2.html
+    */
+  if( err && err.code == "EACCES" ){
+    log
+      .warn( err.stack )
+      .warn( 'File %s is not executable, making it executable', filename )
+    ;
+    var stats = fs.statSync( filename );
+    fs.chmod( filename, stats.mode | 00400 | 00200 | 00100, function( err ){
+      if( err ){
+        return error( 'Error while making the file executable', err );
+      }
+      once? process.exit(1) : main();
+    });
+    return;
+  }
+  log.verb( err );
+  log.fatal( 'Child process error', err.stack );
+};
+
+function watcher( files ){
+  if( once ){
+    log.verb('asked to run only once');
+    return false;
+  }
+  if( watch_instance ){
+    log.info('stopping watcher...');
+    watch_instance.close();
+    watch_instance = null;
+  }
+  log.info(
+      'watching for changes on:\n  %s',
+      files.join('\n  ').replace( RegExp( process.cwd(), 'g' ), '.' )
+  );
+  watch_instance = watch( files, {
+    ignored: /\.swp$/,
+    persistent: true,
+    ignoreInitial: true
+  }).on( 'all', function watcher( event, file ){
+    this.close();
+    process.stdout.write( ansi.clear )
+    log.info( 'watched a %s on %s', event, file );
+    if( event == 'change' && file == __filename ){
+      log.warn( 'the test script implementation has changed' );
+      log.warn( 'stopping test script, please run it again' );
+      process.exit( 1 );
+      // this creates 1 more main() execution each time is called
+      // delete require.cache[ file ];
+      // require( file );
+      // TODO defer a new test execution to another process, kill this one
+      // TODO or decouple the operation from the script that calls it
+    }
+    main();
+  });
+  return true;
+}

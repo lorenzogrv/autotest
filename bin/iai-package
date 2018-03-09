@@ -1,0 +1,64 @@
+#!/usr/bin/env node
+
+/**
+ * # package
+ *
+ * shows information about the package at current working directory
+ */
+
+// DEPENDENCIES
+
+const { basename, resolve, dirname } = require('path')
+var format = require('util').format
+
+// ARGV
+
+var argv = process.argv.slice(2)
+if (argv.length > 1 || argv[0] == '--usage' || argv[0] == '--help') {
+  console.log('Usage: %s [dirname]', basename(__filename))
+  process.exit(1)
+}
+
+var packdata = require('iai-abc/lib/tool/packdata')
+
+var pkg = packdata(argv[0])
+
+console.log('%s@%s %s', pkg.name, pkg.version, pkg.dir)
+console.log('basic info:')
+console.log('  name: ' + pkg.name)
+console.log('  ver : ' + pkg.version)
+console.log('  desc: ' + pkg.description)
+
+console.log()
+console.log('entry points:')
+console.log('  main: ' + pkg.main)
+console.log('  browser: ' + pkg.browser)
+
+function describe (deps) {
+  return deps
+    ? Object.keys(deps).map((name) => name + '@' + deps[name]).join(', ')
+    : 'undefined'
+}
+console.log()
+console.log('dependencies (need=normal, bund=bundle, opt=optional)')
+console.log('  need:', describe(pkg.dependencies))
+console.log('   dev:', describe(pkg.devDependencies))
+console.log('  peer:', describe(pkg.peerDependencies))
+console.log('  bund:', describe(pkg.bundledDependencies))
+console.log('   opt:', describe(pkg.optionalDependencies))
+
+if (pkg.directories) {
+  console.log()
+  console.log('structure: ' + JSON.stringify(pkg.directories, null, 2))
+} else {
+  console.log('no directories defined')
+}
+
+if (pkg.scripts) {
+  console.log()
+  console.log('relevant scripts:')
+  console.log('  start: ' + pkg.scripts.start)
+  console.log('  test : ' + pkg.scripts.test)
+} else {
+  console.log('no scripts defined')
+}

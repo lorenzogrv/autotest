@@ -1,0 +1,44 @@
+#!/usr/bin/env node
+
+/**
+ * # dependants
+ * 
+ * shows information about module dependencies
+ *
+ * TODO this is currently an experiment with require.main
+ */
+
+// DEPENDENCIES
+
+var path = require('path');
+var sources = require('iai-abc/lib/tool/sources');
+
+// ARGV
+
+var argv = process.argv.slice( 2 );
+if( argv.length > 1 || argv[0] == '--usage' || argv[0] == '--help' ){
+  console.log('Usage: dependants [path to module or package]');
+  process.exit(1);
+}
+
+var modpath = path.resolve(argv[0] || '')
+
+try {
+  var path = require.resolve(modpath);
+  var mod = require( path );
+} catch( err ){
+  if( err.code === 'MODULE_NOT_FOUND' ){
+    if(!~err.message.indexOf(modpath)){
+      // not found module error may be related to a missing dependency
+      throw err
+    }
+    console.error( path + ' is not a commonjs package' );
+    process.exit(1);
+  }
+  throw err;
+}
+var t = Date.now()
+var result = sources(require.cache[path])
+t = Date.now() - t
+console.log(JSON.stringify(result, null, 4))
+console.error('%s DEPENDS ON %s FILES (%sms)', path, result.length, t)

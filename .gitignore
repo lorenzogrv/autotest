@@ -7,18 +7,23 @@ lib-cov
 *.out
 *.pid
 *.gz
+*.swp
 
 pids
 logs
 results
 
-npm-debug.log
-node_modules/*
-!node_modules/iai-*
-
 abc/iaido/example/*
 !abc/iaido/example/empty
+
+npm-debug.log
+node_modules/*
+lib/*/node_modules/*
 abc/iaido/node_modules/*
-!abc/iaido/node_modules/iai-*
+
+!node_modules/iai*
+!node_modules/ws
+!node_modules/ultron
+!node_modules/options
 
 dojo/db/fixtures/fs/?0*

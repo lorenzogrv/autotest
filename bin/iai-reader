@@ -1,0 +1,55 @@
+#!/usr/bin/env node
+
+/**
+ * # reader
+ *
+ * pretty-prints a markdown file formated for ANSI terminal
+ */
+
+// DEPENDENCIES
+const { basename, resolve } = require('path')
+const { PassThrough } = require('stream')
+const fs = require('fs')
+const marked = require('marked')
+const chalk = require('chalk')
+chalk.enabled = true // TODO this should be a --force-color or so
+const TerminalRenderer = require('marked-terminal')
+
+// Define custom markdown renderer
+marked.setOptions({ renderer: new TerminalRenderer() })
+
+// Trivial stream to transform input
+var mdTransformer = new PassThrough()
+mdTransformer._transform = function(data, encoding, callback) {
+  try {
+    this.push(marked(data.toString()))
+    callback(null)
+  } catch (err) {
+    callback(err)
+  }
+}
+
+// ARGV
+
+var argv = process.argv.slice(2)
+if (argv.length > 1 || argv[0] == '--usage' || argv[0] == '--help') {
+  console.error('Usage: %s [filename]', basename(__filename))
+  console.error('          [filename] defaults to README.md')
+  process.exit(1)
+}
+
+var filename = argv[0] || 'README.md'
+
+if (filename !== 'stdin') filename = resolve(filename)
+
+try {
+  filename === 'stdin'? process.stdin : fs.createReadStream(filename)
+    .pipe(mdTransformer)
+    .pipe(process.stdout)
+} catch (err) {
+  if (err.code === 'ENOENT') {
+    console.error('file "%s" does not exist', filename)
+    process.exit(1)
+  }
+  throw err
+}
