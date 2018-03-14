@@ -158,6 +158,9 @@ function iai-pager () {
 	##
 	less -iXFR "$@" || exit 1
 }
+function iai-view () {
+  iai reader "$@" | iai-pager
+}
 
 ##
 # `iai wanip` and `iai lanip` are now part of iai-net toolset
