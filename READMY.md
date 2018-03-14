@@ -9,3 +9,11 @@
 > 2017-09-28 18:01:23+00:00
 
 - same applies to iaido, it's supossed to be a library
+
+> 2018-03-14 01:37:17+01:00
+
+- The fighting imsomnia abstract is:
+```
+cd ~/Proxectos/iai
+git status
+```
