@@ -28,9 +28,12 @@
   "devDependencies": {
     "browserify": "^16.1.0",
     "gulp": "^3.9.1",
+    "gulp-rename": "^1.2.2",
     "gulp-sourcemaps": "^2.6.4",
     "tap-spec": "^4.1.1",
     "tape": "^4.5.1",
+    "vinyl-buffer": "^1.0.1",
+    "vinyl-source-stream": "^2.0.0",
     "watchify": "^3.10.0"
   }
 }

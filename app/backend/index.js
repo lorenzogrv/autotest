@@ -1,12 +1,11 @@
-var iai = require('iai')
+var iai = require('iai-api')
 var log = iai.log
-var read = iai.readkeys
 
-log.level = iai.Log.VERB
+log.level = iai.Log.INFO
 
 var service = module.exports = iai.service
 
-var kb = null
+var keyboard = iai.readkeys({ humanize: true })
 
 service
   .on('request', require('./router'))
@@ -31,22 +30,34 @@ service
     }
   })
   .on('stdin:request', function (ws) {
-    if (!kb) {
+    // return service.broadcast('not available now')
+    if (keyboard) {
       log.info('Sending stdin to all clients...')
       service.broadcast({ name: 'stdin:begin' })
-      kb = read()
-        .on('readable', function read () {
-          var data = this.read()
-          if (data === null) return
+      process.stdin
+        .pipe(keyboard)
+        .on('data', function read (data) {
           service.broadcast({ name: 'stdin', data: data.toString() })
         })
         .on('end', function () {
           log.info('Done sending stdin.')
+          process.stdin.pause()
           service.broadcast({ name: 'stdin:end' })
-          kb = null
         })
     }
   })
   .on('ws:close', function (clients) {
-    if (kb && !clients.size) kb.end()
+    if (keyboard && !clients.size) process.stdin.pause()
   })
+  .on('close', () => process.stdin.pause())
+
+if (require.main === module) {
+  log.info('starting backend service...')
+  service
+    // /* comment/uncomment this line to toggle iai.proc SIGINT hadling
+    .on('listening', () => {
+      log.info('SIGINT is expected to be handled gracefully by iai.service')
+      iai.proc.ignoreSIGINT()
+    }) // */
+    .listen(27780)
+}
