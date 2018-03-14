@@ -37,3 +37,9 @@ command.stdin = function stdin (key) {
 command.reload = function reload () {
   window.location.reload()
 }
+command.prompt = function askuser () {
+  this.emit('server', prompt('Please insert here the data to be sent'))
+}
+command.alert = function showtext () {
+  alert(Array.prototype.join.call(arguments, ' '))
+}

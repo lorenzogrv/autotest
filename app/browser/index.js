@@ -6,6 +6,8 @@ const command = require('./command')
 
 log.level = iai.Log.VERB
 
+// 'use this line to trigger a build error'{
+
 function execute (cmdline) {
   try {
     command.run(cmdline)
@@ -41,6 +43,7 @@ function keypress (key) {
 
 command
   .on('stdout', (str) => log.info('cmd: ' + str))
+  .on('server', (str) => service.send(str))
 
 service
   .on('stdin:begin', () => $(stdin).addClass('reading'))
@@ -62,11 +65,11 @@ service
 
 // TODO use https://github.com/cms/domready/blob/master/domready.js
 document.addEventListener('DOMContentLoaded', function () {
-  /*try {
+  /* try {
     terminal.display()
       .done(() => $('#home').hide())
       .done(() => iai.service.connect())
   } catch (err) {
     iai.fatal(err)
-  }//*/
+  }// */
 })
