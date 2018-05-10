@@ -27,12 +27,12 @@ function iai-sync-repo () {
 }
 
 function iai-sync-all () {
-  utip "Sincronizando todos os repositorios..."
+  info "Sincronizando todos os repositorios..."
 	{
 		iai-sync-repo ~/Proxectos/iai
     iai-sync-repo ~/Proxectos/empresa.lorenzogrv.com
-	} &>/dev/null
-  utip "Sincronizados todos os repositorios."
+	} |& verb
+  info "Sincronizados todos os repositorios."
 }
 
 ##
