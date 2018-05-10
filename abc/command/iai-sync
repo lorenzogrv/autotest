@@ -16,11 +16,11 @@ function iai-sync-repo () {
 
   info "going to sync git repo at $repo"
   verb "- - - pushing... - - -"
-  git push || fail
+  git push |& verb || fail
 	if test "$(hostname)" != "shitbook"
 	then
     verb "- - - pulling on shitbook... - - -"
-    ssh shitbook "cd $repo && git pull" || fail
+    ssh shitbook "cd $repo && git pull" |& verb || fail
 	fi
 	utip "- - - git status (local) after sync - - -"
   git status
