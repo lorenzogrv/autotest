@@ -1,17 +1,38 @@
 assert_function iai || exit
 
 function iai-sync () {
-	local repo="$(iai repo)"
+	if test "$1" == "repo"
+	then
+		iai-sync-repo
+	else
+	  iai-sync-all
+	fi
+}
+
+function iai-sync-repo () {
+	local repo="${1:-$(iai repo)}"
 	test -z "$repo" && emsg "can't sync because can't find git repo" && exit 1
 	repo="~${repo#$HOME}"
 
   info "going to sync git repo at $repo"
-  info "- - - pushing... - - -"
-  git push
-  info "- - - pulling on shitbook... - - -"
-  ssh shitbook "cd $repo && git pull"
-	info "- - - git status (local) after sync - - -"
+  verb "- - - pushing... - - -"
+  git push || fail
+	if test "$(hostname)" != "shitbook"
+	then
+    verb "- - - pulling on shitbook... - - -"
+    ssh shitbook "cd $repo && git pull" || fail
+	fi
+	utip "- - - git status (local) after sync - - -"
   git status
+}
+
+function iai-sync-all () {
+  utip "Sincronizando todos os repositorios..."
+	{
+		iai-sync-repo ~/Proxectos/iai
+    iai-sync-repo ~/Proxectos/empresa.lorenzogrv.com
+	} &>/dev/null
+  utip "Sincronizados todos os repositorios."
 }
 
 ##
