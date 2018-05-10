@@ -59,6 +59,9 @@ function iai () {
 			  }
 			  assert_function "$cmd" # or there is no function named $cmd at that file
 			  info "loaded command %s" "$cmd"
+			else
+		    iai.dependencies || exit
+				verb "assuming command is an script because it's file is executable"
 			fi
 		else
 		  iai.dependencies || exit

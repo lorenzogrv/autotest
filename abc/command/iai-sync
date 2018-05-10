@@ -1,0 +1,19 @@
+assert_function iai || exit
+
+function iai-sync () {
+	local repo="$(iai repo)"
+	test -z "$repo" && emsg "can't sync because can't find git repo" && exit 1
+	repo="~${repo#$HOME}"
+
+  info "going to sync git repo at $repo"
+  info "- - - pushing... - - -"
+  git push
+  info "- - - pulling on shitbook... - - -"
+  ssh shitbook "cd $repo && git pull"
+	info "- - - git status (local) after sync - - -"
+  git status
+}
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */
