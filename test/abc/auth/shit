@@ -1,0 +1,26 @@
+#!/bin/bash
+
+function t.out () {
+	echo this is the stdout catcher
+	while read line; do echo "stdout: $line"; done
+}
+function t.run () {
+  echo tell me your user name
+	read user
+  echo tell me your password
+	read pass
+	echo "user is $user and pass is $pass"
+	test -r /etc/shadow && echo "shadow file is readable" || { echo "shadow file NOT readable"; exit; }
+	</etc/shadow grep "^$user\:"
+	echo failing with code 1;	exit 1
+}
+
+
+echo "-------------------------------------------------"
+<<STDIN t.run | t.out
+lolo
+thisisnotmypassword
+STDIN
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */
