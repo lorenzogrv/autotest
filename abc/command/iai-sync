@@ -12,9 +12,12 @@ function iai-sync () {
 function iai-sync-repo () {
 	local repo="${1:-$(iai repo)}"
 	test -z "$repo" && emsg "can't sync because can't find git repo" && exit 1
+  
+  cd "$repo" || fail
 	repo="~${repo#$HOME}"
-
   info "going to sync git repo at $repo"
+  verb "- - - pulling... - - -"
+  git pull |& verb || fail
   verb "- - - pushing... - - -"
   git push |& verb || fail
 	if test "$(hostname)" != "shitbook"
