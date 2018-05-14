@@ -1,0 +1,15 @@
+#!/usr/bin/env node
+
+const cp = require('child_process')
+
+function login (user, pass, cb) {
+  cp.spawn('/usr/bin/su', [user], { stdio: ['pipe', 'ignore', 'ignore'] })
+    .on('exit', (code) => cb(code === 0 ? null : new Error('login invalid')))
+    .stdin.end(pass)
+  // TODO return promise
+}
+
+login('lolo', 'insecure', function (err) {
+  if (err) console.log(err)
+  console.log('authentication', err ? 'failure' : 'succeed')
+})

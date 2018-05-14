@@ -1,26 +1,53 @@
 #!/bin/bash
 
-function t.out () {
-	echo this is the stdout catcher
-	while read line; do echo "stdout: $line"; done
-}
-function t.run () {
-  echo tell me your user name
+assert_function iai || exit
+
+function iai-auth.shadow () {
+	test -r /etc/shadow || {
+    emsg "/etc/shadow is NOT readable"
+    local group=$(fs.group /etc/shadow)
+    info "/etc/shadow is owned by group $group"
+    if ! groups $USER | grep "$group" >/dev/null
+    then
+      info "current user ($USER) is not in '$group' group"
+      utip "try> usermod -a -G $group $USER"
+    else
+      info "current user ($USER) is in '$group' but can't read /etc/shadow"
+      if id $USER | while read uid gid gs; do echo $gs; done | grep $group
+      then
+        utip "re-login is needed, close this session and log in again"
+      else
+        utip "try> chmod 640 /etc/shadow"
+        utip "alternatively, check the /etc/shadow file permissions"
+      fi
+    fi
+    exit 1
+  }
+  local user pass shadow salt
+  utip "input the username"
 	read user
-  echo tell me your password
-	read pass
-	echo "user is $user and pass is $pass"
-	test -r /etc/shadow && echo "shadow file is readable" || { echo "shadow file NOT readable"; exit; }
-	</etc/shadow grep "^$user\:"
-	echo failing with code 1;	exit 1
+  utip "input the password"
+	read -s pass
+  shadow=$(grep "^$user\:" /etc/shadow | cut -d : -f 2)
+  salt=$(cut -d \$ -f 2,3 <<<"$shadow")
+  comp=$(python -c "import crypt; print(crypt.crypt('$pass', '\$$salt\$'))")
+  test "$comp" == "$shadow" && return 0 || return 1
 }
 
+function iai-auth.su {
+  local user pass
+  utip "input the username"
+	read user
+  utip "input the password"
+	read -s pass
+  info "checking credentials..."
+  su $user <<<$pass 2>/dev/null && return 0 || return 1
+}
 
 echo "-------------------------------------------------"
-<<STDIN t.run | t.out
-lolo
-thisisnotmypassword
-STDIN
+iai-auth.shadow <<<$'lolo\ninsecure' && echo "OK" || echo "KO"
+iai-auth.shadow && echo "OK" || echo "KO"
+iai-auth.su && echo "OK" || echo "KO"
 ##
 # vim modeline
 # /* vim: set filetype=sh ts=2 shiftwidth=2: */
