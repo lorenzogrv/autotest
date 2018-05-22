@@ -8,13 +8,7 @@ function iai-ssh-auth () {
 
 	case "$1" in
 		"client"|"server")
-			info "checking connectivity to target machine ($2)..."
-			if ! ping -q -c 1 -w 1 "$2" >/dev/null
-			then
-				emsg "can't reach target machine ($2)"
-				return 1
-			fi
-			info "Connectivity ok"
+			iai net ping "$2" || return 1
 			;;
 		*)
 			utip "Usage: $FUNCNAME client {target_server}"

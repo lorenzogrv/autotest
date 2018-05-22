@@ -17,6 +17,17 @@ function iai-net () {
 	$cmd "$@"
 }
 
+function iai-net-ping () {
+  test -n "$1" || fail "Missing argument 1: %s" "target machine (hostname or ip)"
+  info "checking connectivity to target machine ($1)..."
+  if ! ping -q -c 1 -w 1 "$1" &>/dev/null
+  then
+    emsg "can't reach target machine ($1)"
+    return 1
+  fi
+  info "Connectivity ok"
+}
+
 function iai-net-wanip () {
   # provides a way to research the system IP within the cloud.
   # It depends on `dig`. See http://unix.stackexchange.com/a/81699
