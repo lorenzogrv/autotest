@@ -68,12 +68,18 @@ function iai-net-lanip () {
 }
 
 function iai-net-gate () {
-	# see https://serverfault.com/a/731095/195906
+  # see https://serverfault.com/a/731095/195906
   ip route show default 0.0.0.0/0 | awk '{print $3}'
 }
 
 function iai-net-iface () {
-	ip route show default 0.0.0.0/0 | awk ' {print $5}'
+  ip route show default 0.0.0.0/0 | awk ' {print $5}'
+  if test ${PIPESTATUS[-2]} -gt 0
+  then
+    emsg "there is no default interface available!"
+    utip "try> %s" "sudo ifconfig -a -s | tail -n +2"
+    return 1
+  fi
 }
 
 function iai-net-mac () {
