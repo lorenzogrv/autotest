@@ -14,18 +14,21 @@ function iai-sync-repo () {
 	test -z "$repo" && emsg "can't sync because can't find git repo" && exit 1
   
   cd "$repo" || fail
-	repo="~${repo#$HOME}"
+  repo="~${repo#$HOME}"
   info "going to sync git repo at $repo"
   verb "- - - pulling... - - -"
-  git pull |& verb || fail
+  git pull |& verb
+  test ${PIPESTATUS[-2]} -gt 0 && fail "can't pull"
   verb "- - - pushing... - - -"
-  git push |& verb || fail
-	if test "$(hostname)" != "shitbook"
-	then
+  git push |& verb
+  test ${PIPESTATUS[-2]} -gt 0 && fail "can't push"
+  if test "$(hostname)" != "shitbook"
+  then
     verb "- - - pulling on shitbook... - - -"
-    ssh shitbook "cd $repo && git pull" |& verb || fail
-	fi
-	utip "- - - git status (local) after sync - - -"
+    ssh shitbook "cd $repo && git pull" |& verb
+    test ${PIPESTATUS[-2]} -gt 0 && fail "can't pull on shitbook"
+  fi
+  utip "- - - git status (local) after sync - - -"
   git status
 }
 
