@@ -41,6 +41,8 @@ function iai-pkg () {
 iai-pkg.apt.update () { sudo apt update; }
 iai-pkg.apt.search () { apt search "$@"; }
 iai-pkg.apt.install () { sudo apt install "$@"; }
+iai-pkg.apt.upgrade () { sudo apt update && sudo apt upgrade; }
+iai-pkg.apt.cleanup () { sudo apt autoremove; }
 
 iai-pkg.opkg.update () { opkg update; }
 # opkg search is a "which pkg provides file" command
