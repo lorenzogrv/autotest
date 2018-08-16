@@ -161,7 +161,7 @@ const { CustomError } = require('./error')
 exports.visible('Error', CustomError.constructor.bind(CustomError))
 
 // setup process bindings (window bindings on browserified bundles)
-// TODO this is too ugly (but actually it's meant to binds events and the like)
+// TODO this is too ugly (but actually is meant to binds events and the like)
 exports.visible('proc', require('./process.js'))
 
 },{"./error":6,"./log":7,"./path":8,"./process.js":11,"iai-oop":20,"util":55}],4:[function(require,module,exports){

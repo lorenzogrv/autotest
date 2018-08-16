@@ -48,6 +48,8 @@ gulp.task('factor', function () {
     .on('end', () => log.echo('---DEST-END---------------------------'))
 })
 
+gulp.task('build', ['build:browser'])
+
 gulp.task('build:browser', function () {
   var b = browserify(bOpts)
     // catch out browserify errors
@@ -92,7 +94,7 @@ gulp.task('job:server', [ /* 'watch:browser' */ ], function () {
     .start()
   // don't be async, Job will respawn server when needed as watchify does
   var finish = () => {
-    log.warn('finishing job')
+    log.warn('finishing job (will pause stdin now)')
     process.exitCode = 0
     process.stdin.pause()
   }
@@ -121,7 +123,8 @@ gulp.task('watch-gulp:job:server', function () {
   return process.stdin
 })
 
-gulp.task('default', ['watch-gulp:job:server'])
+// this is a bad idea
+// gulp.task('default', ['watch-gulp:job:server'])
 
 gulp.task('watch-gulp:factor', function () {
   // no need to populate gulpfile.js on require.cache as it's already required

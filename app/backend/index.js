@@ -47,7 +47,8 @@ service
     }
   })
   .on('ws:close', function (clients) {
-    if (keyboard && !clients.size) process.stdin.pause()
+    if (clients.size) return
+    process.stdin.unpipe(keyboard)
   })
   .on('close', () => process.stdin.pause())
 
