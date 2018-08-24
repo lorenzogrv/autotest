@@ -5,6 +5,7 @@ log.level = iai.Log.INFO
 
 var service = module.exports = iai.service
 
+// comment the line below to disable stdin-to-client pipe
 var keyboard = iai.readkeys({ humanize: true })
 
 service
@@ -30,7 +31,6 @@ service
     }
   })
   .on('stdin:request', function (ws) {
-    // return service.broadcast('not available now')
     if (keyboard) {
       log.info('Sending stdin to all clients...')
       service.broadcast({ name: 'stdin:begin' })
@@ -44,6 +44,8 @@ service
           process.stdin.pause()
           service.broadcast({ name: 'stdin:end' })
         })
+    } else {
+      return service.broadcast('not available now')
     }
   })
   .on('ws:close', function (clients) {

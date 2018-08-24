@@ -47,6 +47,7 @@ ui.on('render', function ($, section) {
 // next step on rendering implies setting up references to external assets
 // TODO this should be the diference between backend and browser (onload detect)
 ui.on('render', function ($, section) {
+  log.info('rendering section %s', section)
   const css = section.data.css
   if (css && css.length) {
     log.info('insterting %s css stylesheets...', css.length)
