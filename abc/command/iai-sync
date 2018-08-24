@@ -16,15 +16,15 @@ function iai-sync-repo () {
   cd "$repo" || fail
   repo="~${repo#$HOME}"
   info "going to sync git repo at $repo"
-  verb "- - - pulling... - - -"
-  git pull |& verb
+  printf "PULL: "
+  git pull |& cat
   test ${PIPESTATUS[-2]} -gt 0 && fail "can't pull"
-  verb "- - - pushing... - - -"
-  git push |& verb
+  printf "PUSH: "
+  git push |& cat
   test ${PIPESTATUS[-2]} -gt 0 && fail "can't push"
   if test "$(hostname)" != "shitbook"
   then
-    verb "- - - pulling on shitbook... - - -"
+    printf "PULL @SHITBOOK:"
     ssh shitbook "cd $repo && git pull" |& verb
     test ${PIPESTATUS[-2]} -gt 0 && fail "can't pull on shitbook"
   fi
@@ -37,7 +37,7 @@ function iai-sync-all () {
 	{
 		iai-sync-repo ~/Proxectos/iai
     iai-sync-repo ~/Proxectos/empresa.lorenzogrv.com
-	} |& utip
+	} # |& utip
   info "Sincronizados todos os repositorios."
 }
 
