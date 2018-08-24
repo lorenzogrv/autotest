@@ -1,0 +1,16 @@
+assert_function iai || exit
+
+function iai-moods () {
+  local emotions="$(iai-path dojo db artii emotions)"
+  info "using $emotions database from dojo's artii"
+  case "$1" in
+    "cat") cat "$emotions" ;;
+    "vim") iai confirm exec "vim $emotions" ;;
+    *) { head -n -1 | sort -R | head -1; } <"$emotions" ;;
+  esac
+  return 0
+}
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

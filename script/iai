@@ -12,14 +12,18 @@ iai.dependencies () {
 	type -t bashido >/dev/null || { echo >&2 "FATAL: missing bashido"; exit 1; }
 	source "$(bashido api)" --source-only || exit
 	log.filter () {
-		return 0 # uncomment this line for max amount of verbosity
+		#return 0 # uncomment this line for max amount of verbosity
 		#return 1 # uncomment this line to remove al logging
 
 		# log.filter receives 3 arguments:
 		# $1: "lvl" (one of EE, II, VV, etc.)
 		# $2: "fn" (the function where log output was requested)
 		# $3: "file" (the file where the function is defined)
-		echo "logs $@"
+		# try: echo "logs $@"
+    case "$1" in
+      EE|WW|UX) return 0 ;;
+      *) return 1 ;;
+    esac
 	}
 	bashido.require "assert.common" || exit
 	iai.dependencies () { true; }
@@ -247,6 +251,50 @@ function iai-working () {
 	utip "You were working at function %s" $fn
 	utip "to continue working on, use: %s" "vim +$line .${file##$PWD}"
 	exit 1
+}
+
+##
+# `iai-confirm` asks for confirmation on stdin
+##
+function iai-confirm () {
+	iai.dependencies || exit
+  read line fn file <<<"$(caller 0)"
+  test "$fn" = "iai" && read line fn file <<<"$(caller 1)"
+
+  warn "function %s asks for user confirmation" $fn
+  local msg="$@"
+  if test -n "$msg"; then
+    warn "confirm msg: $msg"
+  else
+    emsg "no confirm message was providded"
+  fi
+
+  if test "$1" = "exec"; then
+    local cmd="${@:2}"
+    utip "type 'yes' to execute '%s'" "$cmd"
+  else
+    utip "Type 'yes' to confirm OR any other thing to cancel gracefully with info"
+  fi
+
+  read CONFIRM
+  if test "$CONFIRM" = "yes"; then
+    utip "action accepted"
+  else
+    emsg "action refused"
+	  utip "use %s to see the function" "vim +$line .${file##$PWD}"
+    exit 1
+  fi
+  
+  if test "$1" = "exec"; then
+    $cmd
+    err=$?
+    if (( $err )); then
+      emsg "execution exit code was $err."
+      exit $err
+    else
+      info "exit code was $err"
+    fi
+  fi
 }
 
 function iai-status () {
