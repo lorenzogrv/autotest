@@ -14,6 +14,8 @@ iai.dependencies () {
 	log.filter () {
 		#return 0 # uncomment this line for max amount of verbosity
 		#return 1 # uncomment this line to remove al logging
+    
+    test $1 != 'VV'; return; # omit verbose messages
 
 		# log.filter receives 3 arguments:
 		# $1: "lvl" (one of EE, II, VV, etc.)
@@ -21,7 +23,7 @@ iai.dependencies () {
 		# $3: "file" (the file where the function is defined)
 		# try: echo "logs $@"
     case "$1" in
-      EE|WW|UX) return 0 ;;
+      EE|WW|UX|II) return 0 ;;
       *) return 1 ;;
     esac
 	}

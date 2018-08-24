@@ -28,7 +28,7 @@ function iai-sync-repo () {
     ssh shitbook "cd $repo && git pull" |& verb
     test ${PIPESTATUS[-2]} -gt 0 && fail "can't pull on shitbook"
   fi
-  utip "- - - git status (local) after sync - - -"
+  utip "git status # (local) after sync!"
   git status
 }
 
@@ -37,7 +37,7 @@ function iai-sync-all () {
 	{
 		iai-sync-repo ~/Proxectos/iai
     iai-sync-repo ~/Proxectos/empresa.lorenzogrv.com
-	} |& verb
+	} |& utip
   info "Sincronizados todos os repositorios."
 }
 
