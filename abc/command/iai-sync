@@ -16,27 +16,14 @@ function iai-sync-repo () {
   cd "$repo" || fail
   repo="~${repo#$HOME}"
   info "going to sync git repo at $repo"
-<<<<<<< HEAD
   utip "> git pull"
   git pull || fail "can't pull"
   utip "> git push"
   git push || fail "can't push"
   if test "$(hostname)" != "shitbook"
   then
-    utip "> remote pull @shitbook"
-=======
-  printf "PULL: "
-  git pull |& cat
-  test ${PIPESTATUS[-2]} -gt 0 && fail "can't pull"
-  printf "PUSH: "
-  git push |& cat
-  test ${PIPESTATUS[-2]} -gt 0 && fail "can't push"
-  if test "$(hostname)" != "shitbook"
-  then
-    printf "PULL @SHITBOOK:"
->>>>>>> d9491bf3911b1759f3fea894d1bcbd6fc2fa3287
-    ssh shitbook "cd $repo && git pull" |& verb
-    test ${PIPESTATUS[-2]} -gt 0 && fail "can't pull on shitbook"
+    utip "> # remote pull @shitbook through ssh"
+    ssh shitbook "cd $repo && git pull" || fail "can't pull on shitbook"
   fi
   utip "> git status # (local) after sync!"
   git status
