@@ -9,7 +9,7 @@ function iai-login () {
 
   if su -V &>/dev/null; then
     info "checking credentials with su..."
-    su "$user" <<<"$pass"$'\n' 2>/dev/null
+    su "$user" -c true <<<"$pass"$'\n' 2>/dev/null
     return $?
   fi
 
