@@ -13,15 +13,19 @@ function iai-auth.su {
 }
 
 echo "-------------------------------------------------"
+TESTUSER=lolo
 TESTPASS=insecure
 
-#info "> shadow test reading credentials"; iai login && echo "OK" || echo "KO"
-info "> shadow test with $TESTPASS password"
-iai login <<<"lolo"$'\n'"$TESTPASS" && echo "OK" || echo "KO"
+info "> automated iai-login test"
+iai login <<<"$TESTUSER"$'\n'"$TESTPASS" && echo "OK" || {
+  echo "authorization doesn't succed for $TESTUSER:$TESTPASS"
+	info "> iai-login test reading username and password from stdin"
+	iai login && echo "OK" || echo "KO"
+}
 
 #info "> su test reading credentials"; iai-auth.su && echo "OK" || echo "KO"
 info "> su test with $TESTPASS password"
-iai-auth.su <<<$"lolo"$'\n'"$TESTPASS" && echo "OK" || echo "KO"
+iai-auth.su <<<$"$TESTUSER"$'\n'"$TESTPASS" && echo "OK" || echo "KO"
 
 ##
 # vim modeline
