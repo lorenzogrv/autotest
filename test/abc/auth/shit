@@ -9,7 +9,7 @@ function iai-auth.su {
   utip "input the password"
 	read -s pass
   info "checking credentials..."
-  su '$user' -c true <<<"$pass"
+  su "$user" <<<"$pass"$'\n'
 }
 
 echo "-------------------------------------------------"
@@ -23,9 +23,12 @@ iai login <<<"$TESTUSER"$'\n'"$TESTPASS" && echo "OK" || {
 	iai login && echo "OK" || echo "KO"
 }
 
-#info "> su test reading credentials"; iai-auth.su && echo "OK" || echo "KO"
 info "> su test with $TESTPASS password"
-iai-auth.su <<<$"$TESTUSER"$'\n'"$TESTPASS" && echo "OK" || echo "KO"
+iai-auth.su <<<$"$TESTUSER"$'\n'"$TESTPASS" && echo "OK" || {
+  echo "authorization doesn't succed for $TESTUSER:$TESTPASS"
+  info "> su test reading username and password from stdin"
+  iai-auth.su && echo "OK" || echo "KO"
+}
 
 ##
 # vim modeline
