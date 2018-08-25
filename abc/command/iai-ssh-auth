@@ -4,19 +4,19 @@ function iai-ssh-auth () {
 	which ssh &>/dev/null || fail "ssh not found"
 
 	test -n "$1" || fail "Missing argument 1: %s" "role of current machine"
-	test -n "$2" || fail "Missing argument 2: %s" "hostname of target machine"
-
 	case "$1" in
 		"client"|"server")
 			iai net ping "$2" || return 1
 			;;
 		*)
+		  emsg "role of current machine ($1) must be either 'client' or 'server'"
 			utip "Usage: $FUNCNAME client {target_server}"
 			utip "   or: $FUNCNAME server {target_client}"
-		  emsg "role of current machine ($1) must be either 'client' or 'server'"
 			exit 1
 			;;
 	esac
+	test -n "$2" || fail "Missing argument 2: %s" "hostname of target machine"
+
 	iai-ssh-auth-as-$1 "$2"
 }
 
