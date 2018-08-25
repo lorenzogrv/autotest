@@ -1,6 +1,19 @@
 assert_function iai || exit
 
 function iai-login () {
+  local user pass
+  utip "input the username"
+	read user
+  utip "input the password"
+	read -s pass
+
+  if su -V >/dev/null; then
+    info "checking credentials with su..."
+    su "$user" <<<"$pass"$'\n' 2>/dev/null
+    return $?
+  fi
+
+  warn "can't rely on su behaviour, will check credentials against shadow file"
 	test -r /etc/shadow || {
     emsg "/etc/shadow is NOT readable"
     local group=$(fs.group /etc/shadow)
@@ -21,11 +34,7 @@ function iai-login () {
     fi
     exit 1 # TODO should return 1 instead?
   }
-  local user pass shadow salt
-  utip "input the username"
-	read user
-  utip "input the password"
-	read -s pass
+  local shadow salt
   shadow=$(grep "^$user\:" /etc/shadow | cut -d : -f 2)
   salt=$(cut -d \$ -f 2,3 <<<"$shadow")
   comp=$(python -c "import crypt; print(crypt.crypt('$pass', '\$$salt\$'))")
