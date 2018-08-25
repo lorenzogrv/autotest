@@ -67,7 +67,7 @@ function iai () {
 			  info "loaded command %s" "$cmd"
 			else
 		    iai.dependencies || exit
-				verb "assuming command is an script because it's file is executable"
+				warn "assuming command is an script because it's file is executable"
 			fi
 		else
 		  iai.dependencies || exit
@@ -85,7 +85,7 @@ function iai () {
 
 	shift;
 	# Quoting is neccessary, otherwise quoted args are splitted
-	$cmd "$@" || exit
+	$cmd "$@" # DON'T EXIT, let command decide when to exit
 }
 
 ##

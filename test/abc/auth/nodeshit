@@ -1,15 +1,30 @@
 #!/usr/bin/env node
 
 const cp = require('child_process')
+const iai = cp.spawnSync('which', ['iai']).stdout.toString().trim()
 
 function login (user, pass, cb) {
-  cp.spawn('/usr/bin/su', [user], { stdio: ['pipe', 'ignore', 'ignore'] })
-    .on('exit', (code) => cb(code === 0 ? null : new Error('login invalid')))
-    .stdin.end(pass)
-  // TODO return promise
+  console.log('iai is "%s"', iai)
+  cp.spawn(iai, ['login'], { stdio: ['pipe', 'ignore', 'ignore'] })
+    .on('error', cb)
+    .on('exit', (code) => {
+      var error = null
+      if (code !== 0) {
+        error = new Error('login invalid')
+        error.LOGIN_EXIT_CODE = code
+      }
+      cb(error)
+    })
+    .stdin
+    .on('error', cb)
+    .end(user + '\n' + pass)
+  // TODO return promise?
 }
 
 login('lolo', 'insecure', function (err) {
   if (err) console.log(err)
   console.log('authentication', err ? 'failure' : 'succeed')
 })
+
+/* vim: set expandtab: */
+/* vim: set filetype=javascript ts=2 shiftwidth=2: */
