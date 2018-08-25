@@ -7,7 +7,7 @@ function iai-login () {
   utip "input the password"
 	read -s pass
 
-  if su -V >/dev/null; then
+  if su -V &>/dev/null; then
     info "checking credentials with su..."
     su "$user" <<<"$pass"$'\n' 2>/dev/null
     return $?
