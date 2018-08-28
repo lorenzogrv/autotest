@@ -136,13 +136,6 @@ gulp.task('watch-gulp:factor', function () {
     .start()
 })
 
-gulp.task('readkeys-data', function () {
-  return process.stdin
-    .pipe(readkeys({ humanize: true }))
-    .on('data', (data) => log.echo('data: "%s"', data))
-    .on('end', () => log.echo('end') + process.stdin.pause())
-})
-
 gulp.task('readkeys-focuslost', function run () {
   return process.stdin
     .pipe(readkeys({ humanize: true }))
