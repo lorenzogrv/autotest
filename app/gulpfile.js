@@ -142,7 +142,10 @@ gulp.task('readkeys', function () {
   process.stdin
     .pipe(keyboard)
     .on('timeout', () => {
-      log.info('keyboard timed out, should gracefully close now')
+      log.info('keyboard timed out')
+    })
+    .on('end', () => {
+      log.info('keyboard has end, process should exit gracefully')
     })
     // amazing way to push an extra newline character
     .pipe(new Transform({
@@ -153,7 +156,7 @@ gulp.task('readkeys', function () {
 })
 
 gulp.task('readkeys-pipe', function () {
-  var keyboard = readkeys({ input: null })
+  var keyboard = readkeys()
   Job('gulp', ['--color', 'readkeys'], {
     stdio: 'pipe',
     stdin: process.stdin.pipe(keyboard)
