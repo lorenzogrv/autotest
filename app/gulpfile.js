@@ -136,25 +136,6 @@ gulp.task('watch-gulp:factor', function () {
     .start()
 })
 
-gulp.task('readkeys', function () {
-  const { Transform } = require('stream')
-  var keyboard = readkeys({ t: 5, humanize: true })
-  process.stdin
-    .pipe(keyboard)
-    .on('timeout', () => {
-      log.info('keyboard timed out')
-    })
-    .on('end', () => {
-      log.info('keyboard has end, process should exit gracefully')
-    })
-    // amazing way to push an extra newline character
-    .pipe(new Transform({
-      transform: (chunk, enc, cb) => cb(null, chunk.toString('utf8') + '\n')
-    }))
-    .pipe(process.stdout)
-  return keyboard // end task when keyboard stream ends
-})
-
 gulp.task('readkeys-pipe', function () {
   var keyboard = readkeys()
   Job('gulp', ['--color', 'readkeys'], {
