@@ -135,21 +135,3 @@ gulp.task('watch-gulp:factor', function () {
   })
     .start()
 })
-
-gulp.task('readkeys-focuslost', function run () {
-  return process.stdin
-    .pipe(readkeys({ humanize: true }))
-    .on('data', (data) => log.echo('data: "%s"', data))
-    .once('focuslost', function first () { // once!!
-      process.stdin.pause()
-      log.echo('keyboard lost focus, paused stdin, resuming in 2 second')
-      this.once('focuslost', () => {
-        process.stdin.pause()
-        log.echo('second focus lost, paused stdin, should exit normally')
-      })
-      setTimeout(() => log.echo('resume stdin') + process.stdin.resume(), 2000)
-    })
-    .on('end', () => {
-      log.error('this event will never emit on this example')
-    })
-})
