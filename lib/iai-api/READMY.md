@@ -11,3 +11,7 @@
 
 - Está claro que "read" non pinta unha merda aquí, sendo unha utilidade de
   tan baixo nivel debería estar en abc.
+
+> 2018-08-28 20:58:26+02:00
+
+- Si UI recibe instancias de SECTION, SECTION deber�a estar na mesma carpeta que UI
