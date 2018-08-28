@@ -3,9 +3,9 @@ const abc = require('iai-api')
 const log = abc.log
 const readkeys = abc.readkeys
 
-var keyboard = readkeys({ t: 5, humanize: true })
-
 log.level = log.VERB
+
+var keyboard = readkeys({ t: 5, humanize: true })
 
 process.stdin
   .pipe(keyboard)

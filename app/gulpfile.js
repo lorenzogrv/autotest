@@ -136,19 +136,6 @@ gulp.task('watch-gulp:factor', function () {
     .start()
 })
 
-gulp.task('readkeys-pipe', function () {
-  var keyboard = readkeys()
-  Job('gulp', ['--color', 'readkeys'], {
-    stdio: 'pipe',
-    stdin: process.stdin.pipe(keyboard)
-  }).start()
-  // To start pipeline this way, option input must be set to null
-  return keyboard
-    .on('timeout', () => {
-      log.info('keyboard timed out, should gracefully close now')
-    })
-})
-
 gulp.task('readkeys-data', function () {
   return process.stdin
     .pipe(readkeys({ humanize: true }))
