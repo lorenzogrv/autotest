@@ -86,52 +86,27 @@ gulp.task('job:server', [ /* 'watch:browser' */ ], function () {
   } else {
     require('./backend')
   }
-  Job('node', ['./backend'], {
+  var keyboard = readkeys({ sigint: 12 })
+    .on('finish', () => {
+      log.warn('keystream has finish, unwatching job...')
+      job.unwatch()
+    })
+    .on('end', () => log.warn('keystream has end'))
+  var job = Job('node', ['./backend'], {
     stdio: 'pipe',
-    stdin: readkeys(process.stdin),
+    stdin: process.stdin.pipe(keyboard),
     watch: abc.sources(require.cache[require.resolve('./backend')])
   })
+    .on('close', () => {
+      log.warn('server job has closed')
+      log.warn('keyboard capture may still be active (Use Ctrl+L to finish)')
+      log.warn('watcher will still be running if keyboard capture is active')
+    })
     .start()
-  // don't be async, Job will respawn server when needed as watchify does
-  var finish = () => {
-    log.warn('finishing job (will pause stdin now)')
-    process.exitCode = 0
-    process.stdin.pause()
-  }
-  process.on('SIGINT', finish)
-  process.on('SIGUSR2', finish)
-  return process.stdin
+  return process.stdout
 })
 
-// spawns a job running gulp job:server task which restarts if gulpfile changes
-gulp.task('watch-gulp:job:server', function () {
-  // no need to populate gulpfile.js on require.cache as it's already required
-  Job('gulp', ['--color', 'job:server'], {
-    stdio: 'pipe',
-    stdin: readkeys(process.stdin),
-    watch: abc.sources(require.cache[require.resolve('./gulpfile.js')])
-  })
-    .start()
-  var finish = () => {
-    log.info('finishing job')
-    process.exitCode = 0
-    process.stdin.pause()
-  }
-  process.on('SIGINT', finish)
-  abc.proc.ignoreSIGINT()
-  process.on('SIGUSR2', finish)
-  return process.stdin
-})
+gulp.task('default', ['job:server'])
 
-// this is a bad idea
-// gulp.task('default', ['watch-gulp:job:server'])
-
-gulp.task('watch-gulp:factor', function () {
-  // no need to populate gulpfile.js on require.cache as it's already required
-  Job('gulp', ['--color', 'factor'], {
-    stdio: 'pipe',
-    await: true,
-    watch: abc.sources(require.cache[require.resolve('./gulpfile.js')])
-  })
-    .start()
-})
+/* vim: set expandtab: */
+/* vim: set filetype=javascript ts=2 shiftwidth=2: */

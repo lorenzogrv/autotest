@@ -100,6 +100,8 @@ if (require.main === module) {
     }) // */
     .once('close', () => {
       log.info('closed backend service.')
+      // force stdin destroy to gracefull exit allways
+      process.stdin.destroy()
     })
     .listen(27780)
 }

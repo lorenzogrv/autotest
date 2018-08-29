@@ -1,12 +1,13 @@
 const { basename, relative } = require('path')
-var spawn = require('child_process').spawn
-var watch = require('chokidar').watch
+const { EventEmitter } = require('events')
+const spawn = require('child_process').spawn
+const watch = require('chokidar').watch
 
-var oop = require('iai-oop')
-var iai = require('iai-abc')
+const oop = require('iai-oop')
+const iai = require('iai-abc')
 
 var log = iai.log
-log.level = iai.Log.VERB
+// log.level = log.VERB
 
 module.exports = Job
 
@@ -14,11 +15,13 @@ module.exports = Job
  * @function Job: builds a wrap to run a child_process job
  */
 
+Job.prototype = new EventEmitter()
 Job.constructor = Job
-Job.constructor.prototype = Job
+Job.constructor.prototype = Job.prototype
 
 function Job (cmd, argv, opts) {
-  var instance = Object.create(Job)
+  var instance = Object.create(Job.prototype)
+  EventEmitter.call(instance)
 
   argv = argv || []
   opts = opts || {}
@@ -69,7 +72,7 @@ function Job (cmd, argv, opts) {
   return instance
 }
 
-Job.toString = function () {
+Job.prototype.toString = function () {
   return this.cp
     ? (basename(this.cmd) + '@' + this.cp.pid)
     : ('Job#' + basename(this.cmd))
@@ -80,29 +83,33 @@ function trunc (str, n, dots) {
   return str.length > n ? str.substr(0, n - dots.length) + dots : str
 }
 
-Job.start = function start () {
+Job.prototype.start = function start () {
   if (this.cp) return this.restart()
 
   var job = this
 
-  log.info('%s %s spawning now...', this, trunc(this.argv.join(' '), 16))
+  log.warn('%s %s spawning now...', this, trunc(this.argv.join(' '), 16))
   log.verb('> %s %s', this.cmd, this.argv.join(' '))
 
   this.cp = spawn(this.cmd, this.argv, { stdio: this.stdio })
     .on('close', function (code, signal) {
       log[code || signal ? 'error' : 'info'](
-        '%s exited with code %s and signal %s', job, code, signal
+        '%s closed with code %s and signal %s', job, code, signal
       ) // when code is 0 and there is no signal, this is just informational
+      job.emit('close', code, signal)
     })
     .on('exit', function (code, signal) {
       log[code || signal ? 'error' : 'info'](
         '%s exited with code %s and signal %s', job, code, signal
       ) // when code is 0 and there is no signal, this is just informational
       job.cp = null
-      if (!job.watch.length) {
-        return log.warn('%s is done and will not run anymore.', job)
+      if (job.watch.length) {
+        // was awaiting exit to start watching?
+        job.await && job.watcher('start')
+      } else {
+        log.warn('%s is done and will not run anymore.', job)
       }
-      job.await && job.watcher('start') // was awaiting exit to start watching?
+      job.emit('exit', code, signal)
     })
     .on('error', function (err) {
       log.error('%s child process error', job, err.message)
@@ -133,11 +140,11 @@ Job.start = function start () {
         bol = data[data.length - 1] === '\n'
       }
     }
-    log.warn('> will display child process outputs on this process outputs')
+    log.info('> will display child process outputs on this process outputs')
     this.cp.stdout.on('data', writer(process.stdout, '|'))
     this.cp.stderr.on('data', writer(process.stderr, '#'))
     if (this.stdin) {
-      var unpipe = (why) => log.warn('%s stdin %s, unpiped input', this, why)
+      var unpipe = (why) => log.info("%s's stdin %s, unpiped input", this, why)
       log.warn('> will pipe given stdin stream to child process stdin')
       var pid = this.cp.pid
       this.stdin
@@ -153,7 +160,7 @@ Job.start = function start () {
   return (this.watch.length && !this.await) ? this.watcher() : this
 }
 
-Job.watcher = function watcher (action) {
+Job.prototype.watcher = function watcher (action) {
   if (this._watcher) {
     return log.info('> watcher still running for %s', this)
   }
@@ -185,7 +192,15 @@ Job.watcher = function watcher (action) {
   return this
 }
 
-Job.restart = function restart () {
+Job.prototype.unwatch = function unwatch () {
+  if (this._watcher) {
+    log.info('%s stoping watcher...', this)
+    this._watcher.close()
+  }
+  return this
+}
+
+Job.prototype.restart = function restart () {
   if (!this.cp) {
     log.warn('%s is stoped but is going to start...', this)
     return this.start()
@@ -197,7 +212,7 @@ Job.restart = function restart () {
   })
 }
 
-Job.stop = function stop (signal, callback) {
+Job.prototype.stop = function stop (signal, callback) {
   signal = signal || 'SIGUSR2'
   var signals = [signal, 'SIGTERM']
 
@@ -208,7 +223,11 @@ Job.stop = function stop (signal, callback) {
     var timeout = setTimeout(() => {
       log.error('%s did not handle %s after %ss', this, signal, t)
       timeout = null
-      signals.length ? attempt.call(this) : this.cp.kill()
+      if (signals.length) {
+        attempt.call(this)
+      } else {
+        throw new Error('could not kill it')
+      }
     }, t * 1000)
     this.cp.once('exit', () => {
       if (timeout) {
@@ -226,3 +245,6 @@ Job.stop = function stop (signal, callback) {
   // TODO if child process does not handle SIGUSR2 and exit? => timeout
   return this
 }
+
+/* vim: set expandtab: */
+/* vim: set filetype=javascript ts=2 shiftwidth=2: */
