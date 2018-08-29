@@ -162,10 +162,10 @@ Job.prototype.start = function start () {
 
 Job.prototype.watcher = function watcher (action) {
   if (this._watcher) {
-    return log.info('> watcher still running for %s', this)
+    return log.warn('> watcher still running for %s', this)
   }
   action = /start|restart|stop/.test(action) ? action : 'restart'
-  log.verb('> starting watcher to %s %s on all events', action, this)
+  log.warn('> starting watcher to %s %s on all events', action, this)
 
   var watcher = this._watcher = watch(this.watch, {
     persistent: true, ignoreInitial: true // chokidar options
@@ -177,11 +177,12 @@ Job.prototype.watcher = function watcher (action) {
         if (!watcher) return log.error('there is no watcher to stop')
         log.info('caught %s, stopping watcher for %s...', signal, this)
         watcher.close()
-        watcher = null
+        watcher = this._watcher = null
       }))
       log.verb('> watcher will close on %s signals', signals.join(' or '))
       log.verb('> waiting an event to %s...', this.await ? 'run again' : action)
     })
+    .on('close', () => log.error('closed watcher for %s', this))
     .on('all', (event, file) => {
       log.warn(
         'will %s %s (watched %s %s)',

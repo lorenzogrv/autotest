@@ -28,13 +28,14 @@ service
         this.emit(event.name, ws, event.data)
         ws.emit(event.name, event.data)
       } else {
-        throw iai.Error('no name field in received JSON message')
+        log.error('no name field in received JSON message:')
+        log.error(event)
       }
     } catch (err) {
       if (err instanceof SyntaxError) {
-        return log.warn('received non-JSON message "%s"', data)
+        return log.error('received non-JSON message "%s"', data)
       }
-      log.error(err)
+      log.error(err.stack)
     }
   })
 
