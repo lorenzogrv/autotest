@@ -5,8 +5,12 @@
   "bin": {
     "iai": "./bin/iai"
   },
-  "main": "./api/backend.js",
-  "browser": "./api/browser.js",
+  "bundledDependencies": [
+    "iai-abc",
+    "iai-ansi",
+    "iai-oop",
+    "iai-api"
+  ],
   "dependencies": {
     "cheerio": "^0.22.0",
     "chokidar": "^2.0.0",
@@ -21,9 +25,7 @@
     "ws": "^4.0.0"
   },
   "scripts": {
-    "test": "./script/test",
-    "start": "./bin/iai-test ./bin/iai-ide.js",
-    "watch": "gulp watch"
+    "test": "./script/test"
   },
   "devDependencies": {
     "browserify": "^16.1.0",
