@@ -15,7 +15,7 @@ iai-root () {
 # research if environment is a standard or termux instalation
 ##
 env-mode () {
-  if termux-info 2>/dev/null; then
+  if termux-info &>/dev/null; then
     echo "termux"
   else
     echo "standard"
@@ -25,7 +25,7 @@ env-mode () {
 echo "Researching the iai path..."
 IAI_PATH="$(iai-root)/script/$(env-mode)"
 test -d "$IAI_PATH" || {
-  echo "Error: $IAI_PATH is not a directory";
+  echo "Error: '$IAI_PATH' is not a directory";
   exit 1;
 } >&2
 echo "iai scripts are located at $IAI_PATH"
