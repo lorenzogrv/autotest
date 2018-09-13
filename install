@@ -1,0 +1,53 @@
+##
+# outputs the directory where iai resides (the "iai root").
+# SEE http://stackoverflow.com/a/246128/1894803
+##
+iai-root () {
+	local SOURCE="${BASH_SOURCE[0]}" DIR=""
+	while [ -h "$SOURCE" ]; do
+		DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+		SOURCE="$(readlink "$SOURCE")"
+		[[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+	done
+	echo "$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+}
+##
+# research if environment is a standard or termux instalation
+##
+env-mode () {
+  if termux-info 2>/dev/null; then
+    echo "termux"
+  else
+    echo "standard"
+  fi
+}
+
+echo "Researching the iai path..."
+IAI_PATH="$(iai-root)/script/$(env-mode)"
+test -d "$IAI_PATH" || {
+  echo "Error: $IAI_PATH is not a directory";
+  exit 1;
+} >&2
+echo "iai scripts are located at $IAI_PATH"
+
+RC_FILE=~/.bashrc
+
+RC_LINE="export PATH=\"\$PATH:$IAI_PATH\""
+echo "Checking if ${RC_FILE/$HOME/"~"} contains the path line..."
+grep "$RC_LINE" "$RC_FILE" &>/dev/null && {
+  echo "Error: ${RC_FILE/$HOME/"~"} already contains the path line"
+  echo "iai should be already installed"
+  exit 1
+} >&2
+
+printf "\n$RC_LINE\n" >>$RC_FILE
+cat <<INFO
+added the path line to ${RC_FILE/$HOME/"~"}
+to finish instalation, restart the shell or use:
+  source ${RC_FILE/$HOME/"~"}
+INFO
+
+##
+# vim modeline
+# /* vim: set expandtab: */
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */
