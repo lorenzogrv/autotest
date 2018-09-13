@@ -42,6 +42,12 @@ function iai () {
   if test $# -eq 0
 	then
 		local artii="$(iai-path dojo db artii)"
+    sort -R &>2 /dev/null || {
+      iai.dependencies
+      emsg "sort has no -R support (maybe a busybox binary?)"
+      utip "try %s" "iai pkg install coreutils"
+      exit 1
+    }
 		cat "$artii/$(iai find in "$artii" -type f | sort -R | head -1)"
     exit 0
 	fi
