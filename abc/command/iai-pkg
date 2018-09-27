@@ -43,6 +43,7 @@ sudo="$(type -p sudo)"
 iai-pkg.apt.update () { $sudo apt update; }
 iai-pkg.apt.search () { apt search "$@"; }
 iai-pkg.apt.install () { $sudo apt install "$@"; }
+iai-pkg.apt.destroy () { $sudo apt purge "$@"; }
 iai-pkg.apt.upgrade () { $sudo apt update && sudo apt upgrade; }
 iai-pkg.apt.cleanup () { $sudo apt autoremove; }
 
