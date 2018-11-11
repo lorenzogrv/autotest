@@ -41,6 +41,7 @@ function iai-net-wanip () {
       utip "Try '%s' (debian/etc)" "iai pkg install dnstools"
       utip "or '%s' (arch/etc)" "iai pkg install bind-tools"
       utip "or '%s' (openwrt)" "iai pkg install bind-dig"
+      utip "or '%s' (termux)" "iai pkg install dnsutils"
     else
       utip "unknown error"
       dig +short myip.opendns.com @resolver1.opendns.com
