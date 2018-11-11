@@ -161,7 +161,7 @@ function iai-tree () {
 	 	| iai-pager || exit 1
 }
 function iai-ls () {
-	ls -lhu --color=always --group-directories-first "$@"\
+	ls -ohu --color=always --group-directories-first "$@"\
 		| iai-pager || exit 1
 }
 function iai-pager () {
