@@ -67,16 +67,37 @@ function iai () {
       if ! test -x "$file"
       then
         iai.dependencies || exit
-        verb "assuming command is a bash function because it's not executable"
         # executable files must include a shebang to be run directly
         source "$file" || {
-          fail "Got exit code $? while sourcing %s" "$file"
+          emsg "Got exit code $? while sourcing %s" "$file"
+          utip "assumed it defines a bash function because it's not executable"
+          local bang="$(head -1 "$file" | grep "^#!")"
+          if test -n "$bang"
+          then
+            case "$bang" in
+              *bash*) fail "$file has a bash shebang, should be sourceable" ;;
+              *node*) utip "$file has a node shebang" ;;
+              *) warn "$file has an unknown shebang: %s" "$bang" ;;
+            esac
+            utip "try %s" "chmod +x $file && iai ${@}"
+          fi
+          exit 1
         }
         assert_function "$cmd" # or there is no function named $cmd at that file
         info "loaded command %s" "$cmd"
       else
-        iai.dependencies || exit
-        warn "assuming command is an script because it's file is executable"
+        if ! head -1 "$file" | grep -q "^#!"
+        then
+          iai.dependencies || exit
+          emsg "unexpected start of the executable file %s" "$file"
+          utip "to run this command, either:"
+          utip "  1) $file should have a shebang"
+          utip "     try adding a shebang to the file"
+          utip "or"
+          utip "  2) $file should not be executable"
+          utip "     try %s" "chmod -x $file && iai ${@}"
+          exit 1
+        fi
       fi
     else
       iai.dependencies || exit
