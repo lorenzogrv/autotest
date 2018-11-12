@@ -3,21 +3,40 @@ assert_function iai || exit
 function iai-ssh-auth () {
 	which ssh &>/dev/null || fail "ssh not found"
 
-	test -n "$1" || fail "Missing argument 1: %s" "role of current machine"
+	# TODO bashido emsg and exit wrapper: """miss"""
+	# TODO so i can: test -z $1 && miss "argument 1" "role of current machine"
+	if test -z "$1"
+	then
+		emsg "Missing argument 1: %s" "role of current machine"
+		return 1
+	fi
+	test -n "$2" || fail "Missing argument 2: %s" "hostname of target machine"
 	case "$1" in
-		"client"|"server")
-			iai net ping "$2" || return 1
+		"client"|"server") # TODO put instead of client, get instead of server
+			iai-ssh-auth check "$2" || return 1
+	    iai-ssh-auth-as-$1 "$2"
 			;;
-		*)
-		  emsg "role of current machine ($1) must be either 'client' or 'server'"
+		"check")
+			iai net ping "$2" || return 1
+			info "Checking if target machine can be reached through ssh..."
+			if ! ssh "$2" :
+			then
+				emsg "Can't reach that machine with 'ssh $2'"
+				utip "Take a look at %s," "~/.ssh/ssh_config, "
+				utip "where you may need to specify Username/Port or so."
+				utip "If needed, see %s" "man 5 ssh_config"
+				utip "To determine available auth methods, use %s"\
+					"ssh -o PreferredAuthentications=none $2"
+				return 1
+			fi
+		;;
+	*)
+		  emsg "role of current machine (\$1) must be either 'client' or 'server'"
 			utip "Usage: $FUNCNAME client {target_server}"
 			utip "   or: $FUNCNAME server {target_client}"
-			exit 1
+			return 1
 			;;
 	esac
-	test -n "$2" || fail "Missing argument 2: %s" "hostname of target machine"
-
-	iai-ssh-auth-as-$1 "$2"
 }
 
 function iai-ssh-auth-as-client {
@@ -44,10 +63,6 @@ function iai-ssh-auth-as-client {
 	then
 		emsg "something whent wrong while sending the key"
 		utip "Is current machine able to ssh into server?"
-		utip "> %s" "ssh $server"
-		utip "Take a look at %s," "~/.ssh/ssh_config"
-		utip "you may need to specify Username/Port or so."
-		utip "If needed, see %s" "man 5 ssh_config"
 		return 1
 	fi
 
@@ -62,7 +77,7 @@ function iai-ssh-auth-as-server {
 	test -e "$idfile" && warn "will overwrite %s" "$idfile"
 
 	info "Getting the id_rsa.pub file from %s" "$client"
-	if ! scp "$client:~/.ssh/id_rsa.pub" "$idfile"
+	if ! ssh "$client" "cat ~/.ssh/id_rsa.pub" >"$idfile"
 	then
 		emsg "something went wrong while retrieving the key"
 		utip "Does the remote machine (%s) have an id_rsa.pub file?" "$client"
@@ -75,12 +90,19 @@ function iai-ssh-auth-as-server {
 	fi
 
 	verb "Adding the key to '~/.ssh/authorized_keys'"
-	cat "$idfile" >> ~/.ssh/authorized_keys || fail "something went wrong"
+	if grep -x -q "$(cat "$idfile")" ~/.ssh/authorized_keys
+	then
+		warn "$client's public key is already authorized"
+	else
+	  cat "$idfile" >> ~/.ssh/authorized_keys || fail
+		info "Successfully added %s's key" "$client"
+	fi
 
-	info "Successfully added %s's key" "$client"
-	utip "Now you can ssh into this system from %s" "$client"
+  rm "$idfile" # don't leave trash, please
+	utip "Now you should be able to ssh into this system from %s" "$client"
 }
 
 ##
 # vim modeline
+# /* vim: set expandtab: */
 # /* vim: set filetype=sh ts=2 shiftwidth=2: */
