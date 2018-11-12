@@ -9,13 +9,26 @@ function iai-sync () {
 	fi
 }
 
+function iai-sync-action () {
+  node -e "console.log($(iai git-status).action)"
+}
+
 function iai-sync-repo () {
 	local repo="${1:-$(iai repo)}"
 	test -z "$repo" && emsg "can't sync because can't find git repo" && exit 1
   
   cd "$repo" || fail
   repo="~${repo#$HOME}"
-  info "going to sync git repo at $repo"
+  info "fetching %s" "$repo"
+  git fetch
+  case "$(iai-sync-action)" in
+    fetch)
+      emsg "check files, no push/pull need"
+      node -e "console.log($(iai git-status))"
+      exit 1
+      ;;
+    *) fail "can't determine what to do" ;;
+  esac
   utip "> git pull"
   git pull || fail "can't pull"
   utip "> git push"
