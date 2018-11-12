@@ -1,3 +1,5 @@
+#!/usr/bin/bash
+
 # NOTE: `set -e` impedes try-catching commands
 
 ##
@@ -9,26 +11,26 @@
 ##
 
 iai.dependencies () {
-	type -t bashido >/dev/null || { echo >&2 "FATAL: missing bashido"; exit 1; }
-	source "$(bashido api)" --source-only || exit
-	log.filter () {
-		#return 0 # uncomment this line for max amount of verbosity
-		#return 1 # uncomment this line to remove al logging
+  type -t bashido >/dev/null || { echo >&2 "FATAL: missing bashido"; exit 1; }
+  source "$(bashido api)" --source-only || exit
+  log.filter () {
+    #return 0 # uncomment this line for max amount of verbosity
+    #return 1 # uncomment this line to remove al logging
     
     test $1 != 'VV'; return; # omit verbose messages
 
-		# log.filter receives 3 arguments:
-		# $1: "lvl" (one of EE, II, VV, etc.)
-		# $2: "fn" (the function where log output was requested)
-		# $3: "file" (the file where the function is defined)
-		# try: echo "logs $@"
+    # log.filter receives 3 arguments:
+    # $1: "lvl" (one of EE, II, VV, etc.)
+    # $2: "fn" (the function where log output was requested)
+    # $3: "file" (the file where the function is defined)
+    # try: echo "logs $@"
     case "$1" in
       EE|WW|UX|II) return 0 ;;
       *) return 1 ;;
     esac
-	}
-	bashido.require "assert.common" || exit
-	iai.dependencies () { true; }
+  }
+  bashido.require "assert.common" || exit
+  iai.dependencies () { true; }
   info "loaded iai dependencies"
 }
 
@@ -40,58 +42,59 @@ iai.dependencies () {
 ##
 function iai () {
   if test $# -eq 0
-	then
-		local artii="$(iai-path dojo db artii)"
-    sort -R &> /dev/null || {
+  then
+    if ! </dev/null sort -R &>/dev/null
+    then
       iai.dependencies
       emsg "sort has no -R support (maybe a busybox binary?)"
       utip "try %s" "iai pkg install coreutils"
       exit 1
-    }
-		cat "$artii/$(iai find in "$artii" -type f | sort -R | head -1)"
+    fi
+    local artii="$(iai-path dojo db artii)"
+    find "$artii" -type f -print0 | sort -R -z | head -1 -z | xargs -0 cat
     exit 0
-	fi
+  fi
 
-	local cmd="iai-$1"
-	local typ="$(type -t "$cmd")"
+  local cmd="iai-$1"
+  local typ="$(type -t "$cmd")"
 
-	# when cmd is function, it's either builtin or an already sourced file
-	# so there aren't actions needed before running the command
-	if test "$typ" != "function"; then
-		# when command is a file, it's assumed to be its function source file
-		if test "$typ" = "file"; then
-			local file="$(type -p $cmd)"
-			if ! test -x "$file"
-			then
-		    iai.dependencies || exit
-				verb "assuming command is a bash function because it's not executable"
-			  # executable files must include a shebang to be run directly
-			  source "$file" || {
-					fail "Got exit code $? while sourcing %s" "$file"
-			  }
-			  assert_function "$cmd" # or there is no function named $cmd at that file
-			  info "loaded command %s" "$cmd"
-			else
-		    iai.dependencies || exit
-				warn "assuming command is an script because it's file is executable"
-			fi
-		else
-		  iai.dependencies || exit
-			if test -n "$typ"; then
-				emsg "type -t '$cmd' reports '$typ'"
-			else
-				warn "there is nothing named %s" "$cmd"
-			fi
-			emsg "unknown command %s" "$1" || exit
-			iai-help | utip
-			return 1
-		fi
-	  type -t verb >/dev/null && verb "exec %s" "iai-${@}"
-	fi
+  # when cmd is function, it's either builtin or an already sourced file
+  # so there aren't actions needed before running the command
+  if test "$typ" != "function"; then
+    # when command is a file, it's assumed to be its function source file
+    if test "$typ" = "file"; then
+      local file="$(type -p $cmd)"
+      if ! test -x "$file"
+      then
+        iai.dependencies || exit
+        verb "assuming command is a bash function because it's not executable"
+        # executable files must include a shebang to be run directly
+        source "$file" || {
+          fail "Got exit code $? while sourcing %s" "$file"
+        }
+        assert_function "$cmd" # or there is no function named $cmd at that file
+        info "loaded command %s" "$cmd"
+      else
+        iai.dependencies || exit
+        warn "assuming command is an script because it's file is executable"
+      fi
+    else
+      iai.dependencies || exit
+      if test -n "$typ"; then
+        emsg "type -t '$cmd' reports '$typ'"
+      else
+        warn "there is nothing named %s" "$cmd"
+      fi
+      emsg "unknown command %s" "$1" || exit
+      iai-help | utip
+      return 1
+    fi
+    type -t verb >/dev/null && verb "exec %s" "iai-${@}"
+  fi
 
-	shift;
-	# Quoting is neccessary, otherwise quoted args are splitted
-	$cmd "$@" # DON'T EXIT, let command decide when to exit
+  shift;
+  # Quoting is neccessary, otherwise quoted args are splitted
+  $cmd "$@" # DON'T EXIT, let command decide when to exit
 }
 
 ##
@@ -109,13 +112,13 @@ function iai () {
 function iai-help () {
   iai.dependencies || exit
   if test -f ./README.md
-	then
-		utip "try '%s' for information about this directory" "cat ./README.md"
-	else
-		warn "no README.md file was found here (%s)" "$PWD"
-	  utip "you should init README.md with a tree description, use '%s'"\
+  then
+    utip "try '%s' for information about this directory" "cat ./README.md"
+  else
+    warn "no README.md file was found here (%s)" "$PWD"
+    utip "you should init README.md with a tree description, use '%s'"\
     "iai-tree > README.md"
-	fi
+  fi
 cat <<HELP
 ===
 iai
@@ -125,21 +128,21 @@ usage: iai [command] [command arguments ...]
 
 built-in commands:
 $(while read d t fn; do echo $fn; done < <(declare -F)\
-   	| grep "iai-"\
-  	| sort\
-  	|	while read cmd; do printf "  ${cmd##iai-}"; done
+     | grep "iai-"\
+    | sort\
+    |  while read cmd; do printf "  ${cmd##iai-}"; done
   )
 
 other available commands:
 $(find "$(iai-path abc command)" -type f -name "iai-*" -print0\
-		| sort -z\
-  	| while read -d $'\0' cmd; do printf "  ${cmd##*/iai-}"; done\
+    | sort -z\
+    | while read -d $'\0' cmd; do printf "  ${cmd##*/iai-}"; done\
   )
 
 other available executables:
 $(find "$(iai-path bin)" -name "iai-*" -print0\
-		| sort -z\
-  	| while read -d $'\0' cmd; do printf "  ${cmd##*/iai-}"; done\
+    | sort -z\
+    | while read -d $'\0' cmd; do printf "  ${cmd##*/iai-}"; done\
   )
 ---
 HELP
@@ -157,21 +160,21 @@ function iai-time () { date --rfc-3339=seconds || exit 1; }
 # `iai pager` standarizes the way to invoke a pager
 ##
 function iai-tree () {
-	tree -L 2	--dirsfirst --sort=name --noreport -C --filelimit 20 "$@"\
-	 	| iai-pager || exit 1
+  tree -L 2  --dirsfirst --sort=name --noreport -C --filelimit 20 "$@"\
+     | iai-pager || exit 1
 }
 function iai-ls () {
-	ls -ohu --color=always --group-directories-first "$@"\
-		| iai-pager || exit 1
+  ls -ohu --color=always --group-directories-first "$@"\
+    | iai-pager || exit 1
 }
 function iai-pager () {
-	# -i ignore case when searching, but respect case if term contains uppercase
-	# -X do not clear screen on exit
-	# -F exits if text is less than one screen long
-	# -E automatically exit the second time it reaches end-of-file
-	# -R bypasses ANSI color sequences (-r bypasses all ANSI sequences)
-	##
-	less -iXFR "$@" || exit 1
+  # -i ignore case when searching, but respect case if term contains uppercase
+  # -X do not clear screen on exit
+  # -F exits if text is less than one screen long
+  # -E automatically exit the second time it reaches end-of-file
+  # -R bypasses ANSI color sequences (-r bypasses all ANSI sequences)
+  ##
+  less -iXFR "$@" || exit 1
 }
 function iai-view () {
   iai reader "$@" | iai-pager
@@ -191,14 +194,14 @@ function iai-lanip () { iai net lanip; }
 # : research absolute paths to this script file and its directory
 ##
 iai-root () {
-	local SOURCE="${BASH_SOURCE[0]}" DIR=""
-	while [ -h "$SOURCE" ]; do
-		DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-		SOURCE="$(readlink "$SOURCE")"
-		[[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
-	done
-	DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-	dirname $DIR
+  local SOURCE="${BASH_SOURCE[0]}" DIR=""
+  while [ -h "$SOURCE" ]; do
+    DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  done
+  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  dirname $DIR
 }
 
 ##
@@ -208,7 +211,7 @@ iai-root () {
 function iai-dir () {
   iai.dependencies || exit
   warn "iai-dir is deprecated, use iai-root instead"
-	iai-root
+  iai-root
 }
 
 ##
@@ -229,14 +232,14 @@ function iai-path () {
 # `iai-nbin` syntactic sugar for `iai-path node_modules/.bin/$@`
 ##
 function iai-nbin () {
-	iai-path "node_modules/.bin/$@"
+  iai-path "node_modules/.bin/$@"
 }
 
 function iai-repo () {
-	git rev-parse --show-toplevel 2>/dev/null || {
-	  iai.dependencies || exit
-		emsg "Could not find git repository"
-		exit 1
+  git rev-parse --show-toplevel 2>/dev/null || {
+    iai.dependencies || exit
+    emsg "Could not find git repository"
+    exit 1
   }
 }
 
@@ -244,7 +247,7 @@ function iai-repo () {
 # `iai-dependencies` is an utility to check if dependencies load
 ##
 function iai-dependencies () {
-	iai.dependencies
+  iai.dependencies
 }
 
 ##
@@ -252,20 +255,20 @@ function iai-dependencies () {
 ##
 function iai-working () {
   local last_code=$?
-	(( last_code )) && warn "called after an exit-status %s" "$last_code"
+  (( last_code )) && warn "called after an exit-status %s" "$last_code"
   iai.dependencies || exit
-	read line fn file <<<"$(caller 0)"
-	test "$fn" = "iai" && read line fn file <<<"$(caller 1)"
-	utip "You were working at function %s" $fn
-	utip "to continue working on, use: %s" "vim +$line .${file##$PWD}"
-	exit 1
+  read line fn file <<<"$(caller 0)"
+  test "$fn" = "iai" && read line fn file <<<"$(caller 1)"
+  utip "You were working at function %s" $fn
+  utip "to continue working on, use: %s" "vim +$line .${file##$PWD}"
+  exit 1
 }
 
 ##
 # `iai-confirm` asks for confirmation on stdin
 ##
 function iai-confirm () {
-	iai.dependencies || exit
+  iai.dependencies || exit
   read line fn file <<<"$(caller 0)"
   test "$fn" = "iai" && read line fn file <<<"$(caller 1)"
 
@@ -289,7 +292,7 @@ function iai-confirm () {
     utip "action accepted"
   else
     emsg "action refused"
-	  utip "use %s to see the function" "vim +$line .${file##$PWD}"
+    utip "use %s to see the function" "vim +$line .${file##$PWD}"
     exit 1
   fi
   
