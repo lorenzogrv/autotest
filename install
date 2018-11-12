@@ -30,31 +30,33 @@ test -d "$IAI_PATH" || {
 } >&2
 echo "iai scripts are located at $IAI_PATH"
 
-echo "Creating system-wide symbolic links for scripts..."
-  for origin in $IAI_PATH/*
-  do
-    file="/usr/local/bin/$(basename "$origin")"
-    test -L "$file" && echo "symbolic link $file will be replaced"
-    echo "> ln -s -i ${origin/$HOME/~} $file" # to automate use -f instead of -i
-    sudo ln -s -i $origin $file
-  done
-
 RC_FILE=~/.bashrc
 
 RC_LINE="export PATH=\"\$PATH:$IAI_PATH\""
-echo "Checking if ${RC_FILE/$HOME/"~"} contains the path line..."
+
+echo "Checking if ${RC_FILE/$HOME/"~"} contains the old installation path..."
 grep "$RC_LINE" "$RC_FILE" &>/dev/null && {
-  echo "Error: ${RC_FILE/$HOME/"~"} already contains the path line"
-  echo "iai should be already installed"
-  exit 1
+  echo "WARN: ${RC_FILE/$HOME/"~"} contains an old-installation path line"
+  echo "will remove it now"
+  grep -v "$RC_LINE" "$RC_FILE" >temporal-rc-file
+  mv temporal-rc-file "$RC_FILE"
+  cat <<INFO
+  removed the path line from ${RC_FILE/$HOME/"~"}
+  to finish unistall, restart the shell
+INFO
 } >&2
 
-printf "\n$RC_LINE\n" >>$RC_FILE
-cat <<INFO
-added the path line to ${RC_FILE/$HOME/"~"}
-to finish instalation, restart the shell or use:
-  source ${RC_FILE/$HOME/"~"}
-INFO
+# this is the old "install" way
+#printf "\n$RC_LINE\n" >>$RC_FILE
+
+echo "Creating system-wide symbolic links for scripts..."
+for origin in $IAI_PATH/*
+do
+  file="/usr/local/bin/$(basename "$origin")"
+  test -L "$file" && echo "symbolic link $file will be replaced"
+  echo "> ln -s -i ${origin/$HOME/~} $file" # to automate use -f instead of -i
+  sudo ln -s -i $origin $file
+done
 
 ##
 # vim modeline
