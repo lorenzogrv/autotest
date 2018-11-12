@@ -1,0 +1,100 @@
+#!/usr/bin/env node
+
+/**
+ * # iai-git-status
+ *
+ * Outputs information about the current git repository.
+ *
+ * If the current working directory is not a git repository,
+ * the program exits with code 1 and does not print anything to stdout.
+ */
+
+const cp = require('child_process')
+const slice = Array.prototype.slice.call
+
+// likewise "echo", but to stderr
+function eche () {
+  var args = slice(arguments)
+  args[0] = 'iai-git-status: ' + args[0]
+  console.error.call(null, args)
+}
+
+var report = cp.spawn('git', ['status', '-b', '--porcelain', '-z'])
+  .once('error', function (error) {
+    if (error.code === 'ENOENT') {
+      eche('ENOENT while spawning git. Possible causes:')
+      eche('  - git is not installed')
+      eche('  - git is not in $PATH')
+      process.exit(1)
+    }
+    eche('child-process error with code=%s', error.code)
+    console.error(error.stack)
+    process.exit(1)
+  })
+
+var output = {}
+var branch = / (\S+)\.{3}(\S+)\/\1 \[(\S+) (\d+)(?:, (\S+) (\d+))?\]/
+var files = [ false, false, false ]
+
+report.stdout.on('data', function (data) {
+  data
+    .toString()
+    .split('\0')
+    .some(function (line, i) {
+      if (output.branch && files[0] && files[1] && files[2]) {
+        return true
+      }
+      if (!line) {
+        return false
+      }
+      if (!i && line[0] === '#') {
+        var match = line.match(branch)
+        if (!match) {
+          output.branch = line.substr(3)
+          return false
+        }
+        output.branch = match[1]
+        output.remote = match[2]
+        output.ahead = match[4]
+        output.behind = match[6]
+        // TODO this will lead to bugs, sure
+        if (match[3] && match[3] === 'detás') {
+          eche('pay attention here!!')
+          delete output.ahead
+          output.behind = match[4]
+        }
+        // console.log( match );
+        return false
+      }
+      if (line.substr(0, 2) === '??') {
+        files[2] = true
+        return false
+      }
+      if (!files[0] && line[0] !== ' ') {
+        files[0] = true
+      }
+      if (!files[1] && line[1] !== ' ') {
+        files[1] = true
+      }
+    })
+
+  output.files = {
+    staged: files[0],
+    changed: files[1],
+    untracked: files[2]
+  }
+  if (output.branch && files[0] && files[1] && files[2]) {
+    report.kill()
+  }
+})
+
+// output as soon as git exits
+report.on('close', function finish (code, signal) {
+  if (code !== null && code !== 0) {
+    return process.exit(1)
+  }
+  output.action = output.behind ? 'pull' : output.ahead ? 'push' : 'fetch'
+
+  console.log(JSON.stringify(output, null, 4))
+  process.exit()
+})
