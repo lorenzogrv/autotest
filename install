@@ -30,6 +30,15 @@ test -d "$IAI_PATH" || {
 } >&2
 echo "iai scripts are located at $IAI_PATH"
 
+echo "Creating system-wide symbolic links for scripts..."
+  for origin in $IAI_PATH/*
+  do
+    file="/usr/local/bin/$(basename "$origin")"
+    test -L "$file" && echo "symbolic link $file will be replaced"
+    echo "> ln -s -i ${origin/$HOME/~} $file" # to automate use -f instead of -i
+    sudo ln -s -i $origin $file
+  done
+
 RC_FILE=~/.bashrc
 
 RC_LINE="export PATH=\"\$PATH:$IAI_PATH\""
