@@ -1,105 +1,105 @@
 assert_function iai || exit
 
 function iai-ssh-auth () {
-	which ssh &>/dev/null || fail "ssh not found"
+  which ssh &>/dev/null || fail "ssh not found"
 
-	# TODO bashido emsg and exit wrapper: """miss"""
-	# TODO so i can: test -z $1 && miss "argument 1" "role of current machine"
-	if test -z "$1"
-	then
-		emsg "Missing argument 1: %s" "role of current machine"
-		return 1
-	fi
-	test -n "$2" || fail "Missing argument 2: %s" "hostname of target machine"
-	case "$1" in
-		"client"|"server") # TODO put instead of client, get instead of server
-			iai-ssh-auth check "$2" || return 1
-	    iai-ssh-auth-as-$1 "$2"
-			;;
-		"check")
-			iai net ping "$2" || return 1
-			info "Checking if target machine can be reached through ssh..."
-			if ! ssh "$2" :
-			then
-				emsg "Can't reach that machine with 'ssh $2'"
-				utip "Take a look at %s," "~/.ssh/ssh_config, "
-				utip "where you may need to specify Username/Port or so."
-				utip "If needed, see %s" "man 5 ssh_config"
-				utip "To determine available auth methods, use %s"\
-					"ssh -o PreferredAuthentications=none $2"
-				return 1
-			fi
-		;;
-	*)
-		  emsg "role of current machine (\$1) must be either 'client' or 'server'"
-			utip "Usage: $FUNCNAME client {target_server}"
-			utip "   or: $FUNCNAME server {target_client}"
-			return 1
-			;;
-	esac
+  # TODO bashido emsg and exit wrapper: """miss"""
+  # TODO so i can: test -z $1 && miss "argument 1" "role of current machine"
+  if test -z "$1"
+  then
+    emsg "Missing argument 1: %s" "role of current machine"
+    return 1
+  fi
+  test -n "$2" || fail "Missing argument 2: %s" "hostname of target machine"
+  case "$1" in
+    "client"|"server") # TODO put instead of client, get instead of server
+      iai-ssh-auth check "$2" || return 1
+      iai-ssh-auth-as-$1 "$2"
+      ;;
+    "check")
+      iai net ping "$2" || return 1
+      info "Checking if target machine can be reached through ssh..."
+      if ! ssh "$2" :
+      then
+        emsg "Can't reach that machine with 'ssh $2'"
+        utip "Take a look at %s," "~/.ssh/ssh_config, "
+        utip "where you may need to specify Username/Port or so."
+        utip "If needed, see %s" "man 5 ssh_config"
+        utip "To determine available auth methods, use %s"\
+          "ssh -o PreferredAuthentications=none $2"
+        return 1
+      fi
+    ;;
+  *)
+      emsg "role of current machine (\$1) must be either 'client' or 'server'"
+      utip "Usage: $FUNCNAME client {target_server}"
+      utip "   or: $FUNCNAME server {target_client}"
+      return 1
+      ;;
+  esac
 }
 
 function iai-ssh-auth-as-client {
-	local server="$1"
-	if ! test -e ~/.ssh/id_rsa.pub
-	then
-		warn "current machine does not have a public key"
-	  which ssh-keygen &>/dev/null || fail "ssh-keygen not found"
-		ssh-keygen || fail "something failed while generating the key"
-	  test -e ~/.ssh/id_rsa.pub || fail "expected the key to be at ~/.ssh/id_rsa.pub"
-	fi
+  local server="$1"
+  if ! test -e ~/.ssh/id_rsa.pub
+  then
+    warn "current machine does not have a public key"
+    which ssh-keygen &>/dev/null || fail "ssh-keygen not found"
+    ssh-keygen || fail "something failed while generating the key"
+    test -e ~/.ssh/id_rsa.pub || fail "expected the key to be at ~/.ssh/id_rsa.pub"
+  fi
 
-	local auth_file=".ssh/authorized_keys"
+  local auth_file=".ssh/authorized_keys"
 
-	info "testing if $server uses dropbear instead of openssh..."
-	if ssh $server "test -d /etc/dropbear"
-	then
-		auth_file="/etc/dropbear/authorized_keys"
-		warn "server uses dropbear, key will be appended to %s" "$auth_file"
-	fi
+  info "testing if $server uses dropbear instead of openssh..."
+  if ssh $server "test -d /etc/dropbear"
+  then
+    auth_file="/etc/dropbear/authorized_keys"
+    warn "server uses dropbear, key will be appended to %s" "$auth_file"
+  fi
 
-	info "Sending the id_rsa.pub file to %s..." "$server"
-	if ! ssh $server "tee -a $auth_file" <~/.ssh/id_rsa.pub
-	then
-		emsg "something whent wrong while sending the key"
-		utip "Is current machine able to ssh into server?"
-		return 1
-	fi
+  info "Sending the id_rsa.pub file to %s..." "$server"
+  if ! ssh $server "tee -a $auth_file" <~/.ssh/id_rsa.pub
+  then
+    emsg "something whent wrong while sending the key"
+    utip "Is current machine able to ssh into server?"
+    return 1
+  fi
 
-	verb "Successfully added the key to %s" "$server:$auth_file"
-	utip "Now you can 'ssh $server' whithout being asked for authentication"
+  verb "Successfully added the key to %s" "$server:$auth_file"
+  utip "Now you can 'ssh $server' whithout being asked for authentication"
 }
 
 function iai-ssh-auth-as-server {
-	local client="$1"
+  local client="$1"
 
-	local idfile=~/.ssh/"$client--id_rsa.pub"
-	test -e "$idfile" && warn "will overwrite %s" "$idfile"
+  local idfile=~/.ssh/"$client--id_rsa.pub"
+  test -e "$idfile" && warn "will overwrite %s" "$idfile"
 
-	info "Getting the id_rsa.pub file from %s" "$client"
-	if ! ssh "$client" "cat ~/.ssh/id_rsa.pub" >"$idfile"
-	then
-		emsg "something went wrong while retrieving the key"
-		utip "Does the remote machine (%s) have an id_rsa.pub file?" "$client"
-		utip "> %s" "ssh $client 'test -e ~/.ssh/id_rsa.pub && echo OK || ssh-keygen'"
-		utip "IMPORTANT: if remote machine runs dropbear, the command is"
-		utip "> %s" "dropbearkey -t rsa -f ~/.ssh/id_dropbear -s 2048"
-		utip "After that, public key data will be output"
-		utip "see https://techoverflow.net/2015/12/12/fixing-ssh-exited-string-too-long-on-openwrt/"
-		return 1
-	fi
+  info "Getting the id_rsa.pub file from %s" "$client"
+  if ! ssh "$client" "cat ~/.ssh/id_rsa.pub" >"$idfile"
+  then
+    emsg "something went wrong while retrieving the key"
+    utip "Does the remote machine (%s) have an id_rsa.pub file?" "$client"
+    utip "> %s" "ssh $client 'test -e ~/.ssh/id_rsa.pub && echo OK || ssh-keygen'"
+    utip "IMPORTANT: if remote machine runs dropbear, the command is"
+    utip "> %s" "dropbearkey -t rsa -f ~/.ssh/id_dropbear -s 2048"
+    utip "After that, public key data will be output"
+    utip "see https://techoverflow.net/2015/12/12/fixing-ssh-exited-string-too-long-on-openwrt/"
+    return 1
+  fi
 
-	verb "Adding the key to '~/.ssh/authorized_keys'"
-	if grep -x -q "$(cat "$idfile")" ~/.ssh/authorized_keys
-	then
-		warn "$client's public key is already authorized"
-	else
-	  cat "$idfile" >> ~/.ssh/authorized_keys || fail
-		info "Successfully added %s's key" "$client"
-	fi
+  verb "Adding the key to '~/.ssh/authorized_keys'"
+  if grep -x -q "$(cat "$idfile")" ~/.ssh/authorized_keys
+  then
+    warn "$client's public key is already authorized"
+  else
+    cat "$idfile" >> ~/.ssh/authorized_keys || fail
+    info "Successfully added %s's key" "$client"
+  fi
 
   rm "$idfile" # don't leave trash, please
-	utip "Now you should be able to ssh into this system from %s" "$client"
+  utip "Now you should be able to ssh into this system from %s" "$client"
 }
 
 ##
