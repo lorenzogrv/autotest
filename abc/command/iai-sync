@@ -1,12 +1,13 @@
 assert_function iai || exit
 
 function iai-sync () {
-	if test "$1" == "repo"
-	then
-		iai-sync-repo
-	else
-	  iai-sync-all
-	fi
+  test -z "$1" && { iai-sync-all; return $?; }
+  
+  case "$1" in
+    repo|all) iai-sync-$1 ;;
+    status) iai git-status ;;
+    *) fail "unexpected content for \$1 ($1)" ;;
+  esac
 }
 
 # TODO use https://stedolan.github.io/jq
@@ -23,12 +24,16 @@ function iai-sync-repo () {
  
   cd "$repo" || fail
   repo="~${repo#$HOME}"
+
+  local data="$(iai git-status)"
+  json-value "$data".branch
+
   info "fetching %s..." "$repo"
   git fetch
   local data="$(iai git-status)"
-  case "$(json-value "$data" .action)" in
+  case "$(json-value "$data".action)" in
     fetch)
-      info "current branch (%s) is up-to-date" "$(json-value "$data" .branch)"
+      info "current branch (%s) is up-to-date" "$(json-value "$data".branch)"
       ;;
     push)
       info "pushing %s..." "$repo"
@@ -46,6 +51,20 @@ function iai-sync-repo () {
       return 1
       ;;
   esac
+
+  if $(json-value "$data".files.staged)
+  then
+    warn "> there are staged files in the repo"
+  fi
+  if $(json-value "$data".files.changed)
+  then
+    warn "> there are changed files in the repo"
+  fi
+  if $(json-value "$data".files.untracked)
+  then
+    warn "> there are untracked files in the repo"
+  fi
+
   warn "skiping remote sync @shitbook"
   exit 1
   if test "$(hostname)" != "shitbook"
