@@ -286,7 +286,7 @@ function iai-working () {
   read line fn file <<<"$(caller 0)"
   test "$fn" = "iai" && read line fn file <<<"$(caller 1)"
   utip "You were working at function %s" $fn
-  utip "to continue working on, use: %s" "vim +$line .${file##$PWD}"
+  utip "to continue working on, use: %s" "vim +$line ${file/#$PWD/'.'}"
   exit 1
 }
 
