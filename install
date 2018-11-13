@@ -11,30 +11,41 @@ iai-root () {
 	done
 	echo "$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 }
-##
-# research if environment is a standard or termux instalation
-##
-env-mode () {
-  if termux-info &>/dev/null; then
-    echo "termux"
-  else
-    echo "standard"
-  fi
-}
 
-echo "Researching the iai path..."
-IAI_PATH="$(iai-root)/script/$(env-mode)"
-test -d "$IAI_PATH" || {
-  echo "Error: '$IAI_PATH' is not a directory";
-  exit 1;
-} >&2
-echo "iai scripts are located at $IAI_PATH"
+##
+# preparation
+##
 
+echo "Researching the environment before instalation begins..."
+
+# defaults for all envs (aka 'standard')
+BIN_PATH="/usr/local/bin"
+IAI_PATH="$(iai-root)/script/standard"
 RC_FILE=~/.bashrc
 
-RC_LINE="export PATH=\"\$PATH:$IAI_PATH\""
+# overrides for 'termux' envs
+if type termux-info &>/dev/null; then
+  IAI_PATH="${IAI_PATH%standard}termux"
+fi
 
+# overrides for 'openwrt' envs
+if type opkg &>/dev/null; then
+  BIN_PATH="/usr/bin"
+  RC_FILE=/etc/profile
+fi
+
+# informational messages about env detection
+echo "> iai scripts are located at $IAI_PATH"
+test -d "$IAI_PATH" || { echo "Fail: '$IAI_PATH' isn't a directory"; exit 1; }
+echo "> shell profile is located at $RC_FILE"
+
+##
+# the the old "install" way was:
+# printf "\n$RC_LINE\n" >>$RC_FILE
+# TODO deprecate and remove this
+##
 echo "Checking if ${RC_FILE/$HOME/"~"} contains the old installation path..."
+RC_LINE="export PATH=\"\$PATH:$IAI_PATH\""
 grep "$RC_LINE" "$RC_FILE" &>/dev/null && {
   echo "WARN: ${RC_FILE/$HOME/"~"} contains an old-installation path line"
   echo "will remove it now"
@@ -46,14 +57,15 @@ grep "$RC_LINE" "$RC_FILE" &>/dev/null && {
 INFO
 } >&2
 
-# this is the old "install" way
-#printf "\n$RC_LINE\n" >>$RC_FILE
 
+##
+# installation routine:
+###
 echo "Creating system-wide symbolic links for scripts..."
 for origin in $IAI_PATH/*
 do
-  file="/usr/local/bin/$(basename "$origin")"
-  test -L "$file" && echo "symbolic link $file will be replaced"
+  file="$BIN_PATH/$(basename "$origin")"
+  test -L "$file" && echo "WARN: replacing symbolic link ($file)"
   echo "> ln -s -i ${origin/$HOME/~} $file" # to automate use -f instead of -i
   sudo ln -s -i $origin $file
 done
