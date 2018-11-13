@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 
 if test "$(type -t bashido)" == "function"
 then

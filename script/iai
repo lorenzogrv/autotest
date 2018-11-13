@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 
 # NOTE: `set -e` impedes try-catching commands
 
@@ -43,11 +43,15 @@ iai.dependencies () {
 function iai () {
   if test $# -eq 0
   then
-    if ! </dev/null sort -R &>/dev/null
+    if ! </dev/null sort -R &>/dev/null \
+    || ! </dev/null head -z &>/dev/null
     then
       iai.dependencies
-      emsg "sort has no -R support (maybe a busybox binary?)"
-      utip "try %s" "iai pkg install coreutils"
+      emsg "missing some core utils, either:"
+      emsg " - 'sort' does not support -R"
+      emsg " - 'head' does not support -z"
+      utip "maybe a busybox binary?"
+      utip "> try %s" "iai pkg install coreutils"
       exit 1
     fi
     local artii="$(iai-path dojo db artii)"
