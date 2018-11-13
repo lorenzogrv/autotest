@@ -38,26 +38,10 @@ iai.dependencies () {
 # MAIN COMMAND
 # ============
 # `iai` acts as an accessor to sub-commands.
-# When it's run without arguments, outputs some ascii art.
+# When it's run without arguments, calls iai-artii.
 ##
 function iai () {
-  if test $# -eq 0
-  then
-    if ! </dev/null sort -R &>/dev/null \
-    || ! </dev/null head -z &>/dev/null
-    then
-      iai.dependencies
-      emsg "missing some core utils, either:"
-      emsg " - 'sort' does not support -R"
-      emsg " - 'head' does not support -z"
-      utip "maybe a busybox binary?"
-      utip "> try %s" "iai pkg install coreutils"
-      exit 1
-    fi
-    local artii="$(iai-path dojo db artii)"
-    find "$artii" -type f -print0 | sort -R -z | head -1 -z | xargs -0 cat
-    exit 0
-  fi
+  if test $# -eq 0; then iai-artii; return $?; fi
 
   local cmd="iai-$1"
   local typ="$(type -t "$cmd")"
@@ -131,9 +115,26 @@ function iai () {
 ##
 
 ##
+# randomly picks and outputs useless ascii art
+##
+function iai-artii () {
+  local artii="$(iai-path dojo db artii)"
+  artii="$(2>/dev/null find "$artii" -type f -print0 | sort -R -z | head -1 -z)"
+  2>/dev/null cat "$artii" && return 0
+
+  iai.dependencies || exit
+
+  emsg "missing some coreutils features:"
+  </dev/null sort -R &>/dev/null || emsg " - 'sort' does not support -R"
+  </dev/null head -z &>/dev/null || emsg " - 'head' does not support -z"
+  utip "maybe a busybox binary? try %s" "iai pkg search coreutils"
+  utip "using a coreutils binary?, check version numbers"
+  return 1
+}
+
+##
 # `iai help` outputs useful information about iai's command-line usage
 ##
-
 function iai-help () {
   iai.dependencies || exit
   if test -f ./README.md
