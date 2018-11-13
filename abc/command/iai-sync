@@ -9,30 +9,45 @@ function iai-sync () {
 	fi
 }
 
-function iai-sync-action () {
-  node -e "console.log($(iai git-status).action)"
+# TODO use https://stedolan.github.io/jq
+function json-value () {
+  local data="${1:?'missing data ($1)'}"
+  node -e "console.log(${data}${2})" || fail
 }
+
+# git log --oneline --graph --decorate --date-order
 
 function iai-sync-repo () {
 	local repo="${1:-$(iai repo)}"
 	test -z "$repo" && emsg "can't sync because can't find git repo" && exit 1
-  
+ 
   cd "$repo" || fail
   repo="~${repo#$HOME}"
-  info "fetching %s" "$repo"
+  info "fetching %s..." "$repo"
   git fetch
-  case "$(iai-sync-action)" in
+  local data="$(iai git-status)"
+  case "$(json-value "$data" .action)" in
     fetch)
-      emsg "check files, no push/pull need"
-      node -e "console.log($(iai git-status))"
-      exit 1
+      info "current branch (%s) is up-to-date" "$(json-value "$data" .branch)"
       ;;
-    *) fail "can't determine what to do" ;;
+    push)
+      info "pushing %s..." "$repo"
+      git push || exit
+      ;;
+    pull)
+      info "pulling %s..." "$repo"
+      git pull --ff-only || exit
+      iai git-status
+      iai working
+      ;;
+    *)
+      emsg "can't determine what to do"
+      json-value "$data"
+      return 1
+      ;;
   esac
-  utip "> git pull"
-  git pull || fail "can't pull"
-  utip "> git push"
-  git push || fail "can't push"
+  warn "skiping remote sync @shitbook"
+  exit 1
   if test "$(hostname)" != "shitbook"
   then
     utip "> # remote pull @shitbook through ssh"
