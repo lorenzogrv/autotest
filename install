@@ -1,3 +1,5 @@
+#!/bin/bash
+
 ##
 # outputs the directory where iai resides (the "iai root").
 # SEE http://stackoverflow.com/a/246128/1894803
@@ -35,9 +37,14 @@ if type opkg &>/dev/null; then
 fi
 
 # informational messages about env detection
+echo "Sumary:"
 echo "> iai scripts are located at $IAI_PATH"
 test -d "$IAI_PATH" || { echo "Fail: '$IAI_PATH' isn't a directory"; exit 1; }
+echo "> iai scripts will be symlinked at $BIN_PATH"
+test -d "$BIN_PATH" || { echo "Fail: '$BIN_PATH' isn't a directory"; exit 1; }
 echo "> shell profile is located at $RC_FILE"
+test -f "$RC_FILE" || { echo "Fail: '$RC_FILE' isn't a file"; exit 1; }
+echo "Environment research done."
 
 ##
 # the the old "install" way was:
@@ -46,7 +53,7 @@ echo "> shell profile is located at $RC_FILE"
 ##
 echo "Checking if ${RC_FILE/$HOME/"~"} contains the old installation path..."
 RC_LINE="export PATH=\"\$PATH:$IAI_PATH\""
-grep "$RC_LINE" "$RC_FILE" &>/dev/null && {
+grep -q "$RC_LINE" "$RC_FILE" && {
   echo "WARN: ${RC_FILE/$HOME/"~"} contains an old-installation path line"
   echo "will remove it now"
   grep -v "$RC_LINE" "$RC_FILE" >temporal-rc-file
@@ -56,7 +63,7 @@ grep "$RC_LINE" "$RC_FILE" &>/dev/null && {
   to finish unistall, restart the shell
 INFO
 } >&2
-
+echo "$RC_FILE check done."
 
 ##
 # installation routine:
@@ -65,10 +72,12 @@ echo "Creating system-wide symbolic links for scripts..."
 for origin in $IAI_PATH/*
 do
   file="$BIN_PATH/$(basename "$origin")"
-  test -L "$file" && echo "WARN: replacing symbolic link ($file)"
-  echo "> ln -s -i ${origin/$HOME/~} $file" # to automate use -f instead of -i
-  sudo ln -s -i $origin $file
+  echo "> ln -s -f ${origin/$HOME/~} $file"
+  test -L "$file" && echo "  WARN: replacing existing symbolic link ($file)"
+  ln -s -f $origin $file
 done
+
+echo "Installation done."
 
 ##
 # vim modeline
