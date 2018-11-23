@@ -34,8 +34,13 @@ function iai-pkg () {
 			;;
 	esac
 
-	# last but not least, execute handler with desired argument list
+	# execute handler with desired argument list
 	$handler "$@"
+
+	# additional hooks to run after done
+	case "$action" in
+		upgrade) iai-pkg cleanup ;;
+	esac
 }
 
 sudo="$(type -p sudo)"
