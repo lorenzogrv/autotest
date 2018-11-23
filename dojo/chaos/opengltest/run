@@ -1,0 +1,9 @@
+# 
+# see the link below
+# http://www.codebind.com/linux-tutorials/install-opengl-ubuntu-linux/
+
+# first, compile
+g++ main.cpp -o firstOpenGlApp -lglut -lGLU -lGL
+
+# then, run the "app"
+./firstOpenGlApp
