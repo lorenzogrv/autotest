@@ -1,25 +1,74 @@
 assert_function iai || exit
 
 function iai-sync () {
-	if test "$1" == "repo"
-	then
-		iai-sync-repo
-	else
-	  iai-sync-all
-	fi
+  test -z "$1" && { iai-sync-all; return $?; }
+  
+  case "$1" in
+    repo|all) iai-sync-$1 ;;
+    status) iai git-status ;;
+    *) fail "unexpected content for \$1 ($1)" ;;
+  esac
 }
 
+# TODO use https://stedolan.github.io/jq
+function json-value () {
+  local data="${1:?'missing data ($1)'}"
+  node -e "console.log(${data}${2})" || fail
+}
+
+# git log --oneline --graph --decorate --date-order
+
 function iai-sync-repo () {
-	local repo="${1:-$(iai repo)}"
+	local repo="${1:-$(iai repo)}"; repo="${repo/#$HOME/~}"
 	test -z "$repo" && emsg "can't sync because can't find git repo" && exit 1
-  
+ 
   cd "$repo" || fail
-  repo="~${repo#$HOME}"
-  info "going to sync git repo at $repo"
-  utip "> git pull"
-  git pull || fail "can't pull"
-  utip "> git push"
-  git push || fail "can't push"
+
+  local data="$(iai git-status)"
+  if test $(json-value "$data".action) == 'fetch'
+  then
+    info "fetching %s..." "$repo"
+    git fetch
+    data="$(iai git-status)"
+  fi
+  case "$(json-value "$data".action)" in
+    fetch)
+      info "current branch (%s) is up-to-date" "$(json-value "$data".branch)"
+      ;;
+    push)
+      info "pushing %s..." "$repo"
+      git push || exit
+      ;;
+    pull)
+      info "pulling %s..." "$repo"
+      git pull --ff-only || exit
+      iai git-status
+      iai working
+      ;;
+    *)
+      emsg "can't determine what to do"
+      json-value "$data"
+      return 1
+      ;;
+  esac
+
+  if $(json-value "$data".files.staged)
+  then
+    warn "> there are staged files in the repo"
+    utip "try %s" "git commit -m 'commit summary'"
+    exit 1
+  fi
+  if $(json-value "$data".files.changed)
+  then
+    warn "> there are changed files in the repo"
+  fi
+  if $(json-value "$data".files.untracked)
+  then
+    warn "> there are untracked files in the repo"
+  fi
+
+  warn "skiping remote sync @shitbook"
+  exit 1
   if test "$(hostname)" != "shitbook"
   then
     utip "> # remote pull @shitbook through ssh"

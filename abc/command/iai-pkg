@@ -48,8 +48,8 @@ sudo="$(type -p sudo)"
 iai-pkg.apt.update () { $sudo apt update; }
 iai-pkg.apt.search () { apt search "$@"; }
 iai-pkg.apt.install () { $sudo apt install "$@"; }
+iai-pkg.apt.upgrade () { $sudo apt update && $sudo apt upgrade; }
 iai-pkg.apt.destroy () { $sudo apt purge "$@"; }
-iai-pkg.apt.upgrade () { $sudo apt update && sudo apt upgrade; }
 iai-pkg.apt.cleanup () { $sudo apt autoremove; }
 
 iai-pkg.opkg.update () { opkg update; }
@@ -59,9 +59,10 @@ iai-pkg.opkg.install () { opkg install "$@"; }
 
 
 # see https://wiki.manjaro.org/index.php?title=Pacman_Tips
-iai-pkg.pacman.update () { $sudo pacman -Syy "$@"; }
 iai-pkg.pacman.search () { pacman -Ss "$@"; }
+iai-pkg.pacman.info () { pacman -Qi "$@"; }
 iai-pkg.pacman.install () { $sudo pacman -S "$@"; }
+iai-pkg.pacman.update () { $sudo pacman -Syy "$@"; }
 # removes package, its configuration files, and its non-needed dependencies
 iai-pkg.pacman.destroy () { $sudo pacman -Rns "$@"; }
 # force re-sync and upgrade all system

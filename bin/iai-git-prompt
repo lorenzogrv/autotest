@@ -1,0 +1,188 @@
+#!/usr/bin/env node
+
+/**
+ * # git-promt
+ *
+ * Outputs information about the current git repository.
+ *
+ * If the current working directory is not a git repository,
+ * the program exits with code 1 and does not print anything to stdout.
+ *
+ * The output of the program depends on the status of the working directory.
+ *
+ * If there are files that require attention, the output is one of the
+ * following:
+ *
+ *     branchname|#
+ *     branchname| !
+ *     branchname|  ?
+ *     branchname|#!
+ *     branchname| !?
+ *     branchname|#!?
+ *
+ * The last 3 characters ( #, !, and ? ) mean:
+ *
+ * - `#`: There are changes on the index ready to be commited (on stage).
+ * - `!`: There are changes not ready to be commited (not staged).
+ * - `?`: There are untracked files.
+ *
+ * Information is colored and formatted for a vt-100 terminal.
+ */
+
+
+var cp = require('child_process');
+
+/*!
+ * See [this post] and [this reference] for understanding on how control
+ * characters 1 and 2 are used to avoid overwriting of the prompt.
+ *
+ * See [this table] for vt-100 terminal ANSI Escape sequences
+ *
+ * [this post]: http://superuser.com/questions/301353/escape-non-printing-characters-in-a-function-for-a-bash-prompt/301355#301355
+ * [this reference]: http://donsnotes.com/tech/charsets/ascii.html
+ * [this table]: http://ascii-table.com/ansi-escape-sequences-vt-100.php
+ */
+
+var ctrl = {
+  // start of heading
+  sh: "\x01",
+  // start of text
+  st: "\x02",
+  // escape
+  esc: "\x1B",
+};
+
+// consider "terminal" and "characters or whatever" modules
+var color = {
+  normal: "[0m",
+  black: "[30m",
+  red: "[31m",
+  green: "[32m",
+  yellow: "[33m",
+  blue: "[34m",
+  magenta: "[35m",
+  cyan: "[36m",
+  white: "[37m",
+  grey: "[90m"
+};
+
+var format = {
+  reset: ctrl.sh + ctrl.esc + color.normal + ctrl.st,
+  ahead: ctrl.sh + ctrl.esc + color.blue + ctrl.st,
+  remote: ctrl.sh + ctrl.esc + color.red + ctrl.st,
+  behind: ctrl.sh + ctrl.esc + color.red + ctrl.st,
+  action: ctrl.sh + ctrl.esc + color.yellow + ctrl.st,
+  branch: ctrl.sh + ctrl.esc + color.blue + ctrl.st,
+  commit: ctrl.sh + ctrl.esc + color.green + ctrl.st,
+  changes: ctrl.sh + ctrl.esc + color.red + ctrl.st,
+  untracked: ctrl.sh + ctrl.esc + color.red + ctrl.st
+};
+
+var output = {}
+  , branch = / (\S+)\.{3}(\S+)\/\1 \[(\S+) (\d+)(?:, (\S+) (\d+))?\]/
+  , chars = [ '', '', '' ]
+;
+
+var report = cp.spawn( 'git', ['status', '-b', '--porcelain'] )
+  .once('error', function( error ){
+    if( error.code == 'ENOENT' ){
+      console.error('git-prompt: ENOENT while spawning git. Possible causes:');
+      console.error('git-prompt:   - git is not installed');
+
+      console.error(
+        'git-prompt:   - git is not in $PATH, which is set to:', [''].concat(
+          process.env.PATH
+          .split(':')
+          .filter(function( val, key, arr ){ return arr.indexOf(val) === key; })
+        ).join('\ngit-prompt:     ')
+      );
+
+      console.error('git-prompt:');
+      console.error('git-prompt: For debugging, see also:', [
+        '',
+        'http://stackoverflow.com/questions/27688804/how-do-i-debug-error-spawn-enoent-on-node-js'
+      ].join('\ngit-prompt:   - ') );
+
+      process.exit(1);
+    }
+    console.error('git-prompt: child-process error with code=%s', error.code);
+    console.error( error.stack );
+    process.exit(1);
+  });
+;
+
+report.stdout.on('data', function( data ){
+  data
+    .toString()
+    .split('\n')
+    .some(function( line, i ){
+      if( output.branch && chars[0] && chars[1] && chars[2] ){
+        return true;
+      }
+      if( !line ){
+        return false;
+      }
+      if( !i && line[0] == "#" ){
+        var match = line.match( branch );
+        if( !match ){
+          output.branch = line.substr(3);
+          return false;
+        }
+        output.branch = format.branch + match[1] + format.reset;
+        output.remote = match[2];
+        output.ahead = match[4];
+        output.behind = match[6];
+        if( match[3] && match[3] == 'detás' ){
+          delete output.ahead;
+          output.behind = match[4];
+        }
+        //console.log( match );
+        return false;
+      }
+      if( line[0] == '?' && line[1] == '?' ){
+        chars[2] = format.untracked + "?" + format.reset;
+        return false;
+      }
+      if( !chars[0] && line[0] != ' ' ){
+        chars[0] = format.commit + "#" + format.reset;
+      }
+      if( !chars[1] && line[1] != ' ' ){
+        chars[1] = format.changes + "!" + format.reset;
+      }
+    })
+  ;
+  output.chars = chars.map(function(v){ return v || ' '; }).join('');
+  if( output.branch && chars[0] && chars[1] && chars[2] ){
+    report.kill();
+  }
+});
+
+var f = require('util').format
+
+// output as soon as git exits
+report.on('close', function finish( code, signal ){
+  if( code !== null && code != 0 ){
+    return process.exit(1)
+  }
+  var remote = '';
+  if( output.remote ){
+    remote += '|';
+    if( output.ahead ) {
+      remote += ( format.ahead + output.ahead + '>' + format.reset );
+    }
+    remote += ( format.remote + output.remote + format.reset );
+    if( output.behind ){
+      remote += ( format.behind + '<' + output.behind + format.reset );
+    }
+  }
+  if( output.chars == '   ' ){
+    var action = output.behind? 'pull'
+      : output.ahead? 'push'
+      : 'fetch'
+    ;
+    output.chars = format.action + action + format.reset;
+  }
+  console.log( '%s%s|%s', output.branch, remote, output.chars );
+  process.exit();
+});
+

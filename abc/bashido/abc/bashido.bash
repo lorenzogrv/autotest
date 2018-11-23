@@ -1,4 +1,4 @@
-# no shebang because this file is meant to run with 'source' command
+#!/bin/bash
 
 if test "$(type -t bashido)" == "function"
 then

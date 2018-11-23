@@ -15,6 +15,14 @@ ansi () {
 # forces disabling ansi format sequences
 BASHIDO_ANSI_DISABLE=0
 
+if test "$TERM" == "dumb"
+then
+  >&2 echo "dumb terminal detected, forcing xterm-256color mode"
+  export TERM=xterm-256color
+  # TODO the dumb override should not be used, though
+  # BASHIDO_ANSI_DISABLE=1; return 0
+fi
+
 if type -t tput > /dev/null
 then
 	BASHIDO_ANSI_BG_RED="$(tput setab 1)"
@@ -37,7 +45,7 @@ then
 	BASHIDO_ANSI_REV="$(tput rev)"
 	BASHIDO_ANSI_DIM="$(tput dim)"
 	BASHIDO_ANSI_BOLD="$(tput bold)"
-	BASHIDO_ANSI_RESET=$'\E[m'
+  BASHIDO_ANSI_RESET="$(tput sgr0)"
 
 	BASHIDO_ANSI_LOG_BEGIN="$(ansi dim)"
 	BASHIDO_ANSI_LOG_TRAIL="$(ansi reset)"
@@ -50,8 +58,8 @@ then
 else
 	# disable ansi before using log or will raise error
 	BASHIDO_ANSI_DISABLE=1
-	warn "tput not present so ansi-formated log is disabled"
-	utip "try 'apt install ncurses-utils'"
+  warn "tput not present so ansi-formated log is disabled"
+  utip "try 'apt install ncurses-utils'"
 fi
 
 ##
