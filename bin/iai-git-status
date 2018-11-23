@@ -19,18 +19,22 @@ function eche () {
   console.error.call(null, args)
 }
 
-var report = cp.spawn('git', ['status', '-b', '--porcelain', '-z'])
-  .once('error', function (error) {
-    if (error.code === 'ENOENT') {
-      eche('ENOENT while spawning git. Possible causes:')
-      eche('  - git is not installed')
-      eche('  - git is not in $PATH')
-      process.exit(1)
-    }
+// handler for errors
+function handleError (error) {
+  process.exitCode = 1
+  if (error.code === 'ENOENT') {
+    eche('ENOENT while spawning git. Possible causes:')
+    eche('  - git is not installed')
+    eche('  - git is not in $PATH')
+  } else {
     eche('child-process error with code=%s', error.code)
     console.error(error.stack)
-    process.exit(1)
-  })
+  }
+}
+
+var report = cp.spawn('git', ['status', '-b', '--porcelain', '-z'])
+
+report.once('error', handleError)
 
 var output = {}
 var branch = / (\S+)\.{3}(\S+)\/\1 \[(\S+) (\d+)(?:, (\S+) (\d+))?\]/
@@ -55,15 +59,8 @@ report.stdout.on('data', function (data) {
         }
         output.branch = match[1]
         output.remote = match[2]
-        output.ahead = match[4]
-        output.behind = match[6]
-        // TODO this will lead to bugs, sure
-        if (match[3] && match[3] === 'detás') {
-          eche('pay attention here!!')
-          delete output.ahead
-          output.behind = match[4]
-        }
-        // console.log( match );
+        if (match[3]) output[match[3]] = match[4]
+        // console.error(match) // debugging
         return false
       }
       if (line.substr(0, 2) === '??') {
@@ -98,3 +95,6 @@ report.on('close', function finish (code, signal) {
   console.log(JSON.stringify(output, null, 4))
   process.exit()
 })
+
+/* vim: set expandtab: */
+/* vim: set filetype=javascript ts=2 shiftwidth=2: */

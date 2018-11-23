@@ -19,18 +19,18 @@ function json-value () {
 # git log --oneline --graph --decorate --date-order
 
 function iai-sync-repo () {
-	local repo="${1:-$(iai repo)}"
+	local repo="${1:-$(iai repo)}"; repo="${repo/#$HOME/~}"
 	test -z "$repo" && emsg "can't sync because can't find git repo" && exit 1
  
   cd "$repo" || fail
-  repo="~${repo#$HOME}"
 
   local data="$(iai git-status)"
-  json-value "$data".branch
-
-  info "fetching %s..." "$repo"
-  git fetch
-  local data="$(iai git-status)"
+  if test $(json-value "$data".action) == 'fetch'
+  then
+    info "fetching %s..." "$repo"
+    git fetch
+    data="$(iai git-status)"
+  fi
   case "$(json-value "$data".action)" in
     fetch)
       info "current branch (%s) is up-to-date" "$(json-value "$data".branch)"
@@ -55,6 +55,8 @@ function iai-sync-repo () {
   if $(json-value "$data".files.staged)
   then
     warn "> there are staged files in the repo"
+    utip "try %s" "git commit -m 'commit summary'"
+    exit 1
   fi
   if $(json-value "$data".files.changed)
   then
