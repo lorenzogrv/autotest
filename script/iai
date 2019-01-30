@@ -184,6 +184,7 @@ function iai-time () { date --rfc-3339=seconds || exit 1; }
 # `iai tree` standarizes the way to display the contents of a directory
 # `iai ls` standarizes the way to list the contents of a directory
 # `iai pager` standarizes the way to invoke a pager
+# `iai view` standarizes the way to invoke a file content viewer
 ##
 function iai-tree () {
   tree -L 2  --dirsfirst --sort=name --noreport -C --filelimit 20 "$@"\
@@ -203,7 +204,17 @@ function iai-pager () {
   less -iXFR "$@" || exit 1
 }
 function iai-view () {
-  iai reader "$@" | iai-pager
+	# disable insert mode
+	local cmd="set nomodifiable"
+	if test -z "$1"
+	then # when reading from stdin...
+	  # force markdown filetype if detected filetype is 'conf'
+	  cmd="$cmd | if &filetype == 'conf' | set filetype=markdown | endif"
+		# get rid of "E37 no write since last change" on :q
+		cmd="$cmd | setlocal buftype=nofile"
+  fi
+	local file="${1:--}"
+	vim --not-a-term -m -c "$cmd" "$file"
 }
 
 ##
