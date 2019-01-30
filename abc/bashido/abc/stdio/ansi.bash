@@ -1,26 +1,30 @@
 # no shebang because this file is meant to be sourced by bash
 
 ansi () {
-	(( BASHIDO_ANSI_DISABLE )) && return
-	local id="${1:?provide a sequence id}"
-	local varname="BASHIDO_ANSI_${id//\./_}"
-	varname="${varname^^}" # capitalizes each letter
-	test -n "${!varname}" || {
-	  >&2 echo "$FUNCNAME: no sequence named $varname"
-		exit 1
-	}
-	printf '%b' ${!varname}
+  (( BASHIDO_ANSI_DISABLE )) && return
+  local id="${1:?provide a sequence id}"
+  local varname="BASHIDO_ANSI_${id//\./_}"
+  varname="${varname^^}" # capitalizes each letter
+  if test -z "${!varname+x}"
+  then # variable with name $varname is unset
+		# see https://stackoverflow.com/questions/3601515/how-to-check-if-a-variable-is-set-in-bash
+    >&2 echo "$FUNCNAME: no sequence named $varname"
+		return 1
+	fi
+  # YAGNI: may be useful for providing fallbacks, but
+  # TODO entire log should be refactored and use tput directly
+  #test -z "${!varname}" && return 1
+  printf '%b' ${!varname}
 }
 
 # forces disabling ansi format sequences
 BASHIDO_ANSI_DISABLE=0
 
+# this was and old quirk to force xterm-256color
+# TODO should be removed, though
 if test "$TERM" == "dumb"
 then
-  >&2 echo "dumb terminal detected, forcing xterm-256color mode"
-  export TERM=xterm-256color
-  # TODO the dumb override should not be used, though
-  # BASHIDO_ANSI_DISABLE=1; return 0
+  BASHIDO_ANSI_DISABLE=1; warn "dumb terminal detected"; return 0
 fi
 
 if type -t tput > /dev/null
@@ -47,7 +51,7 @@ then
 	BASHIDO_ANSI_BOLD="$(tput bold)"
   BASHIDO_ANSI_RESET="$(tput sgr0)"
 
-	BASHIDO_ANSI_LOG_BEGIN="$(ansi dim)"
+	BASHIDO_ANSI_LOG_BEGIN="$(tput dim)"
 	BASHIDO_ANSI_LOG_TRAIL="$(ansi reset)"
 	BASHIDO_ANSI_LOG_VALUE="$(ansi rev)"
 	BASHIDO_ANSI_LOG_VV="$(ansi fg.purple)"
@@ -59,9 +63,11 @@ else
 	# disable ansi before using log or will raise error
 	BASHIDO_ANSI_DISABLE=1
   warn "tput not present so ansi-formated log is disabled"
-  utip "try 'apt install ncurses-utils'"
+	utip "> try '%s' (debian-based systems)" "apt install ncurses-utils"
+	utip "   or '%s' (other systems)" "iai pkg search-basename tput"
 fi
 
 ##
 # vim modeline
+# /* vim: set expandtab: */
 # /* vim: set filetype=sh ts=2 shiftwidth=2: */

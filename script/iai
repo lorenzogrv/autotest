@@ -346,11 +346,13 @@ function iai-confirm () {
 }
 
 function iai-status () {
-  "$@" && echo OK || echo KO
+	"$@"; local code=$?; iai unicode $'>> '
+	! (( $code )) && printf "OK" || printf "KO (CODE $code)"
+	printf ' << '; echo "$@"
 }
 
 function iai-watch () {
-	watch --beep --color --differences --errexit --interval 2 \
+	watch --beep --color --differences --errexit --interval 2 --no-title \
 		iai status "$@"
 }
 
