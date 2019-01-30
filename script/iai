@@ -349,6 +349,11 @@ function iai-status () {
   "$@" && echo OK || echo KO
 }
 
+function iai-watch () {
+	watch --beep --color --differences --errexit --interval 2 \
+		iai status "$@"
+}
+
 ##
 # MAIN ROUTINE
 # ============
