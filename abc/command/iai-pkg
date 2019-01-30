@@ -60,8 +60,13 @@ iai-pkg.opkg.install () { opkg install "$@"; }
 
 # see https://wiki.manjaro.org/index.php?title=Pacman_Tips
 iai-pkg.pacman.search () { pacman -Ss "$@"; }
+iai-pkg.pacman.search-fullpath () { pacman -Fo "$@"; }
+iai-pkg.pacman.search-basename () { pacman -Fs "$@"; }
 iai-pkg.pacman.info () { pacman -Si "$@"; }
 iai-pkg.pacman.install () { $sudo pacman -S "$@"; }
+iai-pkg.pacman.query () { pacman -Qi "$@"; }
+iai-pkg.pacman.query-fullpath () { pacman -Qo "$@"; }
+iai-pkg.pacman.query-basename () { pacman -Qs "$@"; }
 iai-pkg.pacman.update () { $sudo pacman -Syy "$@"; }
 # removes package, its configuration files, and its non-needed dependencies
 iai-pkg.pacman.destroy () { $sudo pacman -Rns "$@"; }
