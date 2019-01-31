@@ -119,26 +119,30 @@ function iai () {
 ##
 function iai-artii () {
   local artii="$(iai-path dojo db artii)"
-	{
+  {
     artii="$(find "$artii" -type f -print0 | shuf -n 1 -z)"
     cat "$artii"
-	} 2>/dev/null	&& return 0
+  } 2>/dev/null	&& return 0 || return 1
+}
 
-  iai.dependencies || exit
-
-  emsg "missing expected features of either find or shuf binaries"
-  utip "maybe a busybox binary?"
-  utip "> try %s" "iai pkg search coreutils"
-  utip "using a coreutils binary?"
-	utip "> check version numbers"
-  return 1
+##
+# expresses a random emotion in ascii art
+# this command is useful to test things (either for cowboys)
+##
+function iai-moods () {
+  local emotions="$(iai-path dojo db artii emotions)"
+  case "$1" in
+    "cat") cat "$emotions" ;;
+    "vim") iai confirm exec "vim $emotions" ;;
+    *) <"$emotions"  head -n -1 | shuf -n 1 ;;
+  esac
 }
 
 ##
 # `iai help` outputs useful information about iai's command-line usage
 ##
 function iai-help () {
-	cat <<HELP
+  cat <<HELP
 ===
 iai
 ===
@@ -166,17 +170,17 @@ $(find "$(iai-path bin)" -name "iai-*" -print0\
 ---
 HELP
   if { iai-repo &>/dev/null; }
-	then
+  then
     iai.dependencies || exit
-	  if test -f README.md
-		then
-			utip "try '%s' for information about this directory" "iai view README.md"
-		else
-			warn "no README.md file was found here (%s)" "$PWD"
-			utip "you should init README.md with a tree description, use '%s'"\
-			"iai-tree > README.md"
-		fi
-	fi
+    if test -f README.md
+    then
+      utip "try '%s' for information about this directory" "iai view README.md"
+    else
+      warn "no README.md file was found here (%s)" "$PWD"
+      utip "you should init README.md with a tree description, use '%s'"\
+      "iai-tree > README.md"
+    fi
+  fi
 }
 
 ##
@@ -201,30 +205,30 @@ function iai-ls () {
 }
 function iai-pager () {
   # -i ignore case when searching, but respect case if term contains uppercase
-	# -X (no init) do not init/reset terminal on init/exit
-	# TODO option -X seems to cause conflicts with -F under certain situations
+  # -X (no init) do not init/reset terminal on init/exit
+  # TODO option -X seems to cause conflicts with -F under certain situations
   # -F exits if text is less than one screen long
   # -R bypasses ANSI color sequences (-r bypasses all ANSI sequences)
   # -J display status column
   # -W highlight the first unread line after scrolling for more than one lines
   # -M prompt more verbosely
   # -x4 display tabs as 4-character width
-	# -z-4 change default scrolling size to 4 lines fewer than current screen lines
-	# -#2 set horizontal scroll (arrow left & right) to 2 spaces
+  # -z-4 change default scrolling size to 4 lines fewer than current screen lines
+  # -#2 set horizontal scroll (arrow left & right) to 2 spaces
   ##
   less -iXFRJWM -x4 -z-4 -#2 "$@" || exit 1
 }
 function iai-view () {
-	local cmd="set nomodifiable" # disable insert mode
-	if test $# -eq 0
-	then # when reading from stdin...
-	  # force markdown filetype if detected filetype is 'conf'
-	  cmd="$cmd | if &filetype == 'conf' | set filetype=markdown | endif"
-		# get rid of "E37 no write since last change" on :q
-		cmd="$cmd | setlocal buftype=nofile"
+  local cmd="set nomodifiable" # disable insert mode
+  if test $# -eq 0
+  then # when reading from stdin...
+    # force markdown filetype if detected filetype is 'conf'
+    cmd="$cmd | if &filetype == 'conf' | set filetype=markdown | endif"
+    # get rid of "E37 no write since last change" on :q
+    cmd="$cmd | setlocal buftype=nofile"
   fi
-	# TODO breaks with: iai view +13 /repos/iai/README.md
-	vim --not-a-term -m -c "$cmd" "${@:--}"
+  # TODO breaks with: iai view +13 /repos/iai/README.md
+  vim --not-a-term -m -c "$cmd" "${@:--}"
 }
 
 ##
@@ -321,44 +325,44 @@ function iai-confirm () {
 
   local msg="$@"
   test -z "$msg" && warn "%s provided no confirm message" $fn
-	case "$1" in
-		exec) msg="execute '${@:2}'" ;;
-		'') msg="confirm you want to continue" ;;
-	esac
+  case "$1" in
+    exec) msg="execute '${@:2}'" ;;
+    '') msg="confirm you want to continue" ;;
+  esac
 
   while true
-	do
-		utip "%s wants to %s" $fn "$msg"
-		utip "> type %s to $msg" "yes"
-		utip "> type %s to see the function on the pager (line $line)" "view"
-		utip "> type any other thing to cancel gracefully"
-		read CONFIRM || { emsg "can't read response"; return 1; }
-	  case "$CONFIRM" in
-			yes)
-				info "action accepted"
-				test "$1" == "exec" && { ${@:2}; return $?; } || return 0
-				;;
-			view)
-				info "viewing $file (line $line)...";
-				<"$file" \
-					highlight -O ansi --syntax=bash --stdout \
-					| iai-pager -N4 -j$line +$line "+/$fn|iai.confirm"\
-				;;
-			*) emsg "action refused ($CONFIRM)"; exit 1 ;; # TODO should return 1 instead
-		esac
+  do
+    utip "%s wants to %s" $fn "$msg"
+    utip "> type %s to $msg" "yes"
+    utip "> type %s to see the function on the pager (line $line)" "view"
+    utip "> type any other thing to cancel gracefully"
+    read CONFIRM || { emsg "can't read response"; return 1; }
+    case "$CONFIRM" in
+      yes)
+        info "action accepted"
+        test "$1" == "exec" && { ${@:2}; return $?; } || return 0
+        ;;
+      view)
+        info "viewing $file (line $line)...";
+        <"$file" \
+          highlight -O ansi --syntax=bash --stdout \
+          | iai-pager -N4 -j$line +$line "+/$fn|iai.confirm"\
+        ;;
+      *) emsg "action refused ($CONFIRM)"; exit 1 ;; # TODO should return 1 instead
+    esac
   done
 }
 
 function iai-status () {
-	"$@"; local code=$?
-	printf '>> '
-	! (( $code )) && printf "OK" || printf "KO (CODE $code)"
-	printf ' << '; echo "$@"
+  "$@"; local code=$?
+  printf '>> '
+  ! (( $code )) && printf "OK" || printf "KO (CODE $code)"
+  printf ' << '; echo "$@"
 }
 
 function iai-watch () {
-	watch --beep --color --differences --interval 2 --no-title \
-		iai status "$@"
+  watch --beep --color --differences --interval 2 --no-title \
+    iai status "$@"
 }
 
 ##
@@ -371,4 +375,5 @@ exit
 
 ##
 # vim modeline
+# /* vim: set expandtab: */
 # /* vim: set filetype=sh ts=2 shiftwidth=2: */
