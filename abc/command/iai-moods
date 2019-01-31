@@ -6,7 +6,7 @@ function iai-moods () {
   case "$1" in
     "cat") cat "$emotions" ;;
     "vim") iai confirm exec "vim $emotions" ;;
-    *) { head -n -1 | sort -R | head -1; } <"$emotions" ;;
+    *) <"$emotions"  head -n -1 | shuf -n 1 ;;
   esac
   return 0
 }
