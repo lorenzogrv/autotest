@@ -119,16 +119,18 @@ function iai () {
 ##
 function iai-artii () {
   local artii="$(iai-path dojo db artii)"
-  artii="$(2>/dev/null find "$artii" -type f -print0 | sort -R -z | head -1 -z)"
-  2>/dev/null cat "$artii" && return 0
+	{
+    artii="$(find "$artii" -type f -print0 | shuf -n 1 -z)"
+    cat "$artii"
+	} 2>/dev/null	&& return 0
 
   iai.dependencies || exit
 
-  emsg "missing some coreutils features:"
-  </dev/null sort -R &>/dev/null || emsg " - 'sort' does not support -R"
-  </dev/null head -z &>/dev/null || emsg " - 'head' does not support -z"
-  utip "maybe a busybox binary? try %s" "iai pkg search coreutils"
-  utip "using a coreutils binary?, check version numbers"
+  emsg "missing expected features of either find or shuf binaries"
+  utip "maybe a busybox binary?"
+  utip "> try %s" "iai pkg search coreutils"
+  utip "using a coreutils binary?"
+	utip "> check version numbers"
   return 1
 }
 
