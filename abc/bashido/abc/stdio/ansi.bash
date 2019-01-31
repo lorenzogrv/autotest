@@ -46,14 +46,18 @@ then
 	BASHIDO_ANSI_BG_PURPLE="$(tput setab 5)"
 	BASHIDO_ANSI_FG_PURPLE="$(tput setaf 5)"
 
-	BASHIDO_ANSI_REV="$(tput rev)"
-	BASHIDO_ANSI_DIM="$(tput dim)"
-	BASHIDO_ANSI_BOLD="$(tput bold)"
-  BASHIDO_ANSI_RESET="$(tput sgr0)"
+	BASHIDO_ANSI_REV="$(tput smso)"
+  BASHIDO_ANSI_UND="$(tput smul)"
+	#BASHIDO_ANSI_DIM="$(tput dim)"
+	#BASHIDO_ANSI_BOLD="$(tput bold)"
+  # avoid usage of non-color values to ease piping colored outputs
+  # this implies avoid usage of 'sgr0' capname
+  BASHIDO_ANSI_RESET="$(tput op)$(tput rmso)$(tput rmul)"
 
-	BASHIDO_ANSI_LOG_BEGIN="$(tput dim)"
-	BASHIDO_ANSI_LOG_TRAIL="$(ansi reset)"
-	BASHIDO_ANSI_LOG_VALUE="$(ansi rev)"
+
+  BASHIDO_ANSI_LOG_BEGIN="$(ansi und)"
+  BASHIDO_ANSI_LOG_TRAIL="$(ansi reset)"
+	BASHIDO_ANSI_LOG_VALUE="$(tput rev)"
 	BASHIDO_ANSI_LOG_VV="$(ansi fg.purple)"
 	BASHIDO_ANSI_LOG_UX="$(ansi fg.green)"
 	BASHIDO_ANSI_LOG_II="$(ansi fg.blue)"
