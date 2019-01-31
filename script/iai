@@ -55,7 +55,6 @@ function iai () {
       if ! test -x "$file"
       then
         iai.dependencies || exit
-        # executable files must include a shebang to be run directly
         source "$file" || {
           emsg "Got exit code $? while sourcing %s" "$file"
           utip "assumed it defines a bash function because it's not executable"
@@ -74,6 +73,7 @@ function iai () {
         assert_function "$cmd" # or there is no function named $cmd at that file
         info "loaded command %s" "$cmd"
       else
+        # executable files must include a shebang to be run directly
         if ! head -1 "$file" | grep -q "^#!"
         then
           iai.dependencies || exit
@@ -95,7 +95,7 @@ function iai () {
         warn "there is nothing named %s" "$cmd"
       fi
       emsg "unknown command %s" "$1" || exit
-      iai-help | utip
+      utip "> try %s" "iai-help"
       return 1
     fi
     type -t verb >/dev/null && verb "exec %s" "iai-${@}"
@@ -103,7 +103,7 @@ function iai () {
 
   shift;
   # Quoting is neccessary, otherwise quoted args are splitted
-  $cmd "$@" # DON'T EXIT, let command decide when to exit
+  $cmd "$@" # DON'T EXIT, let command decide when to exit (or return)
 }
 
 ##
@@ -115,20 +115,18 @@ function iai () {
 ##
 
 ##
-# randomly picks and outputs useless ascii art
+# DUMB builtins: a bunch of enought simple commands
+#
+# - `iai-dependencies` is an utility to check if dependencies load
+# - `iai-artii` randomly picks and outputs useless ascii art
+# - `iai-moods` expresses a random emotion in ascii art
+#   * useful to test things (either for cowboys)
 ##
+function iai-dependencies () { iai.dependencies; }
 function iai-artii () {
   local artii="$(iai-path dojo db artii)"
-  {
-    artii="$(find "$artii" -type f -print0 | shuf -n 1 -z)"
-    cat "$artii"
-  } 2>/dev/null	&& return 0 || return 1
+  cat "$(find "$artii" -type f -print0 | shuf -n 1 -z)"
 }
-
-##
-# expresses a random emotion in ascii art
-# this command is useful to test things (either for cowboys)
-##
 function iai-moods () {
   local emotions="$(iai-path dojo db artii emotions)"
   case "$1" in
@@ -139,35 +137,58 @@ function iai-moods () {
 }
 
 ##
+# ESSENTIAL builtins: the real core
+##
+
+##
+# `iai root` outputs the directory where iai resides (the "iai root").
+# It's probably the most basic operation besides the "artistic" bare `iai`,
+# and the `iai help` commands.
+# LINK
+# - http://stackoverflow.com/a/246128/1894803
+# : research absolute paths to this script file and its directory
+##
+iai-root () {
+  local SOURCE="${BASH_SOURCE[0]}" DIR=""
+  while [ -h "$SOURCE" ]; do
+    DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  done
+  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  dirname $DIR
+}
+
+##
 # `iai help` outputs useful information about iai's command-line usage
 ##
 function iai-help () {
   cat <<HELP
-===
-iai
-===
+  ===
+  iai
+  ===
 
-usage: iai [command] [command arguments ...]
+  usage: iai [command] [command arguments ...]
 
-built-in commands:
-$(while read d t fn; do echo $fn; done < <(declare -F)\
-     | grep "iai-"\
-    | sort\
-    |  while read cmd; do printf "  ${cmd##iai-}"; done
-  )
+  built-in commands:
+  $(while read d t fn; do echo $fn; done < <(declare -F)\
+       | grep "iai-"\
+      | sort\
+      |  while read cmd; do printf "  ${cmd##iai-}"; done
+    )
 
-other available commands:
-$(find "$(iai-path abc command)" -type f -name "iai-*" -print0\
-    | sort -z\
-    | while read -d $'\0' cmd; do printf "  ${cmd##*/iai-}"; done\
-  )
+  other available commands:
+  $(find "$(iai-path abc command)" -type f -name "iai-*" -print0\
+      | sort -z\
+      | while read -d $'\0' cmd; do printf "  ${cmd##*/iai-}"; done\
+    )
 
-other available executables:
-$(find "$(iai-path bin)" -name "iai-*" -print0\
-    | sort -z\
-    | while read -d $'\0' cmd; do printf "  ${cmd##*/iai-}"; done\
-  )
----
+  other available executables:
+  $(find "$(iai-path bin)" -name "iai-*" -print0\
+      | sort -z\
+      | while read -d $'\0' cmd; do printf "  ${cmd##*/iai-}"; done\
+    )
+  ---
 HELP
   if { iai-repo &>/dev/null; }
   then
@@ -184,10 +205,15 @@ HELP
 }
 
 ##
-# `iai date` and `iai hora` standarize the date and time formats
-##
-function iai-date () { date --rfc-3339=date || exit 1; }
-function iai-time () { date --rfc-3339=seconds || exit 1; }
+# `iai-repo` researches, from $CWD upwards, the current git repository path
+#
+function iai-repo () {
+  git rev-parse --show-toplevel 2>/dev/null || {
+    iai.dependencies || exit
+    emsg "Could not find git repository"
+    exit 1
+  }
+}
 
 ##
 # `iai tree` standarizes the way to display the contents of a directory
@@ -232,40 +258,6 @@ function iai-view () {
 }
 
 ##
-# `iai wanip` and `iai lanip` are now part of iai-net toolset
-function iai-wanip () { iai net wanip; }
-function iai-lanip () { iai net lanip; }
-
-##
-# `iai root` outputs the directory where iai resides (the "iai root").
-# It's probably the most basic operation besides the "artistic" bare `iai`,
-# and the `iai help` commands.
-# LINK
-# - http://stackoverflow.com/a/246128/1894803
-# : research absolute paths to this script file and its directory
-##
-iai-root () {
-  local SOURCE="${BASH_SOURCE[0]}" DIR=""
-  while [ -h "$SOURCE" ]; do
-    DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-    SOURCE="$(readlink "$SOURCE")"
-    [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
-  done
-  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-  dirname $DIR
-}
-
-##
-# `iai dir` is an alias for `iai root`
-# TODO: `dir` is deprecated favouring `root` at it's more descriptive
-##
-function iai-dir () {
-  iai.dependencies || exit
-  warn "iai-dir is deprecated, use iai-root instead"
-  iai-root
-}
-
-##
 # `iai-path` joins each argument to `iai-root` with slashes between.
 # TODO: `iai path` is vage and not descriptive enought
 ##
@@ -279,30 +271,13 @@ function iai-path () {
   printf "\n" # could use echo but wanted to be more explicit
 }
 
-##
-# `iai-nbin` syntactic sugar for `iai-path node_modules/.bin/$@`
-##
-function iai-nbin () {
-  iai-path "node_modules/.bin/$@"
-}
-
-function iai-repo () {
-  git rev-parse --show-toplevel 2>/dev/null || {
-    iai.dependencies || exit
-    emsg "Could not find git repository"
-    exit 1
-  }
-}
 
 ##
-# `iai-dependencies` is an utility to check if dependencies load
-##
-function iai-dependencies () {
-  iai.dependencies
-}
-
-##
+# WORKING-ON builtins: meant for use at development time
+#
 # `iai-working` intentionally fails to signal a place you were working at
+# `iai-status` runs a command and reports its exit status
+# `iai-watch` runs a command through iai-status periodically, until killed
 ##
 function iai-working () {
   local last_code=$?
@@ -314,9 +289,42 @@ function iai-working () {
   utip "to continue working on, use: %s" "vim +$line ${file}"
   exit 1
 }
+function iai-status () {
+  "$@"; local code=$?
+  printf '>> '
+  ! (( $code )) && printf "OK" || printf "KO (CODE $code)"
+  printf ' << '; echo "$@"
+}
+function iai-watch () {
+  watch --beep --color --differences --interval 2 --no-title \
+    iai status "$@"
+}
+
+##
+# ALIASED builtins: commands being syntax sugar
+##
+
+# `iai-nbin` is syntactic sugar for `iai-path node_modules/.bin/$@`
+function iai-nbin () { iai-path "node_modules/.bin" "$@"; }
+
+# `iai wanip` and `iai lanip` are now part of iai-net toolset
+function iai-wanip () { iai net wanip; }
+function iai-lanip () { iai net lanip; }
+
+##
+# TRASH builtins: they are dirty, useless, or don't belong here
+##
+
+##
+# `iai date` and `iai hora` standarize the date and time formats
+# TODO they are actually useless
+##
+function iai-date () { date --rfc-3339=date || exit 1; }
+function iai-time () { date --rfc-3339=seconds || exit 1; }
 
 ##
 # `iai-confirm` asks for confirmation on stdin
+# TODO here should be defined as an alias to 'iai ui confirm'
 ##
 function iai-confirm () {
   iai.dependencies || exit
@@ -351,18 +359,6 @@ function iai-confirm () {
       *) emsg "action refused ($CONFIRM)"; exit 1 ;; # TODO should return 1 instead
     esac
   done
-}
-
-function iai-status () {
-  "$@"; local code=$?
-  printf '>> '
-  ! (( $code )) && printf "OK" || printf "KO (CODE $code)"
-  printf ' << '; echo "$@"
-}
-
-function iai-watch () {
-  watch --beep --color --differences --interval 2 --no-title \
-    iai status "$@"
 }
 
 ##
