@@ -33,14 +33,13 @@ log () {
     local b=$(ansi log.begin) t=$(ansi log.trail)
     if test $# -gt 2
     then
-			shift;
-			# TODO values specified should be styled with $v
+			# values specified should be styled with $v
+			local v=$(ansi log.value)
 			# TODO actually implemented, but not tested
-      local v=$(ansi log.value)
-			local args="$(printf " $v%s$r$b$c" "${@:2}")"
-			args="${args#' '}"
-			#echo "'$msg'" "'$args'"
-			msg="$(printf "$msg" "$args")"
+			msg="${msg//%s/$v%s$r$t$c}"
+			# TODO msg format string could contain other placeholders (%i, etc)
+			#echo "msg is now '$msg'"
+			msg="$(printf "$msg" "${@:3}")" # apply to msg arg $3 and onwards
     fi
     # TODO configurable way to enable this
     false && >&2 printf '%b%s%b' $(ansi log.begin) "[$$]#$BASH_SUBSHELL "
