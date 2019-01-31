@@ -201,25 +201,30 @@ function iai-ls () {
 }
 function iai-pager () {
   # -i ignore case when searching, but respect case if term contains uppercase
-  # -X do not clear screen on exit
+	# -X (no init) do not init/reset terminal on init/exit
+	# TODO option -X seems to cause conflicts with -F under certain situations
   # -F exits if text is less than one screen long
-  # -E automatically exit the second time it reaches end-of-file
   # -R bypasses ANSI color sequences (-r bypasses all ANSI sequences)
+  # -J display status column
+  # -W highlight the first unread line after scrolling for more than one lines
+  # -M prompt more verbosely
+  # -x4 display tabs as 4-character width
+	# -z-4 change default scrolling size to 4 lines fewer than current screen lines
+	# -#2 set horizontal scroll (arrow left & right) to 2 spaces
   ##
-  less -iXFR "$@" || exit 1
+  less -iXFRJWM -x4 -z-4 -#2 "$@" || exit 1
 }
 function iai-view () {
-	# disable insert mode
-	local cmd="set nomodifiable"
-	if test -z "$1"
+	local cmd="set nomodifiable" # disable insert mode
+	if test $# -eq 0
 	then # when reading from stdin...
 	  # force markdown filetype if detected filetype is 'conf'
 	  cmd="$cmd | if &filetype == 'conf' | set filetype=markdown | endif"
 		# get rid of "E37 no write since last change" on :q
 		cmd="$cmd | setlocal buftype=nofile"
   fi
-	local file="${1:--}"
-	vim --not-a-term -m -c "$cmd" "$file"
+	# TODO breaks with: iai view +13 /repos/iai/README.md
+	vim --not-a-term -m -c "$cmd" "${@:--}"
 }
 
 ##
@@ -302,7 +307,7 @@ function iai-working () {
   read line fn file <<<"$(caller 0)"
   test "$fn" = "iai" && read line fn file <<<"$(caller 1)"
   utip "You were working at function %s" $fn
-  utip "to continue working on, use: %s" "vim +$line ${file/#$PWD/'.'}"
+  utip "to continue working on, use: %s" "vim +$line ${file}"
   exit 1
 }
 
@@ -314,40 +319,34 @@ function iai-confirm () {
   read line fn file <<<"$(caller 0)"
   test "$fn" = "iai" && read line fn file <<<"$(caller 1)"
 
-  warn "function %s asks for user confirmation" $fn
   local msg="$@"
-  if test -n "$msg"; then
-    warn "confirm msg: $msg"
-  else
-    emsg "no confirm message was providded"
-  fi
+  test -z "$msg" && warn "%s provided no confirm message" $fn
+	case "$1" in
+		exec) msg="execute '${@:2}'" ;;
+		'') msg="confirm you want to continue" ;;
+	esac
 
-  if test "$1" = "exec"; then
-    local cmd="${@:2}"
-    utip "type 'yes' to execute '%s'" "$cmd"
-  else
-    utip "Type 'yes' to confirm OR any other thing to cancel gracefully with info"
-  fi
-
-  read CONFIRM
-  if test "$CONFIRM" = "yes"; then
-    utip "action accepted"
-  else
-    emsg "action refused"
-    utip "use %s to see the function" "vim +$line .${file##$PWD}"
-    exit 1
-  fi
-  
-  if test "$1" = "exec"; then
-    $cmd
-    err=$?
-    if (( $err )); then
-      emsg "execution exit code was $err."
-      exit $err
-    else
-      info "exit code was $err"
-    fi
-  fi
+  while true
+	do
+		utip "%s wants to %s" $fn "$msg"
+		utip "> type %s to $msg" "yes"
+		utip "> type %s to see the function on the pager (line $line)" "view"
+		utip "> type any other thing to cancel gracefully"
+		read CONFIRM || { emsg "can't read response"; return 1; }
+	  case "$CONFIRM" in
+			yes)
+				info "action accepted"
+				test "$1" == "exec" && { ${@:2}; return $?; } || return 0
+				;;
+			view)
+				info "viewing $file (line $line)...";
+				<"$file" \
+					highlight -O ansi --syntax=bash --stdout \
+					| iai-pager -N4 -j$line +$line "+/$fn|iai.confirm"\
+				;;
+			*) emsg "action refused ($CONFIRM)"; exit 1 ;; # TODO should return 1 instead
+		esac
+  done
 }
 
 function iai-status () {
@@ -358,7 +357,7 @@ function iai-status () {
 }
 
 function iai-watch () {
-	watch --beep --color --differences --errexit --interval 2 --no-title \
+	watch --beep --color --differences --interval 2 --no-title \
 		iai status "$@"
 }
 
