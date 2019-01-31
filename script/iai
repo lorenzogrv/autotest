@@ -136,16 +136,7 @@ function iai-artii () {
 # `iai help` outputs useful information about iai's command-line usage
 ##
 function iai-help () {
-  iai.dependencies || exit
-  if test -f ./README.md
-  then
-    utip "try '%s' for information about this directory" "cat ./README.md"
-  else
-    warn "no README.md file was found here (%s)" "$PWD"
-    utip "you should init README.md with a tree description, use '%s'"\
-    "iai-tree > README.md"
-  fi
-cat <<HELP
+	cat <<HELP
 ===
 iai
 ===
@@ -172,6 +163,18 @@ $(find "$(iai-path bin)" -name "iai-*" -print0\
   )
 ---
 HELP
+  if { iai-repo &>/dev/null; }
+	then
+    iai.dependencies || exit
+	  if test -f README.md
+		then
+			utip "try '%s' for information about this directory" "iai view README.md"
+		else
+			warn "no README.md file was found here (%s)" "$PWD"
+			utip "you should init README.md with a tree description, use '%s'"\
+			"iai-tree > README.md"
+		fi
+	fi
 }
 
 ##
