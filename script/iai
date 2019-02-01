@@ -256,6 +256,18 @@ function iai-view () {
   # TODO breaks with: iai view +13 /repos/iai/README.md
   vim --not-a-term -m -c "$cmd" "${@:--}"
 }
+# `iai view` standarizes the way to invoke GUI based file content viewer
+function iai-render () {
+  local file="${1:?'argument 1 must be the file to open'}"
+  if test -r $file; then
+    case "${ext:=${file##*/*.}}" in
+      md) markdown_previewer "$file" ;;
+      *) >&2 echo "unknown file extension: $ext" ;;
+    esac
+  else
+    >&2 echo "file is not readable: $file"
+  fi
+}
 
 ##
 # `iai-path` joins each argument to `iai-root` with slashes between.
