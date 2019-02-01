@@ -2,7 +2,7 @@
 # #
 # Finishises a test, like `tested`, but without exiting when code was > 0
 teskip () {
-	echo "TEST SKIPED (code $?): $@"
+	echo "SKIP (code $?): $@"
 }
 
 ####
