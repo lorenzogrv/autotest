@@ -303,14 +303,12 @@ function iai-working () {
   exit 1
 }
 function iai-status () {
-  "$@"; local code=$?
-  printf '>> '
-  ! (( $code )) && printf "OK" || printf "KO (CODE $code)"
-  printf ' << '; echo "$@"
+  echo ">> $@"; "$@" && echo ">> OK" || echo ">> KO (CODE $?)"
 }
 function iai-watch () {
-  watch --beep --color --differences --interval 2 --no-title \
-    iai status "$@"
+  TERM=ansi \
+    watch --differences --interval 2 --no-title --beep --color \
+    "iai status "$@""
 }
 
 ##
