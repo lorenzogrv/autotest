@@ -1,0 +1,59 @@
+assert_function iai || exit
+
+function iai-test () {
+  test $# -gt 0 && fail "expecting no arguments"
+  find "$(iai path test/abc)" -type f -print0 \
+    | while IFS= read -d '' file; do
+      # running the file within a subshell allows catching allways a code
+      echo "TEST $file"; (exec "$file") 2>/dev/null; echo "CODE $?"
+    done \
+    | iai-test.report-dots 
+}
+
+# TODO this validation pass-through stream belongs to autotest
+function iai-test.itp-stream () {
+  local tlvl=0 clvl=0 fifo='passtrought' return=0
+  while read keyword value; do
+    case $keyword in
+      TEST)
+        if ! test -f "$value"; then
+          emsg "EATEST: %s is not a file" "$value"; return=3; break
+        fi
+        if test $tlvl -eq $clvl; then let tlvl++; else
+          emsg "EATEST: expecting CODE before %s" TEST; return=4; break
+        fi
+        ;;
+      PASS|FAIL|SKIP) : ;;
+      CODE)
+        if ! is_int "$value" && test $value -lt 256; then
+          emsg "EATEST: invalid code (%s)" "$value"; return=3; break
+        fi
+        if test $clvl -lt $tlvl; then let clvl++; else
+          emsg "EATEST: expecting TEST before %s" CODE; return=4; break
+        fi
+        ;;
+      *) emsg "EATEST: bad syntax: %s" "$keyword $value"; return=2; break ;;
+    esac
+    echo "$keyword $value" # pass data down through pipeline
+  done
+  test $return -gt 0 && return $return
+  test $tlvl -gt 0 || emsg "EATEST: expecting at least one TEST" && return 5
+  test $tlvl -eq $clvl || fail "EATEST: expecting final CODE" && return 6
+}
+
+function iai-test.report-dots () {
+  iai-test.itp-stream | while read keyword value; do
+    case $keyword in
+      TEST) printf "%s " "${value#$PWD/}" ;;
+      PASS) printf "·" ;;
+      FAIL) printf "X" ;;
+      SKIP) printf "-" ;;
+      CODE) (( $value )) && echo "X CODE $value" || echo "· OK";;
+    esac
+  done
+}
+
+##
+# vim modeline
+# /* vim: set expandtab: */
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

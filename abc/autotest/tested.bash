@@ -6,10 +6,10 @@
 # and too much other refactors, just picked a explicit one
 tested () {
 	local code=$? ;	(( $code )) && {
-	  echo "TEST FAILED (code $code): $@"
+	  echo "FAIL $code $@"
 		exit $code
 	}
-  echo "TEST PASSED: $@"
+  echo "PASS $@"
 }
 
 ####
