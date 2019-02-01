@@ -303,7 +303,7 @@ function iai-working () {
   exit 1
 }
 function iai-status () {
-  echo ">> $@"; "$@" && echo ">> OK" || echo ">> KO (CODE $?)"
+  echo ">> $@"; 2>/dev/null "$@" && echo ">> OK" || echo ">> KO (CODE $?)"
 }
 function iai-watch () {
   TERM=ansi \
