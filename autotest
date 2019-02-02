@@ -1,21 +1,24 @@
 #!/bin/bash
 
 autotest--help () {
-	cat <<HELP
+  cat <<HELP
 Usage:
 
-- 'autotest': prints all autotest code on stdout
-- 'autotest checkup': runs the autotest test suite
-- 'autotest allin DIRECTORY': runs each file found in DIRECTORY
+  - 'autotest': prints all autotest code on stdout
+  - 'autotest checkup': runs the autotest test suite
+  - 'autotest report <SCRIPT>': execs SCRIPT, discarding stderr, but
+                                generated output is guaranted to be
+                                valid AutoTest Protocol data.
+  - 'autotest allin <DIRECTORY>': runs each file found in DIRECTORY
 
-Any other value at argument 1 outputs this help text.
+  Any other value at argument 1 outputs this help text.
 
-Code examples:
+  Code examples:
 
-- 'source <(autotest)': sources the autotest code for later usage
-- 'autotest checkup && source <(autotest) || exit': common way to assert
-  the toolset work as expected before sourcing it
-- 'autotest allin test': runs all script tests found in 'test/'
+  - 'source <(autotest)': sources the autotest code for later usage
+  - 'autotest checkup && source <(autotest) || exit': common way to assert
+    the toolset work as expected before sourcing it
+  - 'autotest allin test': runs all script tests found in 'test/'
 HELP
 }
 
@@ -29,48 +32,101 @@ DIR=$(iai path abc autotest)
   exit # implicit exit with code > 0 when find fails
 }
 
+##
+# THE AUTOTEST PROTOCOL (ATP)
+#
+# TODO write something about
+# TODO missing the IN keyword on current implementation
+##
+
+# Tells whenever given value ($1) is an integer
+is_int () { case "${1#[-]}" in ''|*[!0-9]*) return 1;; *) return 0;; esac; }
+# pass-through stdin data to stdout, but ensure its syntax matches ATP
+function autotest--protocol.v1 () {
+  local tlvl=0 clvl=0 fifo='passtrought' return=0
+  while read keyword value; do
+    case $keyword in
+      TEST)
+        if ! test -f "$value"; then
+          emsg "EATEST: %s is not a file" "$value"; return=3; break
+        fi
+        if test $tlvl -eq $clvl; then let tlvl++; else
+          emsg "EATEST: expecting CODE before %s" TEST; return=4; break
+        fi
+        ;;
+      PASS|FAIL|SKIP) : ;;
+      CODE)
+        if ! is_int "$value" && test $value -lt 256; then
+          emsg "EATEST: invalid code (%s)" "$value"; return=3; break
+        fi
+        if test $clvl -lt $tlvl; then let clvl++; else
+          emsg "EATEST: expecting TEST before %s" CODE; return=4; break
+        fi
+        ;;
+      *) emsg "EATEST: bad syntax: %s" "$keyword $value"; return=2; break ;;
+    esac
+    echo "$keyword $value" # pass data down through pipeline
+  done
+  test $return -gt 0 && return $return
+  test $tlvl -gt 0 || emsg "EATEST: expecting at least one TEST" && return 5
+  test $tlvl -eq $clvl || fail "EATEST: expecting final CODE" && return 6
+}
+
+##
+# MAIN ROUTINE
+##
+
+# helper to fail fast
+function autofail () { echo >&2 "${1:?'missing message'}"; exit ${2:-1}; }
+
 case "$1" in
-	checkup)
-		find "$DIR" -name "*.bash" -type f -exec bash -c '
-			file={}
-			tool=${file##*/}
-			tool=${tool%%.bash}
-			source "$file" || exit
-			test "$(type -t ${tool}--test)" = "function" || {
-				echo "\"$tool--test\" should be a function defined in $file"
-				exit 1
-			}
-			$tool--test
-		' \;
-		source <(autotest)
-		tested "autotest can be sourced with process substitution"
-		;;
-	allin)
-		tdir="${2:?provide a directory to search for test scripts}"
-		cd "$tdir" || exit 1
-		echo >&2 "running each script in '$tdir' directory"
-		SECONDS=0
-		find . -type f -execdir bash -c '{
-			file="{}"
-			SECONDS=0
-			"./$file" &>/dev/null
-			printf "CODE %3i IN %2is BY %s\n" $? $SECONDS "$file"
-		}' \;
-		code=$?
-		echo >&2 "EXIT $code AFTER ${SECONDS}s"
-		exit $code
-		;;
-	script)
-		file="${2:?provide a script file to run}"
-		echo "I should run $file"
-		exit 1
-		;;
-	*)
-		autotest--help
-		exit 1
-		;;
+  checkup)
+    # TODO replace this and use 1 file and {brace,expansion} instead?
+    find "$DIR" -name "*.bash" -type f -exec bash -c '
+      file={}
+      tool=${file##*/}
+      tool=${tool%%.bash}
+      source "$file" || exit
+      test "$(type -t ${tool}--test)" = "function" || {
+        echo "\"$tool--test\" should be a function defined in $file"
+        exit 1
+      }
+      $tool--test
+    ' \;
+    source <(autotest)
+    tested "autotest can be sourced with process substitution"
+    ;;
+  allin)
+    tdir="${2:?provide a directory to search for test scripts}"
+    cd "$tdir" || exit 1
+    echo >&2 "running each script in '$tdir' directory"
+    SECONDS=0
+    find . -type f -execdir bash -c '{
+      file="{}"
+      SECONDS=0
+      "./$file" &>/dev/null
+      printf "CODE %3i IN %2is BY %s\n" $? $SECONDS "$file"
+    }' \;
+    code=$?
+    echo >&2 "EXIT $code AFTER ${SECONDS}s"
+    exit $code
+    ;;
+  report)
+    test $# -eq 2 || autofail "expecting two arguments"
+    test -f "$2" || autofail "'$2' is not a file"
+    # exec the file within a subshell to catch allways a code
+    { echo "TEST $2"; (exec "$2"); code=$?; echo "CODE $code"; exit $code; } \
+      2>/dev/null | autotest--protocol.v1
+    # generate report discarding all stderr
+    # pipe to autotest--protocol validates output data
+    exit $PIPESTATUS # report exit code must be the test exit code
+    ;;
+  *)
+    autotest--help
+    exit 1
+    ;;
 esac
 
-
-# vim modeline
-# /* vim: set filetype=sh ts=2 shiftwidth=2: */
+##
+# vim modeline (see vim +'help modeline')
+# vim: expandtab filetype=sh ts=2 shiftwidth=2
