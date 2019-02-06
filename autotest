@@ -41,6 +41,7 @@ DIR=$(iai path abc autotest)
 
 # Tells whenever given value ($1) is an integer
 is_int () { case "${1#[-]}" in ''|*[!0-9]*) return 1;; *) return 0;; esac; }
+
 # pass-through stdin data to stdout, but ensure its syntax matches ATP
 function autotest--protocol.v1 () {
   local tlvl=0 clvl=0 fifo='passtrought' return=0
@@ -48,36 +49,39 @@ function autotest--protocol.v1 () {
     case $keyword in
       TEST)
         if ! test -f "$value"; then
-          emsg "EATEST: %s is not a file" "$value"; return=3; break
+          emsg "EATEST: '$value' is not a file"; return=3; break
         fi
         if test $tlvl -eq $clvl; then let tlvl++; else
-          emsg "EATEST: expecting CODE before %s" TEST; return=4; break
+          emsg "EATEST: expecting CODE before TEST"; return=4; break
         fi
         ;;
       PASS|FAIL|SKIP) : ;;
       CODE)
         if ! is_int "$value" && test $value -lt 256; then
-          emsg "EATEST: invalid code (%s)" "$value"; return=3; break
+          emsg "EATEST: invalid code ($value)"; return=3; break
         fi
         if test $clvl -lt $tlvl; then let clvl++; else
-          emsg "EATEST: expecting TEST before %s" CODE; return=4; break
+          emsg "EATEST: expecting TEST before CODE"; return=4; break
         fi
         ;;
-      *) emsg "EATEST: bad syntax: %s" "$keyword $value"; return=2; break ;;
+      *) emsg "EATEST: bad syntax: '$keyword $value'"; return=2; break ;;
     esac
     echo "$keyword $value" # pass data down through pipeline
   done
   test $return -gt 0 && return $return
   test $tlvl -gt 0 || emsg "EATEST: expecting at least one TEST" && return 5
-  test $tlvl -eq $clvl || fail "EATEST: expecting final CODE" && return 6
+  test $tlvl -eq $clvl || emsg "EATEST: expecting final CODE" && return 6
 }
+
+# helper to fail fast
+function autofail () { echo >&2 "${1:?'missing message'}"; exit ${2:-1}; }
+
+# trick (ugly) to use bashidos' log utils emsg here
+function emsg () { echo "$@" >&2; }
 
 ##
 # MAIN ROUTINE
 ##
-
-# helper to fail fast
-function autofail () { echo >&2 "${1:?'missing message'}"; exit ${2:-1}; }
 
 case "$1" in
   checkup)
