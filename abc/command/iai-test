@@ -2,39 +2,57 @@ assert_function iai || exit
 
 function iai-test () {
   local reporter="iai-test.report" report="dot-code"
-  local fullpath="$(iai path test/abc)" action="allin"
+  local fullpath="$(iai path test/abc)" action="allin" runner="every"
 
   while test $# -gt 0
   do
     if is_function "$reporter-$1"; then report=$1
-    elif test "$1" == "bail"; then report="fails"; action="bail"
+    elif test "$1" == "bail"; then report="fails"; runner="code0"
     elif test -d "$1"; then fullpath="$(realpath $1)"
     elif test -f "$1"; then fullpath="$(realpath $1)"; action="alone"
     else fail "unexpected argument (%s)" "$1"; fi
     shift # remove the parsed argument
   done
-  assert_function "iai-test.$action"; assert_function "$reporter-$report"
-  "iai-test.$action" "$fullpath" | "$reporter-$report"
+
+  # don't trust the argument parsing strategy above
+  assert_function "iai-test.$action"
+  assert_function "iai-test.run-$runner"
+  assert_function "$reporter-$report"
+
+  # now it's guaranteed all commands are functions
+  "iai-test.$action" "$fullpath" \
+    | "iai-test.run-$runner" \
+    | "$reporter-$report"
 }
 
 function iai-test.allin () {
   test $# -eq 1 || fail "expecting one argument"
   test -d "$1" || fail "'$1' is not a directory"
-  find "$1" -type f -executable -exec autotest report '{}' \;
-}
-
-# TODO DRY please
-function iai-test.bail () {
-  test $# -eq 1 || fail "expecting one argument"
-  test -d "$1" || fail "'$1' is not a directory"
-  find "$1" -type f -executable \( -exec autotest report '{}' \; -o -quit \)
+  verb "searching all test executables in %s" "$(realpath $1)"
+  find "$1" -type f -executable -print0 | sort -z
 }
 
 function iai-test.alone () {
   test $# -eq 1 || fail "expecting one argument"
   test -f "$1" || fail "%s is not a file" "$1"
-  autotest report "$1"
+  printf "%s%b" "$1" '\0'
 }
+
+# TEST RUNNERS: generate a report for each file in zero-terminated list (stdin)
+
+function iai-test.run-every () {
+  # ensure the test execution does not read our pipe redirecting /dev/null into
+  # if it reads, the zero-terminated file list we are reading will loss data
+  while IFS= read -d '' file; do autotest report "$file" </dev/null; done
+}
+
+function iai-test.run-code0 () {
+  while IFS= read -d '' file; do
+    autotest report "$file" || { info "bail on code $?"; break; }
+  done
+}
+
+# REPORT FORMATTING
 
 function iai-test.report-dots () {
   while read keyword value; do
