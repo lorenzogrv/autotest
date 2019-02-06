@@ -16,8 +16,13 @@ iai.dependencies () {
   log.filter () {
     #return 0 # uncomment this line for max amount of verbosity
     #return 1 # uncomment this line to remove al logging
+
+    test "${IAI_LOG_VERBOSE:-0}" -eq 1 && return 0
+    if test "${IAI_LOG_QUIET:-0}" -eq 1; then
+      case $1 in VV|II|WW) return 1 ;; esac
+    fi
     
-    test $1 != 'VV'; return; # omit verbose messages
+    test $1 != 'VV'; return $? # omit verbose messages
 
     # log.filter receives 3 arguments:
     # $1: "lvl" (one of EE, II, VV, etc.)
@@ -41,6 +46,16 @@ iai.dependencies () {
 # When it's run without arguments, calls iai-artii.
 ##
 function iai () {
+  while test $# -gt 0 && [[ "$1" == -* ]]
+  do
+    case "$1" in
+      --verbose) local IAI_LOG_VERBOSE=1;;
+      --quiet) local IAI_LOG_QUIET=1;;
+      *) echo "Error: unexpected argument: '$1'" >&2; return 2 ;;
+    esac
+    shift
+  done
+
   if test $# -eq 0; then iai-artii; return $?; fi
 
   local cmd="iai-$1"
@@ -303,7 +318,7 @@ function iai-working () {
   exit 1
 }
 function iai-status () {
-  echo ">> $@"; 2>/dev/null "$@" && echo ">> OK" || echo ">> KO (CODE $?)"
+  echo ">> $@"; ("$@") && echo ">> OK" || echo ">> KO (CODE $?)"
 }
 function iai-watch () {
   TERM=ansi \
@@ -346,15 +361,15 @@ function iai-confirm () {
   test -z "$msg" && warn "%s provided no confirm message" $fn
   case "$1" in
     exec) msg="execute '${@:2}'" ;;
-    '') msg="confirm you want to continue" ;;
+    '') msg="continue" ;;
   esac
 
   while true
   do
-    utip "%s wants to %s" $fn "$msg"
+    info "%s wants to %s" $fn "$msg"
     utip "> type %s to $msg" "yes"
-    utip "> type %s to see the function on the pager (line $line)" "view"
-    utip "> type any other thing to cancel gracefully"
+    info "> type %s to see the function on the pager (line $line)" "view"
+    info "> type any other thing to cancel gracefully"
     read CONFIRM || { emsg "can't read response"; return 1; }
     case "$CONFIRM" in
       yes)
