@@ -2,7 +2,9 @@
 
 autotest checkup && source <(autotest) || exit
 
-echo "I am a fucking cowbow coder this time"
+echo "FAIL I am a fucking cowbow coder this time"
+
+false
 tested "This is a fucking cowboy-coded shit"
 
 teskip "this cowbow-coded multidropbox solution works only at shitbook"

@@ -2,7 +2,7 @@ assert_function iai || exit
 
 function iai-test () {
   local reporter="iai-test.report" report="dot-code"
-  local fullpath="$(iai path test/abc)" action="allin" runner="every"
+  local fullpath="$(iai path test)" action="allin" runner="every"
 
   while test $# -gt 0
   do

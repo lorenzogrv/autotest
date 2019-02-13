@@ -1,0 +1,16 @@
+#!/bin/bash
+
+autotest checkup && source <(autotest) || exit
+
+#bashido.require "assert.common" || exit
+#
+#(
+#  assert_reg_perm_r "$(iai path abc abstract abstract.md)"
+#)
+#tested "abstract.md is readable"
+
+teskip "there should be real tests for this"
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

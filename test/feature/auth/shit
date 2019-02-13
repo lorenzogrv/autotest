@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env -S iai run
 
 assert_function iai || exit
 
-echo "-------------------------------------------------"
+echo >&2 "-------------------------------------------------"
 TESTUSER=lolo
 TESTPASS=insecure
 
@@ -10,7 +10,7 @@ info "> automated iai-login test"
 iai login <<<"$TESTUSER"$'\n'"$TESTPASS" && echo "OK" || {
   emsg "authorization doesn't succed for %s" "$TESTUSER:$TESTPASS"
 	info "> iai-login test reading username and password from stdin"
-	iai login && echo "OK" || echo "KO"
+	iai login && echo "PASS" || echo "FAIL" && exit 1
 }
 
 ##

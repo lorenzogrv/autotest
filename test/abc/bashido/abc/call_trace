@@ -3,7 +3,7 @@
 autotest checkup && source <(autotest) || exit
 
 bashido isref "api.call_trace"
-tested "call_trace is a function"
+tested "call_trace is a bashido reference"
 
 
 teskip "write tests for the feature"

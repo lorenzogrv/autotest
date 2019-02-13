@@ -26,5 +26,4 @@ login('lolo', 'insecure', function (err) {
   console.log('authentication', err ? 'failure' : 'succeed')
 })
 
-/* vim: set expandtab: */
-/* vim: set filetype=javascript ts=2 shiftwidth=2: */
+// vim: expandtab filetype=javascript ts=2 shiftwidth=2
