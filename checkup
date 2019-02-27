@@ -1,0 +1,9 @@
+#!/bin/bash
+
+autotest checkup || exit
+source <(autotest)
+tested "'autotest checkup' returns 0"
+
+##
+# vim modeline
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

@@ -1,9 +1,0 @@
-#!/bin/bash
-
-autotest checkup && source <(autotest) || exit
-
-tested "tskip implementation within autotest passes tests"
-
-##
-# vim modeline
-# /* vim: set filetype=sh ts=2 shiftwidth=2: */
