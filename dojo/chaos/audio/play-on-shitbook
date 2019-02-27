@@ -1,8 +1,0 @@
-#!/bin/bash
-
-test -n "$1" || { echo "missing filename to stream"; exit 1; }
-test -f "$1" || { echo "filename to stream ($1) does not exist"; exit 1; }
-
-echo "NOTE: this actualy only works with mp3 files"
-echo "should use aplay and the like for another file types"
-ssh shitbook 'mpg123 -' < "$1"

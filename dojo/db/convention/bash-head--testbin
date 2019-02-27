@@ -1,3 +1,0 @@
-#!/bin/bash
-
-autotest checkup && source <(autotest) || exit

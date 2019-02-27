@@ -1,5 +1,0 @@
-#!/usr/bin/env node
-
-// Starts iaido cli
-var args = process.argv.slice(2)
-require('../').cli(args)
