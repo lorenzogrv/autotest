@@ -6,10 +6,10 @@ Usage:
 
   - 'autotest': prints all autotest code on stdout
   - 'autotest checkup': runs the autotest test suite
+  - 'autotest <SCRIPT>': runs <SCRIPT> after sourcing autotest code
   - 'autotest report <SCRIPT>': execs SCRIPT, discarding stderr, but
                                 generated output is guaranted to be
                                 valid AutoTest Protocol data.
-  - 'autotest <SCRIPT>': runs <SCRIPT> after sourcing autotest code
 
   Any other value at argument 1 outputs this help text.
 
@@ -18,7 +18,6 @@ Usage:
   - 'source <(autotest)': sources the autotest code for later usage
   - 'autotest checkup && source <(autotest) || exit': common way to assert
     the toolset work as expected before sourcing it
-  - 'autotest allin test': runs all script tests found in 'test/'
 HELP
 }
 
@@ -64,21 +63,6 @@ case "$1" in
     source <(autotest)
     tested "autotest can be sourced with process substitution"
     exit $?
-    ;;
-  allin)
-    tdir="${2:?provide a directory to search for test scripts}"
-    cd "$tdir" || exit 1
-    echo >&2 "running each script in '$tdir' directory"
-    SECONDS=0
-    find . -type f -execdir bash -c '{
-      file="{}"
-      SECONDS=0
-      "./$file" &>/dev/null
-      printf "CODE %3i IN %2is BY %s\n" $? $SECONDS "$file"
-    }' \;
-    code=$?
-    echo >&2 "EXIT $code AFTER ${SECONDS}s"
-    exit $code
     ;;
   report) ;; # defined after
   *) autotest--help; test $1 == "help"; exit $? ;;
