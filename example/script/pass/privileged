@@ -1,0 +1,12 @@
+#!/bin/bash
+
+source <(autotest)
+
+touch /tmp/useless-empty-file
+tested "I can touch a file in /tmp directory"
+
+rm /tmp/useless-empty-file
+tested "I can remove a file in /tmp directory"
+
+# this script will exit with code 0
+exit 0

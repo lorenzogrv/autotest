@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# emulate a situation where a test takes a bit time to complete
+sleep 1
+
+# this test should pass because the time it takes to complete is short enought
+true
+tested "this asserion will pass"

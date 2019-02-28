@@ -1,0 +1,14 @@
+#!/bin/bash
+
+false
+tested "this is a failed assertion"
+
+false
+teskip "this is an ignored assertion"
+
+true
+tested "this is a successful assertion"
+
+# this script will exit with code 0
+# exit 0 is another fail because there was a FAIL above
+exit 0

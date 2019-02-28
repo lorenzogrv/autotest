@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# emulate a situation where a test takes too much time to complete
+sleep 2
+
+
+# this test should fail because it is so slow
+# even if it passes all assertions
+
+true
+tested "this asserion will pass"
