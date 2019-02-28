@@ -9,7 +9,7 @@ Usage:
   - 'autotest report <SCRIPT>': execs SCRIPT, discarding stderr, but
                                 generated output is guaranted to be
                                 valid AutoTest Protocol data.
-  - 'autotest allin <DIRECTORY>': runs each file found in DIRECTORY
+  - 'autotest <SCRIPT>': runs <SCRIPT> after sourcing autotest code
 
   Any other value at argument 1 outputs this help text.
 
@@ -22,15 +22,67 @@ Usage:
 HELP
 }
 
-# research the autotest directory
-DIR=$(iai path abc autotest)
+# outputs the autotest root directory
+function autotest--root () { dirname "$(realpath "$0")"; }
+
+# outputs all autotest code to stdout
+# TODO testodo <<<"tool to report tests pending to write"
+function autotest--code () {
+  find "$(autotest--root)" -name "*.bash" -type f -exec cat '{}' +
+}
 
 # autotest code is sent to stdout when this script receives 0 arguments
-# TODO testodo <<<"tool to report tests pending to write"
-(( $# )) || {
-  find "$DIR" -name "*.bash" -type f -exec cat '{}' +
-  exit # implicit exit with code > 0 when find fails
-}
+(( $# )) || { autotest--code; exit $?; }
+
+# given a file as argument 1, autotest behaves as test-runner
+if (( $# == 1 )) && test -f "$1"
+then
+  source <(autotest--code)
+  echo "TEST $1"
+  SECONDS=0 # TODO better time measure
+  (exec "$1") # exec the file within a subshell to catch allways a code
+  code=$?
+  echo "CODE $code IN ${SECONDS}s";
+  exit $code # preserve the exit code from test execution
+fi
+
+case "$1" in
+  root) autotest--root; exit ;;
+  checkup)
+    # TODO replace this and use 1 file and {brace,expansion} instead?
+    find "$(autotest--root)" -name "*.bash" -type f -exec bash -c '
+      file={}
+      tool=${file##*/}
+      tool=${tool%%.bash}
+      source "$file" || exit
+      test "$(type -t ${tool}--test)" = "function" || {
+        echo "\"$tool--test\" should be a function defined in $file"
+        exit 1
+      }
+      $tool--test
+    ' \;
+    source <(autotest)
+    tested "autotest can be sourced with process substitution"
+    exit $?
+    ;;
+  allin)
+    tdir="${2:?provide a directory to search for test scripts}"
+    cd "$tdir" || exit 1
+    echo >&2 "running each script in '$tdir' directory"
+    SECONDS=0
+    find . -type f -execdir bash -c '{
+      file="{}"
+      SECONDS=0
+      "./$file" &>/dev/null
+      printf "CODE %3i IN %2is BY %s\n" $? $SECONDS "$file"
+    }' \;
+    code=$?
+    echo >&2 "EXIT $code AFTER ${SECONDS}s"
+    exit $code
+    ;;
+  report) ;; # defined after
+  *) autotest--help; test $1 == "help"; exit $? ;;
+esac
 
 ##
 # THE AUTOTEST PROTOCOL (ATP)
@@ -80,56 +132,17 @@ function autofail () { echo >&2 "${1:?'missing message'}"; exit ${2:-1}; }
 function emsg () { echo "$@" >&2; }
 
 ##
-# MAIN ROUTINE
+# REPORT ROUTINE
 ##
 
-case "$1" in
-  checkup)
-    # TODO replace this and use 1 file and {brace,expansion} instead?
-    find "$DIR" -name "*.bash" -type f -exec bash -c '
-      file={}
-      tool=${file##*/}
-      tool=${tool%%.bash}
-      source "$file" || exit
-      test "$(type -t ${tool}--test)" = "function" || {
-        echo "\"$tool--test\" should be a function defined in $file"
-        exit 1
-      }
-      $tool--test
-    ' \;
-    source <(autotest)
-    tested "autotest can be sourced with process substitution"
-    ;;
-  allin)
-    tdir="${2:?provide a directory to search for test scripts}"
-    cd "$tdir" || exit 1
-    echo >&2 "running each script in '$tdir' directory"
-    SECONDS=0
-    find . -type f -execdir bash -c '{
-      file="{}"
-      SECONDS=0
-      "./$file" &>/dev/null
-      printf "CODE %3i IN %2is BY %s\n" $? $SECONDS "$file"
-    }' \;
-    code=$?
-    echo >&2 "EXIT $code AFTER ${SECONDS}s"
-    exit $code
-    ;;
-  report)
-    test $# -eq 2 || autofail "expecting two arguments"
-    test -f "$2" || autofail "'$2' is not a file"
-    # exec the file within a subshell to catch allways a code
-    { echo "TEST $2"; (exec "$2"); code=$?; echo "CODE $code"; exit $code; } \
-      2>/dev/null | autotest--protocol.v1
-    # generate report discarding all stderr
-    # pipe to autotest--protocol validates output data
-    exit $PIPESTATUS # report exit code must be the test exit code
-    ;;
-  *)
-    autotest--help
-    exit 1
-    ;;
-esac
+test $# -eq 2 || autofail "expecting two arguments"
+test -f "$2" || autofail "'$2' is not a file"
+# exec the file within a subshell to catch allways a code
+{ echo "TEST $2"; (exec "$2"); code=$?; echo "CODE $code"; exit $code; } \
+  2>/dev/null | autotest--protocol.v1
+# generate report discarding all stderr
+# pipe to autotest--protocol validates output data
+exit $PIPESTATUS # report exit code must be the test exit code
 
 ##
 # vim modeline (see vim +'help modeline')
