@@ -1,0 +1,34 @@
+#!/bin/bash
+
+autotest &>/dev/null \
+	&& echo "PASS 'autotest' (bare) returns 0" \
+	|| echo "FAIL 'autotest' (bare) returns $?"
+
+autotest help &>/dev/null \
+	&& echo "PASS 'autotest help' returns 0" \
+	|| echo "FAIL 'autotest help' returns $?"
+
+autotest checkup \
+	&& echo "PASS 'autotest checkup' returns 0" \
+	|| echo "FAIL 'autotest checkup' returns $?"
+
+autotest root &>/dev/null \
+	&& echo "PASS 'autotest root' returns 0" \
+	|| echo "FAIL 'autotest root' returns $?"
+
+ACTUAL="$(autotest root)"
+EXPECT=$(iai path abc/autotest)
+test "$ACTUAL" == "$EXPECT" \
+	&& printf "PASS" \
+	|| printf "FAIL"
+echo " 'autotest root' stdout output ($OUTPUT) is '$EXPECT'"
+unset ACTUAL EXPECT
+
+autotest report &>/dev/null \
+	&& printf "FAIL" \
+	|| printf "PASS"
+echo " 'autotest report' (missing filename) returns error (code > 0)"
+
+##
+# vim modeline
+# Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:

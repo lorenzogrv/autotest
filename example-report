@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# Emulate a situation where the test executable file does not exist
+EXAMPLE="$(autotest root)/example/protocol-v1/missing"
+test -f "$EXAMPLE" \
+	&& printf "FAIL" \
+	|| printf "PASS"
+echo " example file '$EXAMPLE' should not exist"
+
+autotest report "$EXAMPLE" &>/dev/null \
+	&& printf "FAIL" \
+	|| printf "PASS"
+echo " 'autotest report $EXAMPLE' (unexistant file) returns error (code > 0)"
+
+unset EXAMPLE
+
+
+# The basic failture test (1 pass, 1 skip, 1 fail)
+EXAMPLE="$(autotest root)/example/protocol-v1/fail/basic"
+test -f "$EXAMPLE" \
+  && printf "PASS" \
+  || printf "FAIL"
+echo " example file '$EXAMPLE' should exist"
+
+autotest report "$EXAMPLE" &>/dev/null \
+	&& printf "FAIL" \
+	|| printf "PASS"
+echo " 'autotest report $EXAMPLE' returns error (code > 0)"
+
+unset EXAMPLE
+
+
+# TIMEOUT=1 # max seconds to wait until fail
+# find "$autodir/example" -type f -print0 \
+# 	| while IFS= read -d '' filepath
+# do
+# 	#echo  "go for '$filepath'"; exit
+# 	(timeout $TIMEOUT autotest "$filepath") >/dev/null
+# 	code=$?
+# 	test $code -ne 124
+# 	tested "'autotest $filepath' runs in less than $TIMEOUT seconds"
+# 	test $code -eq 0
+# 	tested "running 'autotest $filepath' returns 0"
+# 	unset code
+# 
+# 	timeout $TIMEOUT autotest report "$filepath" >/dev/null
+# 	code=$?
+# 	test $code -ne 124
+# 	tested "'autotest report $filepath' runs in less than $TIMEOUT seconds"
+# 	test $code -eq 0
+# 	tested "'autotest report $filepath' returns 0"
+# 	unset code
+# done
+
+##
+# vim modeline
+# Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:
