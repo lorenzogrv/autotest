@@ -1,0 +1,88 @@
+#!/bin/bash
+
+# Emulate a situation where the test executable file does not exist
+EXAMPLE="$(autotest root)/example/protocol-v1/missing"
+test -f "$EXAMPLE" \
+	&& printf "FAIL" \
+	|| printf "PASS"
+echo " example file '$EXAMPLE' should not exist"
+
+autotest "$EXAMPLE" &>/dev/null \
+	&& printf "FAIL" \
+	|| printf "PASS"
+echo " running *unexistant-file* with autotest should return error (code > 0)"
+unset EXAMPLE
+
+echo "SKIP a case where a non-executable is run, preserving exit status 126"
+
+# generic cases where an error status code should be present 
+find "$(autotest root)/example/protocol-v1/fail" -type f -print0 \
+  | while IFS= read -d '' EXAMPLE
+do
+  autotest "$EXAMPLE" &>/dev/null \
+    && printf "FAIL" \
+    || printf "PASS"
+  echo " running $EXAMPLE should return error (code > 0)"
+done
+unset EXAMPLE
+
+# scripts where an error status code should be present
+find "$(autotest root)/example/script/fail" -type f -print0 \
+  | while IFS= read -d '' EXAMPLE
+do
+  autotest "$EXAMPLE" &>/dev/null \
+    && printf "FAIL" \
+    || printf "PASS"
+  echo " running $EXAMPLE should return error (code > 0)"
+done
+unset EXAMPLE
+
+# scripts that should fail for being too slow
+find "$(autotest root)/example/script/fail" -type f -name 'slow*' \
+  -print0 \
+  | while IFS= read -d '' EXAMPLE
+do
+  autotest "$EXAMPLE" &>/dev/null
+  test $? -eq 124 \
+    && printf "FAIL" \
+    || printf "PASS"
+  echo " running $EXAMPLE should return error code 124 (timeout)"
+done
+unset EXAMPLE
+
+# scripts where the exit status code should be 0 (pass)
+find "$(autotest root)/example/script/pass" -type f -print0 \
+  | while IFS= read -d '' EXAMPLE
+do
+  autotest "$EXAMPLE" &>/dev/null \
+    && echo "PASS running $EXAMPLE returns exit status 0" \
+    || echo "FAIL running $EXAMPLE returns exit status $?"
+done
+unset EXAMPLE
+
+
+# TIMEOUT=1 # max seconds to wait until fail
+# find "$autodir/example" -type f -print0 \
+# 	| while IFS= read -d '' filepath
+# do
+# 	#echo  "go for '$filepath'"; exit
+# 	(timeout $TIMEOUT autotest "$filepath") >/dev/null
+# 	code=$?
+# 	test $code -ne 124
+# 	tested "'autotest $filepath' runs in less than $TIMEOUT seconds"
+# 	test $code -eq 0
+# 	tested "running 'autotest $filepath' returns 0"
+# 	unset code
+# 
+# 	timeout $TIMEOUT autotest report "$filepath" >/dev/null
+# 	code=$?
+# 	test $code -ne 124
+# 	tested "'autotest report $filepath' runs in less than $TIMEOUT seconds"
+# 	test $code -eq 0
+# 	tested "'autotest report $filepath' returns 0"
+# 	unset code
+# done
+
+##
+# vim modeline
+# Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:
