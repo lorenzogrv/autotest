@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source <(autotest)
+
 # emulate a situation where a test takes a bit time to complete
 sleep 1
 
