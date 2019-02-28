@@ -26,6 +26,16 @@ do
 done
 unset EXAMPLE
 
+# generic cases where an error status code should NOT be present
+find "$(autotest root)/example/protocol-v1/pass" -type f -print0 \
+  | while IFS= read -d '' EXAMPLE
+do
+  autotest "$EXAMPLE" &>/dev/null \
+    && echo "PASS running $EXAMPLE reports exit status 0" \
+    || echo "FAIL running $EXAMPLE reports exit status $?"
+done
+unset EXAMPLE
+
 # scripts where an error status code should be present
 find "$(autotest root)/example/script/fail" -type f -print0 \
   | while IFS= read -d '' EXAMPLE
