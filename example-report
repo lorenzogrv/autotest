@@ -10,25 +10,24 @@ echo " example file '$EXAMPLE' should not exist"
 autotest report "$EXAMPLE" &>/dev/null \
 	&& printf "FAIL" \
 	|| printf "PASS"
-echo " 'autotest report $EXAMPLE' (unexistant file) returns error (code > 0)"
-
+echo " report for *unexistant-file* should return error (code > 0)"
 unset EXAMPLE
 
-
-# The basic failture test (1 pass, 1 skip, 1 fail)
+# The basic failed test (1 pass, 1 skip, 1 fail)
 EXAMPLE="$(autotest root)/example/protocol-v1/fail/basic"
-test -f "$EXAMPLE" \
-  && printf "PASS" \
-  || printf "FAIL"
-echo " example file '$EXAMPLE' should exist"
-
 autotest report "$EXAMPLE" &>/dev/null \
 	&& printf "FAIL" \
 	|| printf "PASS"
-echo " 'autotest report $EXAMPLE' returns error (code > 0)"
-
+echo " report for $EXAMPLE should return error (code > 0)"
 unset EXAMPLE
 
+# The empty failed test (no assertions)
+EXAMPLE="$(autotest root)/example/protocol-v1/fail/empty"
+autotest report "$EXAMPLE" &>/dev/null \
+	&& printf "FAIL" \
+	|| printf "PASS"
+echo "  report for $EXAMPLE should return error (code > 0)"
+unset EXAMPLE
 
 # TIMEOUT=1 # max seconds to wait until fail
 # find "$autodir/example" -type f -print0 \
