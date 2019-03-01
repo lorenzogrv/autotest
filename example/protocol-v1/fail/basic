@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "TEST $0"
+
 echo "PASS this is a successful assertion"
 echo "SKIP this is an ignored assertion"
 echo "FAIL this is a failed assertion"

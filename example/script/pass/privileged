@@ -2,6 +2,8 @@
 
 source <(autotest)
 
+echo "TEST $0"
+
 touch /tmp/useless-empty-file
 tested "I can touch a file in /tmp directory"
 

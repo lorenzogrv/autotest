@@ -2,6 +2,8 @@
 
 source <(autotest)
 
+echo "TEST $0"
+
 # emulate a situation where a test takes a bit time to complete
 sleep 1
 
