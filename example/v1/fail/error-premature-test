@@ -1,0 +1,15 @@
+#!/bin/bash
+
+echo "TEST $0 this is an example unit description"
+echo "PASS this is a successful assertion"
+echo "CODE 0"
+
+echo "TEST $(realpath $0) another example unit description"
+echo "SKIP this is an 'skiped' assertion"
+echo "CODE 0"
+
+echo "TEST $(realpath $0) the last example unit description"
+# units can't have childs, that's why they are units
+echo "TEST $0 this line is the syntax error"
+echo "CODE 0"
+echo "CODE 0"

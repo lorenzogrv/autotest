@@ -1,0 +1,14 @@
+#!/bin/bash
+
+echo "TEST $0 this is an example unit description"
+echo "PASS this is a successful assertion"
+echo "CODE 0"
+
+# if ommited a TEST statement
+# a FAIL statement triggers a syntax error
+echo "FAIL this is a syntax error (premature fail)"
+
+# even when the continuation is correct
+echo "TEST $(realpath $0) the last example unit description"
+echo "PASS this is a successful assertion"
+echo "CODE 0"
