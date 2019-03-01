@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "TEST $0"
+
 # Emulate a situation where the test executable file does not exist
 EXAMPLE="$(autotest root)/example/protocol-v1/missing"
 test -f "$EXAMPLE" \
@@ -15,7 +17,7 @@ unset EXAMPLE
 
 echo "SKIP a case where a non-executable is run, preserving exit status 126"
 
-# generic cases where an error status code should be present 
+# generic cases where an error status code (any) should be present 
 find "$(autotest root)/example/protocol-v1/fail" -type f -print0 \
   | while IFS= read -d '' EXAMPLE
 do
@@ -23,6 +25,19 @@ do
     && printf "FAIL" \
     || printf "PASS"
   echo " running $EXAMPLE should return error (code > 0)"
+done
+unset EXAMPLE
+
+# cases where a syntax error should be present (exit status code 5)
+find "$(autotest root)/example/protocol-v1/fail" -type f -name 'error*' \
+  -print0 \
+  | while IFS= read -d '' EXAMPLE
+do
+  autotest report "$EXAMPLE" &>/dev/null
+  CODE=$?
+  test $CODE -eq 5 \
+    && echo "PASS running $EXAMPLE returns exit status 5 (syntax error)" \
+    || echo "FAIL running $EXAMPLE returns exit status $?"
 done
 unset EXAMPLE
 

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "TEST $0"
+
 autotest &>/dev/null \
 	&& echo "PASS 'autotest' (bare) returns 0" \
 	|| echo "FAIL 'autotest' (bare) returns $?"
