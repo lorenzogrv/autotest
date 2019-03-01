@@ -22,9 +22,8 @@ find "$(autotest root)/example/protocol-v1/fail" -type f -print0 \
   | while IFS= read -d '' EXAMPLE
 do
   autotest "$EXAMPLE" &>/dev/null \
-    && printf "FAIL" \
-    || printf "PASS"
-  echo " running $EXAMPLE should return error (code > 0)"
+    && echo "FAIL running $EXAMPLE returns exit status 0 (expected 0)" \
+    || echo "PASS running $EXAMPLE returns non-zero exit status"
 done
 unset EXAMPLE
 
@@ -37,7 +36,7 @@ do
   CODE=$?
   test $CODE -eq 5 \
     && echo "PASS running $EXAMPLE returns exit status 5 (syntax error)" \
-    || echo "FAIL running $EXAMPLE returns exit status $?"
+    || echo "FAIL running $EXAMPLE returns exit status $? (expected 5)"
 done
 unset EXAMPLE
 
@@ -46,8 +45,8 @@ find "$(autotest root)/example/protocol-v1/pass" -type f -print0 \
   | while IFS= read -d '' EXAMPLE
 do
   autotest "$EXAMPLE" &>/dev/null \
-    && echo "PASS running $EXAMPLE reports exit status 0" \
-    || echo "FAIL running $EXAMPLE reports exit status $?"
+    && echo "PASS running $EXAMPLE returns exit status 0" \
+    || echo "FAIL running $EXAMPLE returns exit status $? (expected 0)"
 done
 unset EXAMPLE
 
@@ -69,9 +68,8 @@ find "$(autotest root)/example/script/fail" -type f -name 'slow*' \
 do
   autotest "$EXAMPLE" &>/dev/null
   test $? -eq 124 \
-    && printf "FAIL" \
-    || printf "PASS"
-  echo " running $EXAMPLE should return error code 124 (timeout)"
+    && echo "PASS running $EXAMPLE returns exit status 124 (timeout)" \
+    || echo "FAIL running $EXAMPLE returns exit status $? (expected 124)"
 done
 unset EXAMPLE
 
