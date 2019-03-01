@@ -1,110 +1,91 @@
 #!/bin/bash
 
-echo "TEST $0"
+
+echo "TEST $0 unexistant file and non-executable file"
 
 # Emulate a situation where the test executable file does not exist
-EXAMPLE="$(autotest root)/example/protocol-v1/missing"
+EXAMPLE="$(autotest root)/example/unexistant"
 test -f "$EXAMPLE" \
-	&& printf "FAIL" \
-	|| printf "PASS"
-echo " example file '$EXAMPLE' should not exist"
-
+	&& echo "FAIL $EXAMPLE should not exist, but it does" \
+	|| echo "PASS $EXAMPLE does not exist"
 autotest "$EXAMPLE" &>/dev/null \
-	&& printf "FAIL" \
-	|| printf "PASS"
-echo " running *unexistant-file* with autotest should return error (code > 0)"
+  && echo "FAIL returns exit status 0 (expected non-zero)" \
+	|| echo "PASS returns exit status 0"
 unset EXAMPLE
 
 echo "SKIP a case where a non-executable is run, preserving exit status 126"
 
-# generic cases where an error status code (any) should be present 
-find "$(autotest root)/example/protocol-v1/fail" -type f -print0 \
-  | while IFS= read -d '' EXAMPLE
+echo "CODE 0"
+
+function find-examples () {
+  local place=$1; shift
+  find "$(autotest root)/example$place" -type f "$@" -print0 | sort -z
+}
+
+echo "TEST $0 v1 examples that should return non-zero exit status"
+find-examples /v1/fail | while IFS= read -d '' EXAMPLE
 do
   autotest "$EXAMPLE" &>/dev/null \
-    && echo "FAIL running $EXAMPLE returns exit status 0 (expected 0)" \
-    || echo "PASS running $EXAMPLE returns non-zero exit status"
+    && echo "FAIL $EXAMPLE returns exit status 0 (expected non-zero)" \
+    || echo "PASS $EXAMPLE returns non-zero exit status"
 done
 unset EXAMPLE
+echo "CODE 0"
 
-# cases where a syntax error should be present (exit status code 5)
-find "$(autotest root)/example/protocol-v1/fail" -type f -name 'error*' \
-  -print0 \
-  | while IFS= read -d '' EXAMPLE
+echo "TEST $0 v1 examples that should return exit status 5 (syntax error)"
+find-examples /v1/fail -name 'error*' | while IFS= read -d '' EXAMPLE
 do
-  autotest report "$EXAMPLE" &>/dev/null
+  autotest "$EXAMPLE" &>/dev/null
   CODE=$?
   test $CODE -eq 5 \
-    && echo "PASS running $EXAMPLE returns exit status 5 (syntax error)" \
-    || echo "FAIL running $EXAMPLE returns exit status $? (expected 5)"
+    && echo "PASS $EXAMPLE returns exit status 5 (syntax error)" \
+    || echo "FAIL $EXAMPLE returns exit status $? (expected 5)"
 done
 unset EXAMPLE
+echo "CODE 0"
 
-# generic cases where an error status code should NOT be present
-find "$(autotest root)/example/protocol-v1/pass" -type f -print0 \
-  | while IFS= read -d '' EXAMPLE
+echo "TEST $0 v1 examples that should return exit status 0 (success)"
+find-examples /v1/pass | while IFS= read -d '' EXAMPLE
 do
   autotest "$EXAMPLE" &>/dev/null \
-    && echo "PASS running $EXAMPLE returns exit status 0" \
-    || echo "FAIL running $EXAMPLE returns exit status $? (expected 0)"
+    && echo "PASS $EXAMPLE returns exit status 0" \
+    || echo "FAIL $EXAMPLE returns exit status $? (expected 0)"
 done
 unset EXAMPLE
+echo "CODE 0"
 
-# scripts where an error status code should be present
-find "$(autotest root)/example/script/fail" -type f -print0 \
-  | while IFS= read -d '' EXAMPLE
+echo "TEST $0 script examples not being slow that should return non-zero"
+find-examples /script/fail -not -name 'slow*' | while IFS= read -d '' EXAMPLE
 do
   autotest "$EXAMPLE" &>/dev/null \
-    && printf "FAIL" \
-    || printf "PASS"
-  echo " running $EXAMPLE should return error (code > 0)"
+    && echo "FAIL $EXAMPLE returns exit status 0 (expected non-zero)" \
+    || echo "PASS $EXAMPLE returns non-zero exit status"
 done
 unset EXAMPLE
+echo "CODE 0"
 
-# scripts that should fail for being too slow
-find "$(autotest root)/example/script/fail" -type f -name 'slow*' \
-  -print0 \
-  | while IFS= read -d '' EXAMPLE
+echo "TEST $0 script examples that should succeed"
+find-examples /script/pass | while IFS= read -d '' EXAMPLE
+do
+  autotest "$EXAMPLE" &>/dev/null \
+    && echo "PASS $EXAMPLE returns exit status 0" \
+    || echo "FAIL $EXAMPLE returns exit status $?"
+done
+unset EXAMPLE
+echo "CODE 0"
+
+# scripts that should fail for being too slow (exit status 124)
+#TODO this will timeout the whole test
+echo "TEST $0 script examples being slow that should return 124 (timeout)"
+find-examples /script/fail -name 'slow*' | while IFS= read -d '' EXAMPLE
 do
   autotest "$EXAMPLE" &>/dev/null
   test $? -eq 124 \
-    && echo "PASS running $EXAMPLE returns exit status 124 (timeout)" \
-    || echo "FAIL running $EXAMPLE returns exit status $? (expected 124)"
+    && echo "PASS $EXAMPLE returns exit status 124 (timeout)" \
+    || echo "FAIL $EXAMPLE returns exit status $? (expected 124)"
 done
 unset EXAMPLE
-
-# scripts where the exit status code should be 0 (pass)
-find "$(autotest root)/example/script/pass" -type f -print0 \
-  | while IFS= read -d '' EXAMPLE
-do
-  autotest "$EXAMPLE" &>/dev/null \
-    && echo "PASS running $EXAMPLE returns exit status 0" \
-    || echo "FAIL running $EXAMPLE returns exit status $?"
-done
-unset EXAMPLE
-
-
-# TIMEOUT=1 # max seconds to wait until fail
-# find "$autodir/example" -type f -print0 \
-# 	| while IFS= read -d '' filepath
-# do
-# 	#echo  "go for '$filepath'"; exit
-# 	(timeout $TIMEOUT autotest "$filepath") >/dev/null
-# 	code=$?
-# 	test $code -ne 124
-# 	tested "'autotest $filepath' runs in less than $TIMEOUT seconds"
-# 	test $code -eq 0
-# 	tested "running 'autotest $filepath' returns 0"
-# 	unset code
-# 
-# 	timeout $TIMEOUT autotest report "$filepath" >/dev/null
-# 	code=$?
-# 	test $code -ne 124
-# 	tested "'autotest report $filepath' runs in less than $TIMEOUT seconds"
-# 	test $code -eq 0
-# 	tested "'autotest report $filepath' returns 0"
-# 	unset code
-# done
+echo "CODE 0"
 
 ##
 # vim modeline
