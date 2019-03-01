@@ -2,6 +2,8 @@
 
 source <(autotest)
 
+echo "TEST $0 (emulate a 2 second duration)"
+
 # emulate a situation where a test takes too much time to complete
 sleep 2
 
