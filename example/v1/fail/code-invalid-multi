@@ -1,0 +1,18 @@
+#!/bin/bash
+
+echo "TEST $0"
+echo "SKIP this is an ignored assertion"
+# note that process exit codes above 255 are invalid
+echo "CODE 256"
+
+echo "TEST $0"
+echo "SKIP this is an ignored assertion"
+echo "CODE invalid-integer"
+
+echo "TEST $0"
+echo "SKIP this is an ignored assertion"
+echo "CODE invalid-integer"
+
+# this script will exit with code 0, and should generate an aditional FAIL
+# because the last CODE statement reported a non-zero exit status
+exit 0
