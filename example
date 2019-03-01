@@ -32,6 +32,54 @@ done
 unset EXAMPLE
 echo "CODE 0"
 
+echo "TEST $0 v1 examples that should return exit status 1 (assertion error)"
+find-examples /v1/fail -name 'basic*' | while IFS= read -d '' EXAMPLE
+do
+  autotest "$EXAMPLE" &>/dev/null
+  CODE=$?
+  test $CODE -eq 1 \
+    && echo "PASS $EXAMPLE returns exit status 1 (assertion error)" \
+    || echo "FAIL $EXAMPLE returns exit status $CODE (expected 1)"
+done
+unset EXAMPLE CODE
+echo "CODE 0"
+
+echo "TEST $0 v1 examples that should return exit status 2 (code mismatch)"
+find-examples /v1/fail -name 'code*' | while IFS= read -d '' EXAMPLE
+do
+  autotest "$EXAMPLE" &>/dev/null
+  CODE=$?
+  test $CODE -eq 2 \
+    && echo "PASS $EXAMPLE returns exit status 2 (code mismatch)" \
+    || echo "FAIL $EXAMPLE returns exit status $CODE (expected 2)"
+done
+unset EXAMPLE CODE
+echo "CODE 0"
+
+echo "TEST $0 v1 examples that should return exit status 2 (code mismatch)"
+find-examples /v1/fail -name 'code*' | while IFS= read -d '' EXAMPLE
+do
+  autotest "$EXAMPLE" &>/dev/null
+  CODE=$?
+  test $CODE -eq 2 \
+    && echo "PASS $EXAMPLE returns exit status 2 (code mismatch)" \
+    || echo "FAIL $EXAMPLE returns exit status $CODE (expected 2)"
+done
+unset EXAMPLE CODE
+echo "CODE 0"
+
+echo "TEST $0 v1 examples that should return exit status 3 (no assertions)"
+find-examples /v1/fail -name 'empty*' | while IFS= read -d '' EXAMPLE
+do
+  autotest "$EXAMPLE" &>/dev/null
+  CODE=$?
+  test $CODE -eq 3 \
+    && echo "PASS $EXAMPLE returns exit status 3 (no assertions)" \
+    || echo "FAIL $EXAMPLE returns exit status $CODE (expected 3)"
+done
+unset EXAMPLE CODE
+echo "CODE 0"
+
 echo "TEST $0 v1 examples that should return exit status 5 (syntax error)"
 find-examples /v1/fail -name 'error*' | while IFS= read -d '' EXAMPLE
 do
@@ -39,9 +87,21 @@ do
   CODE=$?
   test $CODE -eq 5 \
     && echo "PASS $EXAMPLE returns exit status 5 (syntax error)" \
-    || echo "FAIL $EXAMPLE returns exit status $? (expected 5)"
+    || echo "FAIL $EXAMPLE returns exit status $CODE (expected 5)"
 done
-unset EXAMPLE
+unset EXAMPLE CODE
+echo "CODE 0"
+
+echo "TEST $0 v1 examples that should return exit status 6 (premature keyword)"
+find-examples /v1/fail -name 'premature*' | while IFS= read -d '' EXAMPLE
+do
+  autotest "$EXAMPLE" &>/dev/null
+  CODE=$?
+  test $CODE -eq 6 \
+    && echo "PASS $EXAMPLE returns exit status 6 (premature keyword)" \
+    || echo "FAIL $EXAMPLE returns exit status $CODE (expected 6)"
+done
+unset EXAMPLE CODE
 echo "CODE 0"
 
 echo "TEST $0 v1 examples that should return exit status 0 (success)"
@@ -69,20 +129,7 @@ find-examples /script/pass | while IFS= read -d '' EXAMPLE
 do
   autotest "$EXAMPLE" &>/dev/null \
     && echo "PASS $EXAMPLE returns exit status 0" \
-    || echo "FAIL $EXAMPLE returns exit status $?"
-done
-unset EXAMPLE
-echo "CODE 0"
-
-# scripts that should fail for being too slow (exit status 124)
-#TODO this will timeout the whole test
-echo "TEST $0 script examples being slow that should return 124 (timeout)"
-find-examples /script/fail -name 'slow*' | while IFS= read -d '' EXAMPLE
-do
-  autotest "$EXAMPLE" &>/dev/null
-  test $? -eq 124 \
-    && echo "PASS $EXAMPLE returns exit status 124 (timeout)" \
-    || echo "FAIL $EXAMPLE returns exit status $? (expected 124)"
+    || echo "FAIL $EXAMPLE returns exit status $? (expected 0)"
 done
 unset EXAMPLE
 echo "CODE 0"

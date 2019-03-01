@@ -1,64 +1,22 @@
 #!/bin/bash
 
-# Emulate a situation where the test executable file does not exist
-EXAMPLE="$(autotest root)/example/protocol-v1/missing"
-test -f "$EXAMPLE" \
-	&& printf "FAIL" \
-	|| printf "PASS"
-echo " example file '$EXAMPLE' should not exist"
+# echo "TEST $0"; echo "SKIP all tests hereafter"; exit 0
 
-autotest report "$EXAMPLE" &>/dev/null \
-	&& printf "FAIL" \
-	|| printf "PASS"
-echo " report for *unexistant-file* should return error (code > 0)"
-unset EXAMPLE
-
-# generic cases where an error status code should be present 
-# find "$(autotest root)/example/protocol-v1/fail" -type f -print0 \
-#   | while IFS= read -d '' EXAMPLE
-for NAME in {basic,empty,error,error-unit,first}
-do
-  EXAMPLE="$(autotest root)/example/protocol-v1/fail/$NAME"
-  autotest report "$EXAMPLE" &>/dev/null \
-    && printf "FAIL" \
-    || printf "PASS"
-  echo " report for $EXAMPLE should return error (code > 0)"
-done
-unset EXAMPLE
-
-# cases where a syntax error should be present (exit status code 5)
-find "$(autotest root)/example/protocol-v1/fail" -type f -name 'error*' \
-  -print0 \
+echo "TEST $0 all example files not being slow"
+find "$(autotest root)/example" -type f -not -name 'slow*' -print0 \
   | while IFS= read -d '' EXAMPLE
 do
+  autotest "$EXAMPLE" &>/dev/null
+  EXPECT=$?
   autotest report "$EXAMPLE" &>/dev/null
-  CODE=$?
-  test $CODE -eq 5 && printf "PASS" || printf "FAIL"
-  echo " report for $EXAMPLE should exit with code 5 (syntax error)"
+  ACTUAL=$?
+  test $ACTUAL -eq $EXPECT \
+    && echo "PASS $EXAMPLE returns exit status $EXPECT" \
+    || echo "FAIL $EXAMPLE returns exit status $ACTUAL (expected $EXPECT)"
 done
-unset EXAMPLE
+unset EXAMPLE EXPECT ACTUAL
 
-# TIMEOUT=1 # max seconds to wait until fail
-# find "$autodir/example" -type f -print0 \
-# 	| while IFS= read -d '' filepath
-# do
-# 	#echo  "go for '$filepath'"; exit
-# 	(timeout $TIMEOUT autotest "$filepath") >/dev/null
-# 	code=$?
-# 	test $code -ne 124
-# 	tested "'autotest $filepath' runs in less than $TIMEOUT seconds"
-# 	test $code -eq 0
-# 	tested "running 'autotest $filepath' returns 0"
-# 	unset code
-# 
-# 	timeout $TIMEOUT autotest report "$filepath" >/dev/null
-# 	code=$?
-# 	test $code -ne 124
-# 	tested "'autotest report $filepath' runs in less than $TIMEOUT seconds"
-# 	test $code -eq 0
-# 	tested "'autotest report $filepath' returns 0"
-# 	unset code
-# done
+# TODO slow tests
 
 ##
 # vim modeline
