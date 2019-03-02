@@ -1,0 +1,7 @@
+#!/bin/bash
+
+echo "TEST $0"
+echo "PASS this is a successful assertion"
+
+# a CODE statement may omit the exit status
+echo "CODE"

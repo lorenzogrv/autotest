@@ -1,19 +1,26 @@
 #!/bin/bash
 
-# units can't have childs, that's why they are units
-# but any test executable may generate more than one unit
-# this is a must to detect slow tests for files containing lots of assertions
-# the following example is perfectly valid autotest protocol
+# test units can't have childs, that's why they are units
+# but any test executable may generate more than one test unit
+# the following example produces perfectly valid autotest protocol
 
-echo "TEST $0 this is an example unit description"
-echo "PASS this is a successful assertion"
-echo "CODE 0"
+(($#)) && echo "TEST $0" "$*"
 
-echo "TEST $(realpath $0) another example unit description"
-echo "SKIP this is an 'skiped' assertion"
-echo "CODE 0"
+case "$*" in
+  'first unit')
+    echo "PASS this is a successful assertion"
+    ;;
+  'middle unit')
+    echo "PASS this is a successful assertion"
+    ;;
+  'final unit')
+    echo "PASS this is a successful assertion"
+    ;;
+  '')
+    $0 first unit
+    $0 middle unit
+    $0 final unit
+    ;;
+esac
 
-echo "TEST $(realpath $0) the last example unit description"
-echo "PASS this is a successful assertion"
-echo "SKIP this is an 'skiped' assertion"
-echo "CODE 0"
+(($#)) && echo "CODE" || exit 0

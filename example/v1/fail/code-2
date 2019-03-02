@@ -1,0 +1,8 @@
+#!/bin/bash
+
+echo "TEST $0"
+
+echo "FAIL this is a failed assertion"
+
+# exit 2 emulates an "incorrect ussage" error
+exit 2

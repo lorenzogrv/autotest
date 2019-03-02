@@ -1,53 +1,250 @@
 #!/bin/bash
 
-autotest--help () {
+function autotest--help () {
   cat <<HELP
-Usage:
+Ussage: $(basename $0) [SUBCOMMAND] [FILE]
 
-  - 'autotest': prints all autotest code on stdout
-  - 'autotest checkup': runs the autotest test suite
-  - 'autotest <SCRIPT>': runs <SCRIPT> after sourcing autotest code
-  - 'autotest report <SCRIPT>': execs SCRIPT, discarding stderr, but
-                                generated output is guaranted to be
-                                valid AutoTest Protocol data.
+Both arguments are optional. Commands can take one of the following formats: 
 
-  Any other value at argument 1 outputs this help text.
+  1. 'autotest': prints all autotest code on stdout
+  2. 'autotest <SCRIPT>': runs <SCRIPT> after sourcing autotest code
+     additionally, validates <SCRIPT> output to ensure it is Autotest Protocol
+  3. 'autotest report <SCRIPT>': likewise autotest <SCRIPT>, but discard stderr
+  4. 'autotest checkup': asserts that autotest api functions behave as expected
 
   Code examples:
 
-  - 'source <(autotest)': sources the autotest code for later usage
-  - 'autotest checkup && source <(autotest) || exit': common way to assert
-    the toolset work as expected before sourcing it
+  - \`source <(autotest)\`: sources the autotest code for later usage
+  - \`autotest checkup && source <(autotest) || exit\`: assert autotest api
+    functions behave as they should before sourcing autotest, or abort execution
 HELP
 }
+
+# this script does not accept more than 2 arguments
+if (( $# > 3 )); then autotest--help >&2; exit 2; fi
 
 # outputs the autotest root directory
 function autotest--root () { dirname "$(realpath "$0")"; }
 
-# outputs all autotest code to stdout
+# outputs all autotest source code to stdout
 # TODO testodo <<<"tool to report tests pending to write"
-function autotest--code () {
+function autotest--source () {
   find "$(autotest--root)" -name "*.bash" -type f -exec cat '{}' +
 }
 
 # autotest code is sent to stdout when this script receives 0 arguments
-(( $# )) || { autotest--code; exit $?; }
+# this is done early because no more functions are need to perform this task
+(( $# )) || { autotest--source; exit $?; }
 
-# given a file as argument 1, autotest behaves as test-runner
-if (( $# == 1 )) && test -f "$1"
-then
-  source <(autotest--code)
-  echo "TEST $1"
-  SECONDS=0 # TODO better time measure
-  (exec "$1") # exec the file within a subshell to catch allways a code
-  code=$?
-  echo "CODE $code IN ${SECONDS}s";
-  exit $code # preserve the exit code from test execution
-fi
+##
+# UTILS: functions that this script needs to work
+##
+
+# Logging functions
+function emsg () { echo "$@" >&2; } # Like "echo", but write to stderr
+function verb () { emsg "autotest debug:" "$@"; } # meant for debugging
+
+# Tells whenever given value ($1) is an integer
+is_int () { case "${1#[-]}" in ''|*[!0-9]*) return 1;; *) return 0;; esac; }
+
+##
+# THE AUTOTEST PROTOCOL (ATP)
+#
+# TODO write something about
+# TODO missing the IN keyword on current implementation
+##
+
+# pass-through stdin data to stdout, but ensure its syntax matches ATP
+# TODO rename to autotext
+function autotest--protocol.v1 () {
+  local tlvl=0 clvl=0 count=0 fails=0 code=0 failed=0
+  while read KEY value; do
+    case $KEY in
+      TEST)
+        if test $tlvl -eq $clvl; then let tlvl++; else
+          emsg "EATEST: premature 'TEST $value' statement (expecting CODE)"
+          return 5
+        fi
+        read -d ' ' filepath <<<"$value"
+        if ! test -f "$filepath"; then
+          emsg "EATEST: '$filepath' is not a file"
+          return 127
+        fi
+        emsg "debug autotest: tlvl=$tlvl; reset count, fails, code"
+        count=0 fails=0 code=0
+        ;;
+      FAIL|PASS|SKIP)
+        if test $clvl -eq $tlvl; then
+          emsg "EATEST: premature '$KEY $value' statement (expecting TEST)"
+          return 5
+        fi
+        (( count++ ))
+        test "$KEY" == "FAIL" && (( fails++ ))
+        ;;
+      CODE)
+        if test $clvl -lt $tlvl; then let clvl++; else
+          emsg "EATEST: premature 'CODE $value' statement (expecting TEST)"
+          return 34
+        fi
+        read -d ' ' code <<<"$value"
+        if ! is_int "$code" || test $code -gt 255; then
+          #echo "CODE 2${value##$code}"
+          emsg "EATEST: invalid code '$code'"
+          return 44
+        fi
+        # remember how many CODE statements report a failure
+        if test $code -gt 0; then let failed++; fi
+        if test $count -eq 0
+        then # test ended without any assertion statement
+          echo "FAIL there are no assertions in this test"
+          (( failed++ ))
+          echo "CODE 1${value##$code}" # TODO code empty
+          continue #parsing but don't pass-trough
+        elif test $code -eq 0 && test $fails -gt 0
+        then # code is 0 but there are failures
+          echo "FAIL test exit status code was 0 with $fails failures"
+          (( failed++ ))
+          echo "CODE 1${value##$code}"
+          continue #parsing but don't pass-trough
+        elif test $code -eq 0 && test $failed
+        then # code is 0 but some previous test units failed
+          emsg "FAIL there are $failed test unit failures above"
+          (( failed++ ))
+          echo "CODE 1${value##$code}"
+          continue #parsing but don't pass-trough
+        else
+          emsg "debug autotest: code=$code count=$count fails=$fails failed=$failed"
+        fi
+        ;;
+      *) emsg "bad syntax: '$keyword $value'"; return 5 ;;
+    esac
+    echo "$KEY $value" # pass data down through pipeline
+  done
+  if test $tlvl -eq 0 ; then
+    emsg "EATEST: expecting at least one TEST statement"
+    return 5
+  fi
+  # when the last CODE statement is missing, generate one
+  if ! test $tlvl -eq $clvl; then
+    emsg "debug autotest: generate CODE count=$count fails=$fails failed=$failed"
+    if ! (($count)); then echo "FAIL empty test"; code=3
+    elif (($fails)); then code=1
+    elif (($failed)); then echo "FAIL a previous unit failed"; code=1
+    fi
+    echo "CODE $code"
+  fi
+  return $code # return the last stored code allways
+}
+
+function autocode () {
+  if (( $# > 1 )); then
+    emsg "$FUNCNAME only accepts either ONE or NONE arguments"; return 2
+  fi
+  case ${1^^} in
+#    ABOVE) echo 11 ;; 11) echo "some test unit failed above" ;;
+#    # reserve through 19
+#    # autotest protocol syntax errors
+#    NOKEY) echo 20 ;; 20) echo "missing statement's leading keyword" ;;
+#    TFLOW) echo 21 ;; 26) echo "premature TEST statement" ;;
+#    CFLOW) echo 22 ;; 22) echo "premature CODE statement" ;;
+#    FFLOW) echo 23 ;; 23) echo "premature FAIL statement" ;;
+#    PFLOW) echo 24 ;; 24) echo "premature PASS statement" ;;
+#    SFLOW) echo 25 ;; 25) echo "premature SKIP statement" ;;
+#    FINAL) echo 26 ;; 26) echo "FINAL" # missing final CODE statement
+#    FIRST) echo 27 ;; 27) echo "missing the first TEST statement" ;;
+#    2[8-9]|3[0-9]) echo ETEST"autotest protocol error (reserved)" ;;
+#    # special cases
+#    NOACCESS) echo 126 ;; 126) echo "execution not allowed" ;;
+#    ENOENT) echo 127 ;; 127) echo "file or executable not found" ;;
+#    # signals are 128 + signal code
+#    SIG*) echo $(( 128 + $(kill -l $1) )) ;;
+#    129|1[3-8][0-9]|19[0-2]) # 129 through 192
+#      echo "killed by signal $(($1-128)) $(kill -l $(($1-128)))" ;;
+#    TODO|IMPLEMENTATION) echo 255 ;; 255) echo "implementation error" ;;
+    '')
+      for i in {0..255}; do
+        autocode $i &>/dev/null && printf "$i → %s\n" "$(autocode $i)"
+      done
+      return 1
+      ;;
+    0) echo OK      ;; OK)     echo 0   ;; # success code
+    1) echo FAIL    ;; FAIL)   echo 1   ;; # generic failure code
+    2) echo EUSAGE  ;; EUSAGE) echo 2   ;; # incorrect command ussage
+    3) echo EXCODE  ;; EXCODE) echo 3   ;; # invalid exit status code
+    # reserve through 9
+    10) echo EATEST ;; EATEST) echo 10  ;; # Autotest Syntax Error
+    11) echo EAOPEN ;; EAOPEN) echo 11  ;; # Open TEST unit (missing final CODE)
+    12) echo EAVOID ;; EAVOID) echo 12  ;; # Void TEST unit (nothing inside)
+    13) echo EACODE ;; EACODE) echo 13  ;; # CODE statement exit status mismatch
+    *)
+      if ! is_int "$1" || (( $1 < 256 )); then
+        emsg "no error code information for '$1'"; return 1
+      else
+        is_int "$1" &&emsg "code '$1' invalid"; return 3
+      fi
+      ;;
+  esac
+}
+
+# pass-through stdin data to stdout, but ensure its syntax matches ATP
+function autotext () {
+  local FAILS=0 FAILED=0 TESTS=0 CODES=0 COUNT=0 
+  local ETC CODE
+  while read KEY VAL
+  do # each line consists of a leading KEYWORD with VALUE data
+    case "$KEY" in
+      TEST) let TESTS++ ;;
+      FAIL) let FAILS++ ;;
+      PASS) let COUNT++ ;;
+      CODE)
+        case "${VAL}" in
+          '') # empty status code means "generate a code now"
+            verb "generate code fails=$FAILS"
+            VAL=$(autocode OK)
+            (($FAILS)) && VAL=$(autocode FAIL)
+            ;;
+          [0-9]|[0-9][0-9]|[1-2][0-9][0-9])
+            verb "not int code"
+            ;;
+        esac
+        read CODE ETC <<<"$VAL"
+        verb "statement is code=$CODE etc='$ETC'"
+        test -n "$ETC" && { is_int "$ETC" || return $(autocode EXCODE); }
+        ! (($CODE)) && (($FAILS)) && return $(autocode EACODE)
+        (( $CODE )) && let FAILED++
+        let CODES++
+        ;;
+    esac
+    echo "$KEY $VAL" # pass data down through pipeline
+  done
+  verb "generate return tests=$TESTS codes=$CODES"
+  (( TESTS - CODES )) && return $(autocode EAOPEN)
+  verb "generate return count=$COUNT fails=$FAILS"
+  (( COUNT + FAILS )) || return $(autocode EAVOID)
+  verb "generate return failed=$FAILED code=$CODE"
+  (( $FAILED )) && return $(autocode FAIL)
+  return $CODE 
+}
+
+##
+# autotest ROUTINES (subcomands)
+##
 
 case "$1" in
+  help|-h|--help) autotest--help; exit ;;
   root) autotest--root; exit ;;
+  code) shift; autocode "$@"; exit ;;
+  report)
+    # helper to fail fast
+    function autofail () { echo >&2 "${1:?'missing message'}"; exit ${2:-1}; }
+    test $# -eq 2 || autofail "expecting two arguments" 2
+    test -f "$2" || autofail "'$2' is not a file" 127
+    # generate report discarding all stderr
+    autotest "$2"  2>/dev/null | autotest--protocol.v1 2>/dev/null
+    exit $? # preserve report exit status
+  ;;
   checkup)
+    # TODO define after, this should be refactored
     # TODO replace this and use 1 file and {brace,expansion} instead?
     find "$(autotest--root)" -name "*.bash" -type f -exec bash -c '
       file={}
@@ -63,70 +260,76 @@ case "$1" in
     source <(autotest)
     tested "autotest can be sourced with process substitution"
     exit $?
-    ;;
-  report) ;; # defined after
-  *) autotest--help; test $1 == "help"; exit $? ;;
+  ;;
+  *)
+    # autotest <SUBCOMMAND> <FILE> should be not handled here
+    # CARE: don't print help to stdout when there is an error!
+    if (( $# > 1 )); then autotest--help >&2; exit $(autocode EUSAGE); fi
+    # CARE: autotest <FILE> should output valid Autotest Protocol
+    # ¿¿¿also when <FILE> does not exist????, so
+    #if ! test -f "$1"; then : ; fi
+  ##
+  # TEST RUNNER ROUTINE: given a file as argument 1
+  ##
+  {
+    ( # run within subshell to catch allways a code
+      # use timeout to avoid running forever if the test hangs
+      timeout --preserve-status -v 4 "$1"
+      code=$?
+      case $code in
+        126) printf "TEST $1\nFAIL $USER can't execute '$1'\nCODE 126\n" ;;
+        127) printf "TEST $1\nFAIL '$1' does not exist \nCODE 127\n" ;;
+      esac
+      exit $code
+    )
+    exit $? # exit with catched code to pass through PIPESTATUS
+  } | autotext
+
+  TEST_CODE="${PIPESTATUS[0]}" AUTO_CODE="${PIPESTATUS[1]}"
+
+  # if both procedures succeed, it's code OK
+  if ! (($TEST_CODE)) && ! (($AUTO_CODE)); then exit $(autocode OK); fi
+
+  case "$(autocode $AUTO_CODE)" in
+    EAOPEN)
+      echo "CODE $TEST_CODE"
+      #(($TEST_CODE)) && AUTO_CODE=0
+      ;;
+  esac
+  
+  # now is safe to review the result
+  echo "TEST $(realpath $0) $1"
+
+  # CARE when exit codes differ
+  if (($TEST_CODE != $AUTO_CODE)); then
+    echo "FAIL autotext returned $AUTO_CODE but exit code is $TEST_CODE"
+  fi
+
+  if (($TEST_CODE)); then
+    autocode $TEST_CODE &>/dev/null \
+      && echo "PASS test run exit status was $(autocode $TEST_CODE)" \
+      || echo "FAIL test run exit status $TEST_CODE is not known by autocode"
+  fi
+
+  if (($AUTO_CODE)); then
+    autocode $AUTO_CODE &>/dev/null \
+      && echo "PASS autotext produced $(autocode $AUTO_CODE) error" \
+      || echo "FAIL autotext exit status $AUTO_CODE is not known by autocode"
+  fi
+
+  # if test execution script failed, that's the code to be reported
+  printf "CODE "; (($TEST_CODE)) && echo $TEST_CODE || echo $AUTO_CODE
+  if (($TEST_CODE)); then exit $TEST_CODE; else exit $AUTO_CODE; fi
+  ;;
 esac
 
-##
-# THE AUTOTEST PROTOCOL (ATP)
-#
-# TODO write something about
-# TODO missing the IN keyword on current implementation
-##
-
-# Tells whenever given value ($1) is an integer
-is_int () { case "${1#[-]}" in ''|*[!0-9]*) return 1;; *) return 0;; esac; }
-
-# pass-through stdin data to stdout, but ensure its syntax matches ATP
-function autotest--protocol.v1 () {
-  local tlvl=0 clvl=0 fifo='passtrought' return=0
-  while read keyword value; do
-    case $keyword in
-      TEST)
-        if ! test -f "$value"; then
-          emsg "EATEST: '$value' is not a file"; return=3; break
-        fi
-        if test $tlvl -eq $clvl; then let tlvl++; else
-          emsg "EATEST: expecting CODE before TEST"; return=4; break
-        fi
-        ;;
-      PASS|FAIL|SKIP) : ;;
-      CODE)
-        if ! is_int "$value" && test $value -lt 256; then
-          emsg "EATEST: invalid code ($value)"; return=3; break
-        fi
-        if test $clvl -lt $tlvl; then let clvl++; else
-          emsg "EATEST: expecting TEST before CODE"; return=4; break
-        fi
-        ;;
-      *) emsg "EATEST: bad syntax: '$keyword $value'"; return=2; break ;;
-    esac
-    echo "$keyword $value" # pass data down through pipeline
-  done
-  test $return -gt 0 && return $return
-  test $tlvl -gt 0 || emsg "EATEST: expecting at least one TEST" && return 5
-  test $tlvl -eq $clvl || emsg "EATEST: expecting final CODE" && return 6
-}
-
-# helper to fail fast
-function autofail () { echo >&2 "${1:?'missing message'}"; exit ${2:-1}; }
-
-# trick (ugly) to use bashidos' log utils emsg here
-function emsg () { echo "$@" >&2; }
+exit 255 # execution should NEVER reach this point
 
 ##
-# REPORT ROUTINE
+# CHECKUP ROUTINE
 ##
 
-test $# -eq 2 || autofail "expecting two arguments"
-test -f "$2" || autofail "'$2' is not a file"
-# exec the file within a subshell to catch allways a code
-{ echo "TEST $2"; (exec "$2"); code=$?; echo "CODE $code"; exit $code; } \
-  2>/dev/null | autotest--protocol.v1
-# generate report discarding all stderr
-# pipe to autotest--protocol validates output data
-exit $PIPESTATUS # report exit code must be the test exit code
+# should be defined here
 
 ##
 # vim modeline (see vim +'help modeline')

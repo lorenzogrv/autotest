@@ -1,0 +1,7 @@
+#!/bin/bash
+
+echo "TEST $0"
+echo "SKIP this is ignored"
+
+# exit 127 emulates a not-found executable
+exit 127

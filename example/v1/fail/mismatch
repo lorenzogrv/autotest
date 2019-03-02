@@ -4,6 +4,6 @@ echo "TEST $0"
 echo "PASS this is a successful assertion"
 echo "SKIP this is an ignored assertion"
 echo "FAIL this is a failed assertion"
-echo "CODE"
+echo "CODE 0"
 
-# the example above should fail, caused by an "assertion error"
+# the example above should fail, caused by a "code mismatch"

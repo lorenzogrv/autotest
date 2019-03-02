@@ -1,0 +1,6 @@
+#!/bin/bash
+
+echo "TEST $0"
+echo "PASS this is a successful assertion"
+# a CODE statement, provided a code, can have an optional description 
+echo "CODE 0 with optional description"

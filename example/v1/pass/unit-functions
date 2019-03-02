@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# test units can't have childs, that's why they are units
+# but any test executable may generate more than one test unit
+# the following example produces perfectly valid autotest protocol
+
+unit-a () { echo "PASS $FUNCNAME successful assertion"; }
+unit-b () { echo "PASS $FUNCNAME successful assertion"; }
+unit-c () { echo "PASS $FUNCNAME successful assertion"; }
+
+if (( $# ))
+then
+  test $(type -t "$1") == "function" || exit
+  echo "TEST $0 $1"; "$1"; echo "CODE"
+else
+  # CARE: runs all defined functions without filtering them
+  declare -F | while read d e fname; do "$0" $fname; done
+fi
+

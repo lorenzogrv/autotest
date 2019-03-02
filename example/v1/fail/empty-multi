@@ -1,0 +1,13 @@
+#!/bin/bash
+
+echo "TEST $0 failed unit"
+echo "FAIL asertion failed"
+echo "CODE"
+
+echo "TEST $0 success unit"
+echo "PASS asertion succeed"
+echo "CODE"
+
+echo "TEST $0 empty unit"
+echo "CODE"
+# when there are NO assertions it's considered a failed test
