@@ -1,137 +1,57 @@
 #!/bin/bash
 
+source "$(iai path test/autotest/example-utils.bash)" || exit
 
-echo "TEST $0 unexistant file and non-executable file"
-
-# Emulate a situation where the test executable file does not exist
+echo "TEST $0 any non-existing file"
 EXAMPLE="$(autotest root)/example/unexistant"
-test -f "$EXAMPLE" \
+test -e "$EXAMPLE" \
 	&& echo "FAIL $EXAMPLE should not exist, but it does" \
 	|| echo "PASS $EXAMPLE does not exist"
-autotest "$EXAMPLE" &>/dev/null \
-  && echo "FAIL returns exit status 0 (expected non-zero)" \
-	|| echo "PASS returns exit status 0"
-unset EXAMPLE
-
-echo "SKIP a case where a non-executable is run, preserving exit status 126"
-
+assert-example-status "$EXAMPLE" -eq 127
+assert-example-last-code "$EXAMPLE" -eq 127
 echo "CODE 0"
 
-function find-examples () {
-  local place=$1; shift
-  find "$(autotest root)/example$place" -type f "$@" -print0 | sort -z
-}
+EXAMPLE="$(autotest root)/example/non-executable"
+echo "TEST $0 the non-executable file $EXAMPLE"
+test -x "$EXAMPLE" \
+	&& echo "FAIL $EXAMPLE should not be executable, but it is" \
+	|| echo "PASS $EXAMPLE is not executable"
+assert-example-status "$EXAMPLE" -eq 126
+assert-example-last-code "$EXAMPLE" -eq 126
+echo "CODE 0"
 
-echo "TEST $0 v1 examples that should return non-zero exit status"
-find-examples /v1/fail | while IFS= read -d '' EXAMPLE
-do
-  autotest "$EXAMPLE" &>/dev/null \
-    && echo "FAIL $EXAMPLE returns exit status 0 (expected non-zero)" \
-    || echo "PASS $EXAMPLE returns non-zero exit status"
+echo "TEST $0 v1 examples that should fail"
+find-examples /v1/fail | while IFS= read -d '' EXAMPLE; do
+  assert-its-executable "$EXAMPLE"
+  assert-example-status "$EXAMPLE" -gt 0
+  assert-example-last-code "$EXAMPLE" -gt 0
 done
-unset EXAMPLE
 echo "CODE 0"
 
-echo "TEST $0 v1 examples that should return exit status 1 (assertion error)"
-find-examples /v1/fail -name 'basic*' | while IFS= read -d '' EXAMPLE
-do
-  autotest "$EXAMPLE" &>/dev/null
-  CODE=$?
-  test $CODE -eq 1 \
-    && echo "PASS $EXAMPLE returns exit status 1 (assertion error)" \
-    || echo "FAIL $EXAMPLE returns exit status $CODE (expected 1)"
+echo "TEST $0 v1 examples considered 'success'"
+find-examples /v1/pass | while IFS= read -d '' EXAMPLE; do
+  assert-its-executable "$EXAMPLE"
+  assert-example-status "$EXAMPLE" -eq 0
+  assert-example-last-code "$EXAMPLE" -eq 0
 done
-unset EXAMPLE CODE
 echo "CODE 0"
 
-echo "TEST $0 v1 examples that should return exit status 2 (code mismatch)"
-find-examples /v1/fail -name 'code*' | while IFS= read -d '' EXAMPLE
-do
-  autotest "$EXAMPLE" &>/dev/null
-  CODE=$?
-  test $CODE -eq 2 \
-    && echo "PASS $EXAMPLE returns exit status 2 (code mismatch)" \
-    || echo "FAIL $EXAMPLE returns exit status $CODE (expected 2)"
-done
-unset EXAMPLE CODE
-echo "CODE 0"
-
-echo "TEST $0 v1 examples that should return exit status 2 (code mismatch)"
-find-examples /v1/fail -name 'code*' | while IFS= read -d '' EXAMPLE
-do
-  autotest "$EXAMPLE" &>/dev/null
-  CODE=$?
-  test $CODE -eq 2 \
-    && echo "PASS $EXAMPLE returns exit status 2 (code mismatch)" \
-    || echo "FAIL $EXAMPLE returns exit status $CODE (expected 2)"
-done
-unset EXAMPLE CODE
-echo "CODE 0"
-
-echo "TEST $0 v1 examples that should return exit status 3 (no assertions)"
-find-examples /v1/fail -name 'empty*' | while IFS= read -d '' EXAMPLE
-do
-  autotest "$EXAMPLE" &>/dev/null
-  CODE=$?
-  test $CODE -eq 3 \
-    && echo "PASS $EXAMPLE returns exit status 3 (no assertions)" \
-    || echo "FAIL $EXAMPLE returns exit status $CODE (expected 3)"
-done
-unset EXAMPLE CODE
-echo "CODE 0"
-
-echo "TEST $0 v1 examples that should return exit status 5 (syntax error)"
-find-examples /v1/fail -name 'error*' | while IFS= read -d '' EXAMPLE
-do
-  autotest "$EXAMPLE" &>/dev/null
-  CODE=$?
-  test $CODE -eq 5 \
-    && echo "PASS $EXAMPLE returns exit status 5 (syntax error)" \
-    || echo "FAIL $EXAMPLE returns exit status $CODE (expected 5)"
-done
-unset EXAMPLE CODE
-echo "CODE 0"
-
-echo "TEST $0 v1 examples that should return exit status 6 (premature keyword)"
-find-examples /v1/fail -name 'premature*' | while IFS= read -d '' EXAMPLE
-do
-  autotest "$EXAMPLE" &>/dev/null
-  CODE=$?
-  test $CODE -eq 6 \
-    && echo "PASS $EXAMPLE returns exit status 6 (premature keyword)" \
-    || echo "FAIL $EXAMPLE returns exit status $CODE (expected 6)"
-done
-unset EXAMPLE CODE
-echo "CODE 0"
-
-echo "TEST $0 v1 examples that should return exit status 0 (success)"
-find-examples /v1/pass | while IFS= read -d '' EXAMPLE
-do
-  autotest "$EXAMPLE" &>/dev/null \
-    && echo "PASS $EXAMPLE returns exit status 0" \
-    || echo "FAIL $EXAMPLE returns exit status $? (expected 0)"
-done
-unset EXAMPLE
-echo "CODE 0"
-
-echo "TEST $0 script examples not being slow that should return non-zero"
+echo "TEST $0 script examples considered 'failed' but not being slow"
 find-examples /script/fail -not -name 'slow*' | while IFS= read -d '' EXAMPLE
 do
-  autotest "$EXAMPLE" &>/dev/null \
-    && echo "FAIL $EXAMPLE returns exit status 0 (expected non-zero)" \
-    || echo "PASS $EXAMPLE returns non-zero exit status"
+  assert-its-executable "$EXAMPLE"
+  assert-example-status "$EXAMPLE" -gt 0
+  assert-example-last-code "$EXAMPLE" -gt 0
 done
-unset EXAMPLE
 echo "CODE 0"
 
-echo "TEST $0 script examples that should succeed"
+echo "TEST $0 script examples considered 'success'"
 find-examples /script/pass | while IFS= read -d '' EXAMPLE
 do
-  autotest "$EXAMPLE" &>/dev/null \
-    && echo "PASS $EXAMPLE returns exit status 0" \
-    || echo "FAIL $EXAMPLE returns exit status $? (expected 0)"
+  assert-its-executable "$EXAMPLE"
+  assert-example-status "$EXAMPLE" -eq 0
+  assert-example-last-code "$EXAMPLE" -eq 0
 done
-unset EXAMPLE
 echo "CODE 0"
 
 ##

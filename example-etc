@@ -1,0 +1,75 @@
+#!/bin/bash
+
+source "$(iai path test/autotest/example-utils.bash)" || exit
+
+echo "TEST $0 v1 examples considered 'assertion error'"
+find-examples /v1/fail -name 'basic*' | while IFS= read -d '' EXAMPLE; do
+  assert-its-executable "$EXAMPLE"
+  assert-example-status "$EXAMPLE" -eq 1
+  assert-example-last-code "$EXAMPLE" -eq 1
+done
+echo "CODE 0"
+
+echo "TEST $0 v1 examples considered 'code mismatch'"
+find-examples /v1/fail -name 'code*' | while IFS= read -d '' EXAMPLE; do
+  assert-its-executable "$EXAMPLE"
+  assert-example-status "$EXAMPLE" -eq 2
+  assert-example-last-code "$EXAMPLE" -eq 2
+done
+echo "CODE 0"
+
+echo "TEST $0 v1 examples considered 'no assertions'"
+find-examples /v1/fail -name 'empty*' | while IFS= read -d '' EXAMPLE; do
+  assert-its-executable "$EXAMPLE"
+  assert-example-status "$EXAMPLE" -eq 3
+  assert-example-last-code "$EXAMPLE" -eq 3
+done
+echo "CODE 0"
+
+echo "TEST $0 v1 examples considered 'sytax error'"
+find-examples /v1/fail -name 'error*' | while IFS= read -d '' EXAMPLE; do
+  assert-its-executable "$EXAMPLE"
+  assert-example-status "$EXAMPLE" -eq 5
+  assert-example-last-code "$EXAMPLE" -eq 5
+done
+echo "CODE 0"
+
+echo "TEST $0 v1 examples considered 'premature keyword'"
+find-examples /v1/fail -name 'premature*' | while IFS= read -d '' EXAMPLE; do
+  assert-its-executable "$EXAMPLE"
+  assert-example-status "$EXAMPLE" -gt 5
+  assert-example-status "$EXAMPLE" -lt 11
+  assert-example-last-code "$EXAMPLE" -gt 5
+  assert-example-last-code "$EXAMPLE" -lt 11
+done
+echo "CODE 0"
+
+echo "TEST $0 v1 examples considered 'success'"
+find-examples /v1/pass | while IFS= read -d '' EXAMPLE; do
+  assert-its-executable "$EXAMPLE"
+  assert-example-status "$EXAMPLE" -eq 0
+  assert-example-last-code "$EXAMPLE" -eq 0
+done
+echo "CODE 0"
+
+echo "TEST $0 script examples considered 'failed' but not being slow"
+find-examples /script/fail -not -name 'slow*' | while IFS= read -d '' EXAMPLE
+do
+  assert-its-executable "$EXAMPLE"
+  assert-example-status "$EXAMPLE" -gt 0
+  assert-example-last-code "$EXAMPLE" -gt 0
+done
+echo "CODE 0"
+
+echo "TEST $0 script examples considered 'success'"
+find-examples /script/pass | while IFS= read -d '' EXAMPLE
+do
+  assert-its-executable "$EXAMPLE"
+  assert-example-status "$EXAMPLE" -eq 0
+  assert-example-last-code "$EXAMPLE" -eq 0
+done
+echo "CODE 0"
+
+##
+# vim modeline
+# Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:
