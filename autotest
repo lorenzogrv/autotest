@@ -144,7 +144,6 @@ function autocode () {
 #    ABOVE) echo 11 ;; 11) echo "some test unit failed above" ;;
 #    # reserve through 19
 #    # autotest protocol syntax errors
-#    NOKEY) echo 20 ;; 20) echo "missing statement's leading keyword" ;;
 #    TFLOW) echo 21 ;; 26) echo "premature TEST statement" ;;
 #    CFLOW) echo 22 ;; 22) echo "premature CODE statement" ;;
 #    FFLOW) echo 23 ;; 23) echo "premature FAIL statement" ;;
@@ -152,14 +151,7 @@ function autocode () {
 #    SFLOW) echo 25 ;; 25) echo "premature SKIP statement" ;;
 #    FINAL) echo 26 ;; 26) echo "FINAL" # missing final CODE statement
 #    FIRST) echo 27 ;; 27) echo "missing the first TEST statement" ;;
-#    2[8-9]|3[0-9]) echo ETEST"autotest protocol error (reserved)" ;;
 #    # special cases
-#    NOACCESS) echo 126 ;; 126) echo "execution not allowed" ;;
-#    ENOENT) echo 127 ;; 127) echo "file or executable not found" ;;
-#    # signals are 128 + signal code
-#    SIG*) echo $(( 128 + $(kill -l $1) )) ;;
-#    129|1[3-8][0-9]|19[0-2]) # 129 through 192
-#      echo "killed by signal $(($1-128)) $(kill -l $(($1-128)))" ;;
 #    TODO|IMPLEMENTATION) echo 255 ;; 255) echo "implementation error" ;;
     '')
       for i in {0..255}; do
@@ -176,12 +168,17 @@ function autocode () {
     11) echo EAOPEN ;; EAOPEN) echo 11  ;; # Open TEST unit (missing final CODE)
     12) echo EAVOID ;; EAVOID) echo 12  ;; # Void TEST unit (nothing inside)
     13) echo EACODE ;; EACODE) echo 13  ;; # CODE statement exit status mismatch
+    126) echo EACCES;; EAFILE) echo 126 ;; # can't execute (no permission)
+    127) echo ENOENT;; ENOENT) echo 127 ;; # executable not found
+    #[1-3]|3[0-9]) echo ETEST"autotest protocol error (reserved)" ;;
+    # signals are 129 through 192 (128 + signal code
+    SIG*) echo $(( 128 + $(kill -l $1) )) ;;
+    129|1[3-8][0-9]|19[0-2]) echo "SIG$(kill -l $(($1-128)))" ;;
     *)
-      if ! is_int "$1" || (( $1 < 256 )); then
-        emsg "no error code information for '$1'"; return 1
-      else
-        is_int "$1" &&emsg "code '$1' invalid"; return 3
-      fi
+      is_int "$1" && (($1 >  255)) && emsg "code '$1' invalid" && return 2
+      echo "$1"
+      emsg "no error code information for '$1'"
+      return 1
       ;;
   esac
 }
@@ -209,7 +206,8 @@ function autotext () {
         esac
         read CODE ETC <<<"$VAL"
         verb "statement is code=$CODE etc='$ETC'"
-        test -n "$ETC" && { is_int "$ETC" || return $(autocode EXCODE); }
+        #autocode $CODE >/dev/null || return
+        #test -n "$ETC" && { is_int "$ETC" || return $(autocode EXCODE); }
         ! (($CODE)) && (($FAILS)) && return $(autocode EACODE)
         (( $CODE )) && let FAILED++
         let CODES++
@@ -271,10 +269,12 @@ case "$1" in
   ##
   # TEST RUNNER ROUTINE: given a file as argument 1
   ##
+  AUTOSEC=3
+  SECONDS=0
   {
     ( # run within subshell to catch allways a code
       # use timeout to avoid running forever if the test hangs
-      timeout --preserve-status -v 4 "$1"
+      timeout --preserve-status -v $AUTOSEC "$1"
       code=$?
       case $code in
         126) printf "TEST $1\nFAIL $USER can't execute '$1'\nCODE 126\n" ;;
@@ -287,39 +287,50 @@ case "$1" in
 
   TEST_CODE="${PIPESTATUS[0]}" AUTO_CODE="${PIPESTATUS[1]}"
 
-  # if both procedures succeed, it's code OK
-  if ! (($TEST_CODE)) && ! (($AUTO_CODE)); then exit $(autocode OK); fi
-
   case "$(autocode $AUTO_CODE)" in
     EAOPEN)
       echo "CODE $TEST_CODE"
-      #(($TEST_CODE)) && AUTO_CODE=0
+      (($TEST_CODE)) && AUTO_CODE=0
       ;;
   esac
-  
+ 
+  if !(($TEST_CODE)) && !(($AUTO_CODE)); then exit; fi
+
   # now is safe to review the result
-  echo "TEST $(realpath $0) $1"
+  echo "TEST $0 $1"
 
-  # CARE when exit codes differ
-  if (($TEST_CODE != $AUTO_CODE)); then
-    echo "FAIL autotext returned $AUTO_CODE but exit code is $TEST_CODE"
-  fi
+  (($SECONDS < $AUTOSEC)) \
+    && echo "PASS test ran within the ${AUTOSEC}s seconds limit" \
+    || echo "FAIL test run took ${SECONDS}s, expecting ${AUTOSEC}s max"
 
-  if (($TEST_CODE)); then
+  if (($TEST_CODE)); then # test run reported a failure
     autocode $TEST_CODE &>/dev/null \
-      && echo "PASS test run exit status was $(autocode $TEST_CODE)" \
+      && echo "FAIL test run exit status was $(autocode $TEST_CODE)" \
       || echo "FAIL test run exit status $TEST_CODE is not known by autocode"
+  else
+    echo "PASS test run suceed with exit status 0"
   fi
 
   if (($AUTO_CODE)); then
     autocode $AUTO_CODE &>/dev/null \
-      && echo "PASS autotext produced $(autocode $AUTO_CODE) error" \
+      && echo "FAIL autotext produced $(autocode $AUTO_CODE) error" \
       || echo "FAIL autotext exit status $AUTO_CODE is not known by autocode"
+  else
+    echo "PASS autotext suceed with exit status 0"
+  fi
+
+  # CARE when exit codes differ
+  if (($TEST_CODE == $AUTO_CODE)); then
+    echo "PASS test run exit status was $TEST_CODE, expected $AUTO_CODE"
+  else
+    echo "FAIL autotext returned $AUTO_CODE but exit code is $TEST_CODE"
+    AUTO_CODE=$(autocode EACODE)
   fi
 
   # if test execution script failed, that's the code to be reported
   printf "CODE "; (($TEST_CODE)) && echo $TEST_CODE || echo $AUTO_CODE
-  if (($TEST_CODE)); then exit $TEST_CODE; else exit $AUTO_CODE; fi
+
+  if (($TEST_CODE != 0)); then exit $TEST_CODE; else exit $AUTO_CODE; fi
   ;;
 esac
 
