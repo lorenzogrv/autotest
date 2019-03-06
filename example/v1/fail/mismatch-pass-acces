@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo "TEST $0"
+echo "PASS this is any pass"
+echo "CODE $(autotest code EACCES)"

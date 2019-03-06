@@ -2,4 +2,4 @@
 
 echo "TEST $0"
 echo "FAIL this is any failure"
-echo "CODE $(autotest code EXCODE)"
+echo "CODE $(autotest code ENOENT)"

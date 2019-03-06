@@ -3,5 +3,5 @@
 echo "TEST $0"
 echo "SKIP this is ignored"
 
-# exit 126 emulates a not-executable permission denied
+# exit 126 emulates a not-executable error
 exit 126

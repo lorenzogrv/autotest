@@ -4,14 +4,14 @@
 
 echo "TEST $0 first unit"
 echo "PASS this succeeds"
-echo "CODE"
+echo "CODE 0"
 
 echo "TEST $0 middle unit"
 echo "FAIL this fails"
-echo "CODE"
+echo "CODE 1"
 
 echo "TEST $0 final unit"
 echo "PASS this succeeds"
-echo "CODE"
+echo "CODE 0"
 
 # this example should fail because one unit failed

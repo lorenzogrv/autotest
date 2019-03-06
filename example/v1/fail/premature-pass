@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "TEST $0 this is an example unit description"
+echo "TEST $0"
 echo "PASS this is a successful assertion"
 echo "CODE 0"
 
@@ -9,6 +9,6 @@ echo "CODE 0"
 echo "PASS this is a syntax error (premature pass)"
 
 # even when the continuation is correct
-echo "TEST $(realpath $0) the last example unit description"
+echo "TEST $0"
 echo "PASS this is a successful assertion"
 echo "CODE 0"

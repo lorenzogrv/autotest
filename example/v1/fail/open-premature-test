@@ -1,0 +1,12 @@
+#!/bin/bash
+
+echo "TEST $0"
+
+# TEST units can't have childs, that's why they are units
+echo "TEST $0 this line is the syntax error"
+
+# even if both are closed later
+echo "CODE 0"
+echo "CODE 0"
+
+# this should be reported as EAOPEN, because test was not closed

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+echo "TEST $0"
+sleep 4 # emulate a slow check
+echo "PASS this is a successful assertion"
+echo "CODE 0"
+
+# the example above should fail, caused by timeout

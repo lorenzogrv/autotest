@@ -6,4 +6,5 @@ echo "SKIP this is an ignored assertion"
 echo "FAIL this is a failed assertion"
 echo "CODE"
 
-# the example above should fail, caused by an "assertion error"
+# the example above should fail, caused by an "assertion error", codenamed FAIL
+# FAIL should not cause a "code mismatch" if test script exit status is 0 - OK
