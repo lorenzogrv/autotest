@@ -1,0 +1,64 @@
+#!/bin/bash
+
+source "$(iai path test/autotest/utils.bash)" || exit
+
+(($#)) && echo "TEST $0" "$@"
+
+case "$1" in
+  EUSAGE) # EUSAGE means 'invalid usage, see help...'
+    find-examples /v1/fail -name 'usage*' | assert-all-codes-are $1
+    ;;
+  EXCODE) # EXCODE means 'invalid exit status code'
+    find-examples /v1/fail -name 'xcode*' | assert-all-codes-are $1
+    ;;
+  EATEST) # is a 'syntax error'
+    find-examples /v1/fail -name 'error*' | assert-all-codes-are $1
+    ;;
+  EAOPEN) # is a 'missing code keyword'
+    find-examples /v1/fail -name 'open*' | assert-all-codes-are $1
+    ;;
+  EAVOID) # is a 'void unit'
+    find-examples /v1/fail -name 'void*' | assert-all-codes-are $1
+    ;;
+  EACODE) # is a 'code mismatch'
+    find-examples /v1/fail -name 'mismatch*' | assert-all-codes-are $1
+    ;;
+  EAFLOW) # is a 'unexpected statement'
+    find-examples /v1/fail -name 'premature*' | assert-all-codes-are $1
+    ;;
+  EATIME) # is a 'test run took too much time' aka timeout
+    find-examples /v1/fail -name 'timeout*' | assert-all-codes-are $1
+    ;;
+  EACCES) # often means 'file is not executable'
+    find-examples /v1/fail -name 'eacces*' | assert-all-codes-are $1
+    ;;
+  ENOENT) # often means 'file not found'
+    find-examples /v1/fail -name 'enoent*' | assert-all-codes-are $1
+    ;;
+  '')
+    autotest code | egrep "E[a-Z]*" \
+      | while read NUM A NAME; do echo "$NAME"; done \
+      | egrep "^E[a-Z]*" \
+      | while read NAME; do "$0" "$NAME" || exit; done
+    ;;
+  *)
+    assert-code-exists "$1"
+    echo "FAIL $1 is not an unit defined at $0"
+    echo "CODE 1"; exit 1
+    ;;
+esac
+(($#)) && echo "CODE" || exit 0
+
+#echo "TEST $0 v1 examples considered 'premature keyword'"
+#find-examples /v1/fail -name 'premature*' | while IFS= read -d '' EXAMPLE; do
+#  assert-its-executable "$EXAMPLE"
+#  assert-example-status "$EXAMPLE" -gt 5
+#  assert-example-status "$EXAMPLE" -lt 11
+#  assert-example-last-code "$EXAMPLE" -gt 5
+#  assert-example-last-code "$EXAMPLE" -lt 11
+#done
+#echo "CODE 0"
+
+##
+# vim modeline
+# Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:

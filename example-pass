@@ -1,0 +1,15 @@
+#!/bin/bash
+
+source "$(iai path test/autotest/utils.bash)" || exit
+
+echo "TEST $0"
+find-examples /v1/pass | while IFS= read -d '' EXAMPLE; do
+  assert-its-executable "$EXAMPLE"
+  assert-example-status "$EXAMPLE" -eq 0
+  assert-example-last-code "$EXAMPLE" -eq 0
+done
+echo "CODE"
+
+##
+# vim modeline
+# Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:

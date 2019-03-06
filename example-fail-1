@@ -1,0 +1,22 @@
+#!/bin/bash
+
+source "$(iai path test/autotest/utils.bash)" || exit
+
+case "$1" in
+  '')
+    find-examples /v1/fail -name 'basic*' \
+      | while IFS= read -d '' FILE; do "$0" "$FILE" || exit; done
+    ;;
+  *)
+    echo "TEST $0 $1"
+    assert-its-executable "$1" \
+      && assert-example-status "$1" -eq 1 \
+      && assert-example-last-code "$1" -eq 1 \
+      || { echo "CODE 1"; exit 1; }
+    echo "CODE 0"
+    ;;
+esac
+
+##
+# vim modeline
+# Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:

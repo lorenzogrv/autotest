@@ -2,7 +2,7 @@
 
 # echo "TEST $0"; echo "SKIP all tests hereafter"; exit 0
 
-echo "TEST $0 all example files not being slow"
+echo "TEST $0"
 find "$(autotest root)/example" -type f -not -name 'slow*' -print0 \
   | while IFS= read -d '' EXAMPLE
 do
@@ -15,6 +15,8 @@ do
     || echo "FAIL $EXAMPLE returns exit status $ACTUAL (expected $EXPECT)"
 done
 unset EXAMPLE EXPECT ACTUAL
+
+echo CODE
 
 # TODO slow tests
 

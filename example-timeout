@@ -1,20 +1,10 @@
 #!/bin/bash
 
+source "$(iai path test/autotest/utils.bash)" || exit
 
+echo "TEST $0"
 # scripts that should fail for being too slow (exit status 124)
-#TODO this will timeout the whole test
-echo "TEST $0 script examples being slow that should return 124 (timeout)"
-find "$(autotest root)/example/script/fail" -name 'slow*' -print0 \
-  | sort -z \
-  | while IFS= read -d '' EXAMPLE
-do
-  autotest "$EXAMPLE" &>/dev/null
-  CODE=$?
-  test $CODE -eq 124 \
-    && echo "PASS $EXAMPLE returns exit status 124 (timeout)" \
-    || echo "FAIL $EXAMPLE returns exit status $CODE (expected 124)"
-done
-unset EXAMPLE
+find-examples /v1/fail -name 'slow*' | assert-all-codes-are EATIME
 echo "CODE 0"
 
 ##
