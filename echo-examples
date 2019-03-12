@@ -1,0 +1,35 @@
+#!/bin/bash
+
+source "$(iai path test/autotest/utils.bash)" || exit
+
+case "$1" in
+  '')
+    autotest code | egrep -v "SIG[a-Z]*" \
+      | while read NUM A NAME; do echo "$NAME"; done \
+      | while read NAME; do "$0" "$NAME" || exit; done
+    ;;
+  *)
+    echo "TEST $0" "$@"
+
+    if ! autotest code "$1" &>/dev/null
+    then # code is not known
+      echo "FAIL $1 is not an unit defined at $0"
+      echo "CODE 2"; exit 2
+    fi
+
+    # not so elegant, but KISS
+    case "$1" in OK|FAIL) FOLDER="$1";; *) FOLDER="FAIL-$1";; esac
+
+    find-examples "/echo/${FOLDER,,}" | while IFS= read -d '' EXAMPLE; do
+      assert-its-executable "$EXAMPLE"
+      assert-example-status "$EXAMPLE" -eq "$(autotest code $1)"
+      assert-correct-output "$EXAMPLE" || exit
+    done
+    
+    CODE=$?; echo "CODE $CODE"; exit $CODE
+    ;;
+esac
+
+##
+# vim modeline
+# Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:
