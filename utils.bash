@@ -89,7 +89,7 @@ function assert-correct-output () {
     || echo "FAIL $EXAMPLE output ends with '$(<<<"$TESTOUT" | head -1)'"
 
   local COUNT=0 TLINE TCMD CLINE UNIT
-  <<<"$TESTOUT" grep -n '^TEST' | while IFS=':' read TLINE TCMD
+  while IFS=':' read TLINE TCMD
   do
     let COUNT++
     TCMD="${TCMD##'TEST '}"
@@ -123,8 +123,9 @@ function assert-correct-output () {
       echo "FAIL can't reproduce '$(<<<"$TESTOUT" tail -n +$TLINE | head -1)'"
       return 1
     fi
-  done
-  # any correct standart output must have at least one TEST unit
+  done < <( <<<"$TESTOUT" grep -n '^TEST' )
+
+  # any correct standard output must have at least one TEST unit
   if (($COUNT))
     then echo "PASS $EXAMPLE outputs $COUNT TEST statement(s)"
     else echo "FAIL $EXAMPLE doesn't output any TEST statements"; return 1
