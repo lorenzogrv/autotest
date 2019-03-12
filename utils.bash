@@ -13,6 +13,7 @@ function assert-its-executable () {
     test -e "$FILE" \
       && echo "PASS $FILE exists" \
       || echo "FAIL $FILE does not exist"
+    return 1
   fi
   unset FILE
 }
@@ -74,3 +75,64 @@ function assert-all-codes-are () {
   done
   unset CODE EXPECT
 }
+
+function assert-correct-output () {
+  local EXAMPLE="${1:?'missing argument 1: example filepath'}"; shift
+  local TESTOUT="$(autotest "$EXAMPLE" 2>/dev/null)"
+
+  # any correct standard output must begin with TEST, and end with CODE
+  { <<<"$TESTOUT" head -1 | egrep '^TEST .+' >/dev/null; } \
+    && echo "PASS $EXAMPLE output begins with a TEST statement" \
+    || echo "FAIL $EXAMPLE output begins with '$(<<<"$TESTOUT" | head -1)'"
+  { <<<"$TESTOUT" tail -1 | egrep '^CODE .+' >/dev/null; } \
+    && echo "PASS $EXAMPLE output ends with a CODE statement" \
+    || echo "FAIL $EXAMPLE output ends with '$(<<<"$TESTOUT" | head -1)'"
+
+  local COUNT=0 TLINE TCMD CLINE UNIT
+  <<<"$TESTOUT" grep -n '^TEST' | while IFS=':' read TLINE TCMD
+  do
+    let COUNT++
+    TCMD="${TCMD##'TEST '}"
+    # any correct TEST statement must provide the command issuing the test
+    if test -n "$TCMD"
+    then
+      echo "PASS $EXAMPLE TEST $COUNT @ line $TLINE provides a command"
+    else
+      echo "FAIL missing TEST command in '$(tail -n +$TLINE | head -1)'"
+      return 1
+    fi
+    # any correct TEST unit is closed after TEST statement by a CODE statement
+    CLINE=$(<<<"$TESTOUT" grep -n '^CODE' | cut -d':' -f1 \
+      | while read N; do test $N -gt $TLINE || continue; echo $N; break; done
+    )
+    if test -n "$CLINE"
+    then
+      echo "PASS $EXAMPLE TEST $COUNT ends with CODE statement @ line $CLINE"
+    else
+      echo "FAIL '$(<<<"$TESTOUT" tail -n +$TLINE | head -1)' doesn't end!"
+      return 1
+    fi
+    # any correct TEST unit output is reproducible issuing its command
+    UNIT=$( <<<"$TESTOUT" tail -n +$TLINE | head -n $((CLINE-TLINE+1)) )
+    # <<<"$UNIT" >&2
+    if { diff -y -W 72 --color=auto <(autotest $TCMD 2>/dev/null) - <<<"$UNIT"
+       } 1>&2
+    then
+      echo "PASS $EXAMPLE TEST $COUNT is reproducible with 'autotest $TCMD'"
+    else
+      echo "FAIL can't reproduce '$(<<<"$TESTOUT" tail -n +$TLINE | head -1)'"
+      return 1
+    fi
+  done
+  # any correct standart output must have at least one TEST unit
+  if (($COUNT))
+    then echo "PASS $EXAMPLE outputs $COUNT TEST statement(s)"
+    else echo "FAIL $EXAMPLE doesn't output any TEST statements"; return 1
+  fi
+
+  echo "SKIP checking the stderr"
+}
+
+##
+# vim modeline
+# Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:
