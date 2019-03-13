@@ -1,0 +1,10 @@
+#!/bin/bash
+
+echo "TEST $0"
+
+# generate 1000 success assertions
+for (( i=0; i < 1000; i++ )); do
+  echo "PASS assertion $i succeed"
+done
+
+echo "CODE"

@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# test units can't have childs, that's why they are units
+# but any test executable may generate more than one test unit
+# the following example produces perfectly valid autotest protocol
+
+case "$*" in
+  # any test script must be able to run with no arguments (aka "bare" run), so
+  # any test script producing multiple units produces all units when runs bare
+  '') for letter in {a..z}; do "$0" unit $letter; done ;;
+
+  # it's often better to use test units to specify the values to be tested
+  # instead of using test units to specify the test logic to be executed
+
+  # sharing the test logic between test units eases:
+  #   - adding test cases (values to be tested)
+  #   - mantaining the test script (less logic = less code = less pain)
+  #   - mantaining the test suite tidy (Don't Repeat Yourself)
+  # consider writing another test script if logic can't be shared somehow
+  'unit '[a-z])
+    # keep in mind: the TEST statement specifies how to run the test (command)
+    echo "TEST $0" "$@"
+    echo "PASS this fake success means that unit $2 succeeds"
+    echo "CODE 0" # implicit exit 0 when script finishes
+  ;;
+  
+  # last, but not least
+  # consider a good habit failing with EUSAGE (code 2) when argv is not correct
+  *) >&2 echo "$0: '$*' is not a test unit defined here"; exit 2;;
+esac

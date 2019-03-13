@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# it's often better to use test units to specify the values to be tested
+# instead of using test units to specify the test logic to be executed
+# but consider a situation where multiple values must be tested different ways
+# and we want to keep the "get-values-to-be-tested" logic in one place
+# while mantaining test units small (i.e. 1 assertion per unit)
+
+# test units hereafter "fake" different logic (not so different, thought)
+# but all units generate the Autotest Protocol data on one place (see below)
+is-divisible-by-2 () { test $(($1 % 2)) -eq 0; }
+is-divisible-by-5 () { test $(($1 % 5)) -eq 0; }
+is-divisible-by-10 () { test $(($1 % 10)) -eq 0; }
+
+if !(($#))
+then # let's produce all units
+  # this example retrieves the value to be tested somehow...
+  for value in {10..100..10}; do
+    # and runs each unit for each value to be tested
+    for unit in {2,5,10}; do "$0" is-divisible-by-$unit $value; done
+  done
+elif test $(type -t "$1") != "function"
+then # argv is not valid, let's fail with EUSAGE (code 2)
+  >&2 echo "$0: '$1' is not an unit defined here"; exit 2
+else # argv is valid, let's produce the specified test unit
+  # keep in mind: the TEST statement specifies how to run the test (command)
+  echo "TEST $0 $@"
+  # this example shares the logic to generate AutoTest Protocol for all units
+  "$@" \
+    && echo "PASS $1 returns success (code 0) for value $2" \
+    || echo "FAIL $1 returns failure (code $?) for value $2"
+  # this example uses the code generation feature (omits the CODE value)
+  echo "CODE"
+  # so it can exit with code 0 when script finishes without causing EACODE
+fi
+

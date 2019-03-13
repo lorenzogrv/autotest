@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# the TEST statement at beginning is mandatory
+# the TEST statement value must be be the command issued to run the test
+echo "TEST $0"
+# between TEST and CODE, provide at least ONE assertion statement
+# an asertion statement value describes what has been asserted (for humans)
+echo "PASS this is a successful assertion"
+# the CODE statement closes a test unit
+# the CODE statement value is optional: if no status code provided, generate one
+echo "CODE"
