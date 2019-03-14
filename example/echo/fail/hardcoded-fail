@@ -2,8 +2,8 @@
 
 # dinamically retrieving the codename to be used
 # this is done to allow linking this example from each fail-* folder
-CODENAME=$(basename "$(dirname "$(realpath --no-symlinks "$0")")")
-CODENAME=${CODENAME##'fail-'}
+CODENAME=$(basename "$0")
+CODENAME=${CODENAME##'hardcoded-'}
 CODENAME=${CODENAME^^}
 
 echo "TEST $0"

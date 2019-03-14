@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# dinamically retrieving the codename to be used
+# this is done to allow linking this example from anywhere
+CODENAME=$(basename "$0")
+CODENAME=${CODENAME##'hardcoded-pass-'}
+CODENAME=${CODENAME^^}
+
+echo "TEST $0"
+echo "PASS this is any success"
+# after a test unit fails, the ideal case is:
+# 1. retrieve the exit status code somehow
+CODE=$(autotest code $CODENAME)
+# 2. specify the exit status code through the CODE statement
+echo "CODE $(autotest code $CODENAME)"
+# 3. finish the test run reporting the same status code
+exit $(autotest code $CODENAME)
+
+# BUT this test unit only has PASS statements!
