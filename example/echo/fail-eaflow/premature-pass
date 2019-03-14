@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# if ommited a TEST statement
+# a PASS statement triggers an EAFLOW error
+echo "PASS this success produces an error"

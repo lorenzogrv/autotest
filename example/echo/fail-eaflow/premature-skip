@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# if ommited a TEST statement
+# a SKIP statement triggers an EAFLOW error
+echo "SKIP this ignored statement produces an error"

@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# if ommited a TEST statement
+# a CODE statement should trigger an EAFLOW error
+echo "CODE 0"

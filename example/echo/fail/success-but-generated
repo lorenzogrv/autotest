@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# functions to be DRY
+function pass () { echo "PASS this is a fake success"; true; }
+function fail () { echo "FAIL this is a fake failure"; false; }
+
+case "$*" in
+  # runs all test units when script receives no arguments
+  '') for unit in {begin,middle,finish}; do "$0" $unit; done ;;
+  # runs specified test unit
+  begin|middle|finish)
+    echo "TEST $0 $*"
+    # Any of the following units must fail with the generic FAIL code
+    case "$*" in
+      begin) fail; pass; pass;;
+      middle) pass; fail; pass;;
+      finish) pass; pass; fail;;
+    esac
+    echo "CODE"
+    # test run could exit 0 while asking generation of its status code
+    exit 0 # is implicit on this script, but included here to be explicit
+    # this example should NEVER cause a "code mismatch"
+  ;;
+  # wrong test unit name
+  *) >&2 echo "$0: invalid test unit name: $*"; exit 2;;
+esac

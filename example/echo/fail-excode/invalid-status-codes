@@ -1,0 +1,18 @@
+#!/bin/bash
+
+case "$*" in
+  '') for unit in {toobig,string}; do "$0" $unit; done ;;
+  toobig|string)
+    case "$1" in
+      toobig) CODE=256;;
+      string) CODE="invalid-integer-string";;
+    esac
+    echo "TEST $0 $1"
+    echo "FAIL this is a fake failure"
+    echo "CODE $CODE"
+    # the invalid value at CODE statement should produce the EXCODE failure
+    # the script exit status code should not make difference
+  ;;
+  *) >&2 echo "$0: unit '$*' is not defined here"; exit 2;;
+esac
+

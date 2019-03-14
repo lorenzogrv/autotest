@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# the following example should fail, caused by EATIME
+
+echo "TEST $0"
+sleep 4 # emulate a slow check
+echo "PASS this is a successful assertion"
+echo "CODE 0"
+

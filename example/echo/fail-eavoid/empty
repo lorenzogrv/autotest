@@ -1,0 +1,3 @@
+#!/bin/bash
+
+# any test script producing no statements is considered void
