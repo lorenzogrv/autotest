@@ -53,6 +53,8 @@ check-command autotest report "" --returns non-zero # empty filename
 check-command autotest report "$UNEXISTANT" --returns 127
 check-command autotest report "$NONEXECUTABLE" --returns 126
 
+echo "CODE"
+
 ##
 # vim modeline
 # Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:
