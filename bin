@@ -1,37 +1,57 @@
 #!/bin/bash
 
+source "$(iai path test/check-command.bash)" || exit
+source "$(iai path test/check-command--returns.bash)" || exit
+source "$(iai path test/check-command--outputs.bash)" || exit
+
 echo "TEST $0"
 
-autotest &>/dev/null \
-	&& echo "PASS 'autotest' (bare) returns 0" \
-	|| echo "FAIL 'autotest' (bare) returns $?"
+#
+# OLD API!
+#
 
-autotest help &>/dev/null \
-	&& echo "PASS 'autotest help' returns 0" \
-	|| echo "FAIL 'autotest help' returns $?"
+# keep-in-mind: "bare" autotest is "output source code"
+check-command autotest --returns zero --outputs something || exit
+check-command autotest checkup --returns zero --outputs something || exit
+check-command autotest help --returns zero --outputs something || exit
 
-autotest checkup \
-	&& echo "PASS 'autotest checkup' returns 0" \
-	|| echo "FAIL 'autotest checkup' returns $?"
+#
+# INTERNALS
+#
 
-autotest root &>/dev/null \
-	&& echo "PASS 'autotest root' returns 0" \
-	|| echo "FAIL 'autotest root' returns $?"
+# need autotest root to find examples later
+check-command autotest root \
+  --returns zero \
+  --outputs string "$(iai path abc/autotest)" \
+  || exit
 
-ACTUAL="$(autotest root)"
-EXPECT=$(iai path abc/autotest)
-test "$ACTUAL" == "$EXPECT" \
-	&& printf "PASS" \
-	|| printf "FAIL"
-echo " 'autotest root' stdout output ($OUTPUT) is '$EXPECT'"
-unset ACTUAL EXPECT
+# "unexistant" example MUST not exist
+UNEXISTANT="$(autotest root)/example/unexistant"
+if test -e "$UNEXISTANT"; then
+  echo "FAIL $EXAMPLE should not exist, but it does"; exit 1
+fi
 
-autotest report &>/dev/null \
-	&& printf "FAIL" \
-	|| printf "PASS"
-echo " 'autotest report' (missing filename) returns error (code > 0)"
+# "non-executable" must be a non-executable file
+NONEXECUTABLE="$(autotest root)/example/non-executable"
+if ! test -f "$NONEXECUTABLE"; then
+  echo "FAIL $NONEXECUTABLE should be a file, but it isn't"; exit 1
+fi
+if test -x "$NONEXECUTABLE"; then
+  echo "FAIL $NONEXECUTABLE should not be executable, but it is"; exit 1
+fi
 
-echo "CODE"
+#
+# NEW API
+#
+
+check-command autotest "" --returns non-zero # empty filename
+check-command autotest "$UNEXISTANT" --returns 127 --outputs nothing
+check-command autotest "$NONEXECUTABLE" --returns 126 --outputs nothing
+
+check-command autotest report --returns non-zero # missing filename
+check-command autotest report "" --returns non-zero # empty filename
+check-command autotest report "$UNEXISTANT" --returns 127
+check-command autotest report "$NONEXECUTABLE" --returns 126
 
 ##
 # vim modeline
