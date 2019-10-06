@@ -1,0 +1,12 @@
+#!/bin/bash
+
+source "$(iai path test/autotest/utils.bash)" || exit
+
+echo "TEST $0"
+# scripts that should fail for being too slow (exit status 124)
+find-examples /v1/fail -name 'slow*' | assert-all-codes-are EATIME
+echo "CODE 0"
+
+##
+# vim modeline
+# Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:

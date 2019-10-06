@@ -1,0 +1,53 @@
+#!/bin/bash
+
+#source "$(iai path test/autotest/utils.bash)" || exit
+
+if (($#))
+then # should run an specific test case
+  echo "TEST $0" "$*"
+else # should run all test cases
+fi
+
+case "$*" in
+  '') # run all test cases
+    # let's base posible cases on known codes, instead all possible combinations
+    known_codes="$(autotest code | while read NUM A NAME; do echo "$NUM"; done)"
+    while read tcode; do
+      while read acode; do
+        "$0" $tcode $acode || exit
+      done <<<"$known_codes"
+    done <<<"$known_codes"
+    ;;
+  # test run and autotext OK
+  '0 0')
+    autotest mean $1 $2 &>/dev/null \
+      && echo "PASS 'autotest mean $1 $2' returns 0" \
+      || echo "FAIL 'autotest mean $1 $2' returns $?"
+    ;;
+  # test run OK but autotext failure
+  # should result in EACODE on all cases?
+  '0 '[1-9]|'0 '[1-9][0-9]|'0 '[1-2][0-9][0-9]) # matches over 255, but KISS
+    autotest mean $1 $2 &>/dev/null \
+      && echo "PASS 'autotest mean $1 $2' returns 0" \
+      || echo "FAIL 'autotest mean $1 $2' returns $?"
+    ;;
+  # test run and autotext report same error code
+  [1-9]" $1"|[1-9][0-9]" $1"|[1-2][0-9][0-9]" $1") # matches over 255, but KISS
+    EXPECT=$1
+    autotest mean $1 $2 &>/dev/null
+    ACTUAL=$?
+    test $ACTUAL -eq $EXPECT \
+      && echo "PASS 'autotest mean $1 $2' returns $EXPECT" \
+      || echo "FAIL 'autotest mean $1 $2' returns $ACTUAL (expected $EXPECT)"
+    ;;
+  *) # unknown test case
+    echo "FAIL '$*' is not an unit defined at $0"
+    echo "CODE 2"; exit 2
+    ;;
+esac
+
+(($#)) && echo "CODE" || exit 0
+
+##
+# vim modeline
+# Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:

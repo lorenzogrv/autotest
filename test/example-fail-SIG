@@ -1,0 +1,38 @@
+#!/bin/bash
+
+source "$(iai path test/autotest/utils.bash)" || exit
+
+(($#)) && echo "TEST $0" "$@"
+
+case "$1" in
+  SIG*)
+    assert-code-exists "$1"
+    echo "SKIP testing the signal $1"
+    ;;
+  '')
+    autotest code | egrep "SIG[a-Z]*" | while read NUM A NAME; do
+      "$0" "$NAME" || exit
+    done
+    ;;
+  *)
+    assert-code-exists "$1"
+    echo "FAIL $1 is not an unit defined at $0"
+    echo "CODE 1"; exit 1
+    ;;
+esac
+
+(($#)) && echo "CODE" || exit 0
+
+#echo "TEST $0 v1 examples considered 'premature keyword'"
+#find-examples /v1/fail -name 'premature*' | while IFS= read -d '' EXAMPLE; do
+#  assert-its-executable "$EXAMPLE"
+#  assert-example-status "$EXAMPLE" -gt 5
+#  assert-example-status "$EXAMPLE" -lt 11
+#  assert-example-last-code "$EXAMPLE" -gt 5
+#  assert-example-last-code "$EXAMPLE" -lt 11
+#done
+#echo "CODE 0"
+
+##
+# vim modeline
+# Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:
