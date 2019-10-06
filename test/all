@@ -1,0 +1,14 @@
+#!/bin/bash
+
+skipme="$(readlink -f "$BASH_SOURCE")"
+
+find "$(git rev-parse --show-toplevel)/test" -type f -executable -print0 \
+| sort -z \
+| while IFS= read -d '' testfile
+do
+  test "$testfile" = "$skipme" && continue
+  if test "$1" == "--bail"
+  then "$testfile" || exit
+  else "$testfile"
+  fi	  
+done

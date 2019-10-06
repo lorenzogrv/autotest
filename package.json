@@ -1,0 +1,29 @@
+{
+  "name": "autotest",
+  "version": "1.0.0",
+  "description": "reinventing-the-wheel with chicken-or-egg: self-testing automated test toolset for bash",
+  "main": "index.js",
+  "directories": {
+    "example": "example",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "bash -o pipefail -c \"./test/all --bail 2>/dev/null | grep --color=auto -E 'TEST|FAIL|CODE'\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "/repos/autotest.git"
+  },
+  "keywords": [
+    "reinvent-the-wheel",
+    "chicken-or-egg",
+    "self-testing",
+    "TDD",
+    "automated",
+    "test",
+    "toolset",
+    "bash"
+  ],
+  "author": "Lorenzo García Rivera",
+  "license": "GPL-3.0-or-later"
+}

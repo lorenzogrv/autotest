@@ -1,0 +1,29 @@
+#!/bin/bash
+
+function FAIL () { echo FAIL "$@"; echo CODE 1; exit 1; }
+
+echo TEST $0
+
+output="$(source "autotest")"
+code=$?
+
+test $code -eq 0 && {
+  echo "PASS autotest can be sourced"
+} || {
+  FAIL "autotest can't be sourced"
+}
+
+test -z "$output" && {
+  echo "PASS sourcing autotest outputs nothing to stdout"
+} || {
+  echo $output >&2
+  FAIL "sourcing autotest outputs something to stdout"
+}
+
+test "$(type -t 'autotest')" = 'function' && {
+  echo "PASS sourcing autotest defines the autotest function"
+} || {
+  FAIL "autotest source does not define an autotest function"
+}
+
+echo CODE 0

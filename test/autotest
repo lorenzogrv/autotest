@@ -1,8 +1,9 @@
 #!/bin/bash
 
-source "$(iai path test/check-command.bash)" || exit
-source "$(iai path test/check-command--returns.bash)" || exit
-source "$(iai path test/check-command--outputs.bash)" || exit
+root="$(git rev-parse --show-toplevel)"
+source "$root/api/check-command.bash" || exit
+source "$root/api/check-command--returns.bash" || exit
+source "$root/api/check-command--outputs.bash" || exit
 
 echo "TEST $0"
 
@@ -22,7 +23,7 @@ check-command autotest help --returns zero --outputs something || exit
 # need autotest root to find examples later
 check-command autotest root \
   --returns zero \
-  --outputs string "$(iai path abc/autotest)" \
+  --outputs string "$root" \
   || exit
 
 # "unexistant" example MUST not exist
