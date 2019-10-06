@@ -5,6 +5,8 @@ source "$root/api/check-command.bash" || exit
 source "$root/api/check-command--returns.bash" || exit
 source "$root/api/check-command--outputs.bash" || exit
 
+function FAIL () { echo FAIL "$@"; echo CODE 1; exit 1; }
+
 echo "TEST $0"
 
 #

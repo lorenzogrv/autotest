@@ -1,0 +1,59 @@
+#!/bin/bash
+
+function PASS () { echo PASS "$@"; }
+function FAIL () { echo FAIL "$@"; echo CODE 1; exit 1; }
+
+echo "TEST $0"
+
+root="$(git rev-parse --show-toplevel)"
+
+for name in "" {--returns,--outputs}
+do
+  file="$root/api/check-command$name.bash" 
+  source "$file" && {
+    PASS "'$file' is sourceable"
+  } || {
+    FAIL "sourcing '$file' returns code $?"
+  }
+done
+
+function dry-assert-failure () {
+  test $code -eq "${1:?'missing expected code'}" && {
+    PASS "returns $code when $case"
+  } || {
+    FAIL "should return $1 when $case, but returns $code"
+  }
+  test -n "$output" && {
+    PASS "writes something to std(out|err) when $case"
+  } || {
+    FAIL "writes nothing to std(out|err) when $case"
+  }
+  grep "$case" <<<"$output" && {
+    PASS "gracefully fails when $case"
+  } || {
+    FAIL "tells nothing about $case when $case"
+  }
+}
+
+case="missing arguments"
+output="$(check-command 2>&1)"
+code=$?
+dry-assert-failure 2
+
+case="no assertions specified"
+output="$(check-command 'true' 2>&1)"
+code=$?
+dry-assert-failure 2
+
+case="unexistant plugin specified"
+output="$(check-command 'true' --unexistant-plugin 2>&1)"
+code=$?
+dry-assert-failure 127 # not-found code (ENOENT)
+
+FAIL "more tests need to be written here"
+
+echo "CODE 0"
+
+##
+# vim modeline
+# Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:

@@ -20,10 +20,48 @@ test -z "$output" && {
   FAIL "sourcing autotest outputs something to stdout"
 }
 
+# now source autotest, as was sourced inside a subshell
+source autotest
+
 test "$(type -t 'autotest')" = 'function' && {
   echo "PASS sourcing autotest defines the autotest function"
 } || {
   FAIL "autotest source does not define an autotest function"
 }
+
+output="$(autotest)"
+code=$?
+
+test $code -eq 0 && {
+  echo "PASS running the autotest function returns 0"
+} || {
+  FAIL "running the autotest function returns $code"
+}
+
+test -n "$output" && {
+  echo "PASS running the autotest function outputs something"
+} || {
+  FAIL "running the autotest function ouputs anything"
+}
+
+eval "$output" && {
+  echo "PASS output from autotest function is sourceable"
+} || {
+  while read line; do echo "output: $line"; done <<<"$output" >&2
+  FAIL "output from autotest function is not sourceable"
+}
+
+# old-api functions should be present at code
+test "$(type -t 'tested')" = 'function' && {
+  echo "PASS bare autotest outputs a 'tested' function"
+} || {
+  FAIL "autotest output source does not define a 'tested' function"
+}
+test "$(type -t 'teskip')" = 'function' && {
+  echo "PASS bare autotest outputs a 'teskip' function"
+} || {
+  FAIL "autotest output source does not define a 'teskip' function"
+}
+
 
 echo CODE 0
