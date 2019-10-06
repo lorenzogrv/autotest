@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# if ommited a TEST statement
+# a FAIL statement triggers an EAFLOW error
+echo "FAIL this failure produces an error"

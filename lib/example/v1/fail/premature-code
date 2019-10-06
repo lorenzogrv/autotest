@@ -1,0 +1,14 @@
+#!/bin/bash
+
+echo "TEST $0"
+echo "PASS this is a successful assertion"
+echo "CODE 0"
+
+# if ommited a TEST statement
+# a CODE statement should trigger a 'premature keyword' syntax error
+echo "CODE 0"
+
+# even when the continuation is correct
+echo "TEST $0"
+echo "PASS this is a successful assertion"
+echo "CODE 0"

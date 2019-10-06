@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# the TEST statement at beginning is mandatory
+echo "TEST $0 with optional description"
+# between TEST and CODE, provide at least ONE assertion statement
+echo "PASS this is an ignored assertion"
+# the CODE statement closes a test unit
+echo "CODE"

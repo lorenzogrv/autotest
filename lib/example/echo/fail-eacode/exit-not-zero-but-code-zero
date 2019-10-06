@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if !(($#))
+then # let's produce all units
+  for code in {1..255}; do "$0" $code; done
+  exit # implicit $?
+fi
+
+# test will fail when $1 is not int, KISS
+if test "$1" -gt 0 && test "$1" -le 255
+then
+  echo "TEST $0 $1"
+  echo "PASS this fakes a sucessful assertion"
+  echo "CODE 0" # code would be 0 even if generated
+  exit $1 # as this script exits with code != 0, it is a "code mismatch"
+fi
+
+# argv is not valid, let's fail with EUSAGE (code 2)
+>&2 echo "$0: invalid argument list: '$@'"; exit 2

@@ -1,0 +1,3 @@
+#!/bin/bash
+
+# when there is no data, it's considered a VOID unit

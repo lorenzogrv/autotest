@@ -1,0 +1,6 @@
+#!/bin/bash
+
+echo "TEST $0"
+echo "FAIL this is any failure"
+echo "CODE $(autotest code EUSAGE)"
+exit 2

@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# TEST unit is considered void if it only contains SKIP statements
+echo "TEST $0"
+echo "SKIP this is an ignored assertion"
+echo "CODE"
+

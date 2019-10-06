@@ -1,0 +1,36 @@
+#!/bin/bash
+
+case "$1" in
+  # all posible codes will produce more than 65k combinations
+  ALL) CODES="$(for code in {0..255}; do echo $code; done)";;
+  # all codes known by 'autotest code' produce about 5.5k combinations
+  KNOWN) CODES="$(autotest code | while read NUM A N; do echo $NUM; done)";;
+  # all codes "known" (except signal codes) produce about 150 combinations
+  '')
+    CODES="$(autotest code | while read NUM A NAME; do
+      case "$NAME" in SIG*);; *) echo $NUM;; esac
+    done)"
+  ;;
+esac
+
+if test -n "$CODES"; then # let's produce all posible combinations
+  while read code; do while read stat; do
+    test "$stat" -eq "$code" && continue || "$0" $code $stat
+  done <<<"$CODES"; done <<<"$CODES"
+  exit # implicit $?
+fi
+
+# test command will fail verbosely when $1 is not an int. KISS
+is_valid_exit_status () { test "$1" -ge 0 && test "$1" -le 255; }
+
+if is_valid_exit_status "$1" && is_valid_exit_status "$2" && test $1 -ne $2
+then # codes are both valid and diferent
+  echo "TEST $0 $@"
+  echo "FAIL this fakes a failed assertion"
+  # argument 1 is the code to be reported on CODE statement
+  # argument 2 is the exit status code to be reported through exit
+  echo "CODE $1"; exit $2 # exit status != to CODE statement status => EACODE
+fi
+
+# reached this point, asume argv is not valid and fail with EUSAGE (code 2)
+>&2 echo "$0: invalid argument list: '$@'"; exit 2

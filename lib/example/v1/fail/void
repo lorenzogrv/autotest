@@ -1,0 +1,6 @@
+#!/bin/bash
+
+echo "TEST $0"
+echo "CODE"
+
+# when there are NO assertions, it's considered a failed test

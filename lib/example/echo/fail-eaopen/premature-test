@@ -1,0 +1,14 @@
+#!/bin/bash
+
+echo "TEST $0"
+echo "PASS some success"
+
+# TEST units can't have childs, that's why they are units
+# any premature TEST should be reported as EAOPEN because test was not closed
+echo "TEST statement generated before closing previous TEST unit"
+
+# even if it has assertions and previous TEST(s) are closed later
+echo "PASS some success"
+echo "CODE 0"
+echo "CODE 0"
+

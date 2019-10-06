@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo "TEST $0"
+echo "PASS this is any failure"
+echo "CODE $(autotest code EATEST)"

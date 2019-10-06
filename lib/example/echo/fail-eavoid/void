@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# any test unit with no PASS/FAIL statements inside is considered void
+echo "TEST $0"
+echo "CODE"

@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# test units can't have childs, that's why they are units
+# but any test executable may generate more than one test unit
+# the following example produces perfectly valid autotest protocol
+
+# this example uses functions to describe each test unit
+
+# it's often better to use test units to specify the values to be tested
+# instead of using test units to specify the test logic to be executed
+# but test units hereafter "fake" different logic (not so different, thought)
+# to demonstrate how to use units to specify different test logic
+unit-a () { echo "PASS this success fakes that $FUNCNAME succeeds"; }
+unit-b () { echo "PASS this success fakes that $FUNCNAME succeeds"; }
+unit-c () { echo "PASS this success fakes that $FUNCNAME succeeds"; }
+
+if !(($#))
+then
+  # any test script producing multiple units produces all units when runs bare
+  # CARE: line below runs all defined functions without filtering them
+  declare -F | while read d e fname; do "$0" $fname; done
+elif test $(type -t "$1") != "function"
+then
+  # consider a good habit failing with EUSAGE (code 2) when argv is not correct
+  >&2 echo "$0: '$1' is not an unit defined here"; exit 2
+else
+  # argv is valid, let's produce the specified test unit
+  # keep in mind: the TEST statement specifies how to run the test (command)
+  echo "TEST $0 $@"
+  # units ignore arguments on this example, but could receive them
+  "$@"
+  # units will always return 0 on this example, but could fail on real world
+  echo "CODE $?"
+  # implicit exit 0 when this script finishes it's ok, CODE will be 0 always
+fi

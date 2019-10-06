@@ -1,0 +1,14 @@
+#!/bin/bash
+
+echo "TEST $0"
+echo "PASS this is a successful assertion"
+echo "CODE 0"
+
+# if ommited a TEST statement
+# a SKIP statement triggers a syntax error
+echo "SKIP this is a syntax error (premature skip)"
+
+# even when the continuation is correct
+echo "TEST $0"
+echo "PASS this is a successful assertion"
+echo "CODE 0"

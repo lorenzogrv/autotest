@@ -1,0 +1,19 @@
+#!/bin/bash
+
+source <(autotest)
+
+true
+tested "true returns exit code 0"
+
+true
+teskip "this is an ignored assertion"
+
+false
+teskip "even when previous command returns exit code > 0"
+
+false
+tested "this is a failed assertion"
+
+# this script will exit with code 0
+# exit 0 is another fail because there was a FAIL above
+exit 0

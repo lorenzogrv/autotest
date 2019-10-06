@@ -1,0 +1,7 @@
+#!/bin/bash
+
+echo "TEST $0"
+echo "FAIL this is a failure description"
+echo "CODE 124"
+
+# the example above should fail, caused by timeout

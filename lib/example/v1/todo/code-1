@@ -1,0 +1,8 @@
+#!/bin/bash
+
+echo "TEST $0"
+
+echo "PASS this is a successful assertion"
+
+# if this script exits with code != 0, it is a "code mismatch"
+exit 1

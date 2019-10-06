@@ -1,0 +1,6 @@
+#!/bin/bash
+
+echo "TEST $0"
+echo "FAIL this is a failed assertion"
+# note that process exit codes above 255 are invalid
+echo "CODE 256"

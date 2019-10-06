@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# it's often better to use test units to specify the values to be tested
+# instead of using test units to specify the test logic to be executed
+
+# let's refactor the unit-functions-better example as demonstration of how
+# all units could share the same logic while being as small as posible
+
+is_int () { true; } # would be need to validate the argument list, but KISS
+
+if !(($#))
+then # let's produce all units
+  # this example retrieves the value to be tested somehow...
+  for value in {10..100..10}; do
+    # and runs each unit for each value to be tested
+    for factor in {2,5,10}; do "$0" $factor $value; done
+  done
+elif ! is_int "$1" || ! is_int "$2"
+then # argv is not valid, let's fail with EUSAGE (code 2)
+  >&2 echo "$0: invalid argument list: '$@'"; exit 2
+else
+  # keep in mind: the TEST statement specifies how to run the test (command)
+  echo "TEST $0 $@"
+  # this example shares all the test logic between units here
+  test $(($2 % $1)) -eq 0 \
+    && echo "PASS $2 is divisible by $1" \
+    || echo "FAIL $2 is not divisible by $1"
+  # this example uses the code generation feature (omits the CODE value)
+  echo "CODE"
+  # so it can exit with code 0 when script finishes without causing EACODE
+fi
+

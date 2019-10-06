@@ -1,0 +1,14 @@
+#!/bin/bash
+
+echo "TEST $0"
+echo "PASS this is a successful assertion"
+echo "CODE 0"
+
+# if ommited a TEST statement
+# a PASS statement triggers a syntax error
+echo "PASS this is a syntax error (premature pass)"
+
+# even when the continuation is correct
+echo "TEST $0"
+echo "PASS this is a successful assertion"
+echo "CODE 0"
