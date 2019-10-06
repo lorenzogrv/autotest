@@ -1,0 +1,7 @@
+#!/bin/bash
+
+echo "TEST $0"
+echo "PASS this is a pass description"
+echo "CODE 124"
+
+# CODE 124 should fail always as 'timed out', even when test 'passes'

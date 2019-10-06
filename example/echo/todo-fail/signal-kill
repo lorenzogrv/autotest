@@ -1,0 +1,6 @@
+#!/bin/bash
+
+echo "TEST $0"
+
+# test stops due to receipt of a signal (exit 128+signal)
+exit $((128+9)) #SIGKILL=9

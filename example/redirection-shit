@@ -1,0 +1,49 @@
+#!/bin/bash
+
+TIME=${1:-1}
+
+function eche () { >&2 echo "<$(caller)>:" "$@"; }
+
+test-run () {
+  case "$1" in
+    '') for unit in {a..c}; do $FUNCNAME $unit || exit; done;;
+    [a-c])
+      # emulate the test unit
+      echo "TEST $0 $FUNCNAME $1"
+      sleep $TIME # for imaginary test command
+      eche "this is TEST imaginary diagnosis output, written to stderr"
+      case "$1" in
+        a|c) echo "PASS the imaginary test succeed"; echo "CODE 0"; return 0;;
+        *) echo "FAIL the imaginary test failed"; echo "CODE 1"; return 1;;
+      esac
+  esac
+}
+
+parser () { autotest -; } # use the real parser, rather than emulating 
+
+validator () {
+  local UNIT="" DESC=""
+  while read KEY VALUE; do
+    eche "$FUNCNAME is processing '$KEY $VALUE'"
+    if test "$KEY" == "TEST"; then DESC="$VALUE"; UNIT=""; fi
+    UNIT+="$KEY $VALUE"$'\n'
+    echo "$KEY $VALUE (echoed from $FUNCNAME)"
+    test "$KEY" == "CODE" || continue # buffering
+    eche "$FUNCNAME should perform now the 'semantic' test"
+    eche "$FUNCNAME --- diagnosis output that matters ---"
+    printf "$UNIT"
+    eche "-----------------------------------------------"
+  done
+}
+
+echo "--------------------- test 1 ---------------------"
+(test-run 2>&3 | parser | validator) 3>&2
+echo "code was $? and pipestatus is ${PIPESTATUS[@]}"
+
+echo "--------------------- test 2 ---------------------"
+(test-run 2>&3 | parser | validator) 3> >(while read DIAG; do echo "test diag: $DIAG"; done)
+echo "code was $? and pipestatus is ${PIPESTATUS[@]}"
+
+##
+# vim modeline (see vim +'help modeline')
+# vim: expandtab filetype=sh ts=2 shiftwidth=2
