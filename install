@@ -1,0 +1,28 @@
+eche () { echo "$@" >&2; }
+fail () { eche "$@"; exit 1; }
+
+file="autotest"
+
+file="$(readlink -f "$file")"
+test -x "$file" || fail "Fatal: $file is not an executable file"
+
+# Installation path for all envs (aka 'standard')
+BIN_PATH="/usr/local/bin"
+
+# override path for 'termux' environments
+type termux-info &>/dev/null && BIN_PATH="$PREFIX/bin"
+
+# last, small environments not having /usr/local (i.e. openwrt)
+test -d "$BIN_PATH" || BIN_PATH="/usr/bin"
+test -d "$BIN_PATH" || fail "Fatal: $BIN_PATH is not a directory"
+
+name="$(basename "$file")"
+eche "Will install $name to $BIN_PATH"
+
+ln -s "$(dirname "$file")/$name" "$BIN_PATH/$name" \
+  || fail "could not create the link to the file"
+
+##
+# vim modeline (see vim +'help modeline')
+# /* vim: set expandtab: */
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */
