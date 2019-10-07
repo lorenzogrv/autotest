@@ -50,39 +50,50 @@ function dry-assert-function () {
 #  "$exp" && echo "PASS $case"
 #}
 
-
-root="$(git rev-parse --show-toplevel)"
-"$root/test/all-bash-source" "$root/autotest"
-
 echo TEST $0
 
 #### 
-case="source 'autotest'"
+case="autotest 'bare' call (old api)"
 ####
-source autotest #here, above is sourced at subshells
-dry-assert-function "autotest"
-dry-assert-function "PASS"
-dry-assert-function "FAIL"
-unset -v case
+stdout="$(autotest 2>/dev/null)"
+stderr="$(autotest 2>&1 >/dev/null)"
+code=$?
+dry-assert-output "stdout"
+dry-refute-output "stderr"
+dry-assert-success
+unset -v case stdout stderr code
 
-for fname in {PASS,FAIL}
+####
+case="eval old-api code"
+####
+output="$(eval "$(autotest)" 2>&1)"
+code=$?
+dry-refute-output "output"
+dry-assert-success
+unset -v case output code
+
+eval "$(autotest)"
+for fname in {tested,teskip}
 do
   ####
-  case="$fname's built-in '$fname--test'"
+  case="presence of old-api function $fname"
+  ####
+  dry-assert-function "$fname"
+  dry-assert-function "$fname--test"
+  unset -v case
+  ####
+
+  ####
+  case="$fname's built-in test '$fname--test'"
   ####
   stdout="$("$fname--test" 2>/dev/null)"
   stderr="$("$fname--test" 2>&1 >/dev/null)"
   code=$?
   dry-refute-output "stderr"
   dry-assert-output "stdout"
-  (
-    dry-assert-success
-  ) || {
-    dry-verb "$fname--test:" <<<"$stdout"
-    exit 1
-  }
+  dry-assert-success
   unset -v case stdout stderr code
-  #TODO assert this functions output valid ATP text
+  ####
 done
 
 echo CODE 0
