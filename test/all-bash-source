@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# test units can't have childs, that's why they are units
+# but any test executable may generate more than one test unit
+
+case "$*" in
+  # any test script must be able to run with no arguments (aka "bare" run)
+  # this test will run for all autotest bash source files
+  '')
+    root="$(git rev-parse --show-toplevel)"
+    # run this test script for every *.bash file
+    find "$root" -name '*.bash' -print0 \
+    | sort -z \
+    | while IFS= read -d '' file; do "$0" "$file"; done
+    # aditionally, run this test for autotest main file
+    "$0" "$root/autotest"
+  ;;
+  # it's often better to use test units to specify the values to be tested
+  # instead of using test units to specify the test logic to be executed
+  #
+  # sharing the test logic between test units eases:
+  #   - adding test cases (values to be tested)
+  #   - mantaining the test script (less logic = less code = less pain)
+  #   - mantaining the test suite tidy (Don't Repeat Yourself)
+  #
+  # consider writing another test script if logic can't be shared somehow
+  *)
+    # keep in mind: TEST statement specifies how to run the test (command)
+    echo "TEST $0" "$1"
+    #### 
+    case="source '$1'"
+    ####
+    stdout="$(source "$1" 2>/dev/null)"
+    stderr="$(source "$1" 2>&1 >/dev/null)"
+    code=$?
+    test "$code" -eq 0 && {
+      echo "PASS $case returns exit status 0"
+    } || {
+      echo "FAIL $case should return exit status 0 but returns $code"
+    }
+    for output in {stdout,stderr}; do
+      test -z "${!output}" && {
+        echo "PASS $case writes nothing to $output"
+      } || {
+        echo "FAIL $case should write nothing to $output"
+        while read line; do
+          echo -e "   | ${output#std}: $line"
+        done <<<"${!output}" >&2
+        test $code -eq 0 && code=1
+      }
+    done
+    echo "CODE $code"
+    exit $code
+  ;;
+esac
+
+##
+# vim modeline (see vim +'help modeline')
+# /* vim: set expandtab: */
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */
