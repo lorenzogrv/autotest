@@ -1,16 +1,17 @@
 # dirty, but working
 function check-command--outputs () {
-  if test "$1" == '--'; then # no params received 
-    >&2 echo "$FUNCNAME what should command output? nothing specified"
+  if test "$1" == '-command'; then # no params received 
+    echo "$FUNCNAME: bad usage, insuficient parameters"
     return 2
-  fi
+  fi >&2
+
   local MODE EXPECT
   while (($#)); do
     case "$1" in
-      --) shift; break ;;
+      -command) shift; break ;;
       #/*) MODE=diff shift ;;
-      something) EXPECT=something; shift; MODE='read -N 1' ;;
-      nothing)   EXPECT=nothing  ; shift; MODE='read -N 1 ; (($?))' ;;
+      something|anything) EXPECT=$1; shift; MODE='read -N 1' ;;
+      nothing) EXPECT=$1; shift; MODE='read -N 1 ; (($?))' ;;
       string)
         EXPECT="given string ($2)"
         MODE="my-custom-diff - <(cat <<<\"$2\")"
@@ -21,7 +22,7 @@ function check-command--outputs () {
         MODE="my-custom-diff - \"$2\""
         shift 2
         ;;
-      *) >&2 echo "$FUNCNAME: invalid argv: $@"; return 2 ;;
+      *) echo "$FUNCNAME: invalid argv: $@" >&2; return 2 ;;
     esac
   done
   # hereafter, argv should only contain the command line to be run
@@ -34,9 +35,11 @@ function check-command--outputs () {
     return 1
   fi
 }
+
 function my-custom-diff () {
   diff -y --left-column -W 80 --color=auto "$@"
 }
+
 ##
 # vim modeline
 # Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:
