@@ -2,9 +2,9 @@
 
 function dry-assert-code () {
   test "$code" -eq $1 && {
-    echo PASS "code is $1 when $case"
+    echo PASS "after $case, code is $1"
   } || {
-    echo FAIL "code should be $1 when $case, but returns $code"
+    echo FAIL "after $case, code should be $1, but is $code"
     return 1
   }
 }
@@ -18,18 +18,18 @@ function dry-diagnose () {
 function dry-assert-output () {
   test -v "${1:?missing output variable name}"
   test -n "${!1}" && {
-    echo PASS "$1 has data when $case"
+    echo PASS "after $case, $1 has data"
   } || {
-    echo FAIL "$1 should have data when $case"
+    echo FAIL "after $case, $1 should have data"
     return 1
   }
 }
 function dry-refute-output () {
   test -v "${1:?missing output variable name}"
   test -z "${!1}" && {
-    echo PASS "$1 has no data when $case"
+    echo PASS "after $case, $1 has no data"
   } || {
-    echo FAIL  "$1 should have no data when $case"
+    echo FAIL "after $case, $1 should have no data"
     dry-diagnose "$1"
     return 1
   }
@@ -44,7 +44,6 @@ case "$1" in
     "$root/test/api-functions" "autotest" none "autotest"
     "$root/test/api-functions" "autotest" root "autotest--root"
 
-    $0 load 'autotest'
     $0 load 'check-command'
     $0 load 'check-command--returns'
     ;;
@@ -62,14 +61,14 @@ case "$1" in
       dry-refute-output "stderr"
       (
         test "$(type -t "$1")" = 'function' && {
-          echo FAIL function "'$1'" is already loaded
+          echo FAIL "before $case, function '$1' is already defined"
           exit 1
         }
-        autotest load "$1"
+        autotest load "$1" &>/dev/null
         test "$(type -t "$1")" = 'function' && {
-          echo PASS load "'$1'" defines function "$1"
+          echo PASS "after $case, function '$1' is defined"
         } || {
-          echo FAIL load "'$1'" should define function "$1"
+          echo FAIL "after $case, function '$1' should be defined"
         }
         exit 0 #to be explicit
       )
@@ -85,11 +84,11 @@ case "$1" in
     shift
     echo TEST $unit "$@"
 
-    stdout="$(autotest $unit "$@")"
-    stderr="$(autotest $unit "$@")"
+    stdout="$(autotest $unit "$@" 2>/dev/null)"
+    stderr="$(autotest $unit "$@" 2>&1 >/dev/null)"
     code=$?
 
-    case="$unit $1"
+    case="calling 'autotest $unit $1'"
     $unit "$@"
     code=$?
     echo CODE $code
