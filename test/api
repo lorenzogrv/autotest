@@ -1,91 +1,11 @@
 #!/bin/bash
 
-function dry-fail () { echo FAIL "$@"; echo CODE 1; exit 1; }
-function dry-verb () { while read line; do echo "$@" "$line"; done; }
-
-function dry-assert-success () {
-  test $code -eq 0 && {
-    echo "PASS $case returns 0"
-  } || {
-    dry-fail "$case returns $code while expecting 0"
-  }
-}
-
-function dry-refute-output () {
-  local var="${1:?"$FUNCNAME missing output variable name"}"
-  test -v "$var" || dry-fail "$FUNCNAME: variable $var is not declared"
-  test -z "${!var}" && {
-    echo "PASS $case writes nothing to $var"
-  } || {
-    dry-verb "$var:" <<<"${!var}" >&2
-    dry-fail "$case writes something to $var while expecting nothing"
-  }
-}
-
-function dry-assert-output () {
-  local var="${1:?"$FUNCNAME missing output variable name"}"
-  test -v "$var" || dry-fail "$FUNCNAME: variable $var is not declared"
-  test -n "${!var}" && {
-    echo "PASS $case writes something to $var"
-  } || {
-    dry-fail "$case writes nothing to $var (expecting something)"
-  }
-}
-
-function dry-assert-function () {
-  local fname="${1:?"$FUNCNAME: no function name specified"}"
-  test "$(type -t "$fname")" = 'function' && {
-    echo "PASS $case defines '$fname' function"
-  } || {
-    dry-fail "$case does NOT define '$fname' function"
-  }
-}
-
-#YAGNI
-#function dry-assert () {
-#  # usage: [test expression]{1,n} [varname]
-#  local exp var
-#  exp=(); while (($# < 2)); do exp+=("$1"); shift; done
-#  var="$1" # TODO assert variable has been set
-#  "$exp" && echo "PASS $case"
-#}
-
-
 root="$(git rev-parse --show-toplevel)"
-"$root/test/all-bash-source" "$root/autotest"
 
-echo TEST $0
+"$root/test/all-bash-source" "autotest"
 
-#### 
-case="source 'autotest'"
-####
-source autotest #here, above is sourced at subshells
-dry-assert-function "autotest"
-dry-assert-function "PASS"
-dry-assert-function "FAIL"
-unset -v case
-
-for fname in {PASS,FAIL}
-do
-  ####
-  case="$fname's built-in '$fname--test'"
-  ####
-  stdout="$("$fname--test" 2>/dev/null)"
-  stderr="$("$fname--test" 2>&1 >/dev/null)"
-  code=$?
-  dry-refute-output "stderr"
-  dry-assert-output "stdout"
-  (
-    dry-assert-success
-  ) || {
-    dry-verb "$fname--test:" <<<"$stdout"
-    exit 1
-  }
-  unset -v case stdout stderr code
-  #TODO assert this functions output valid ATP text
-done
-
-echo CODE 0
+"$root/test/api-functions" "autotest" none "autotest"
+"$root/test/api-functions" "autotest" root "autotest--root"
 
 ##
 # vim modeline (see vim +'help modeline')

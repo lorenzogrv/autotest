@@ -5,7 +5,7 @@
 
 case "$*" in
   # any test script must be able to run with no arguments (aka "bare" run)
-  # this test will run for all autotest bash source files
+  # this test will run for all bash source files at git repository
   '')
     root="$(git rev-parse --show-toplevel)"
     # run this test script for every *.bash file

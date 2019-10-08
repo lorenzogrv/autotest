@@ -1,56 +1,114 @@
 #!/bin/bash
 
-function PASS () { echo PASS "$@"; }
-function FAIL () { echo FAIL "$@"; echo CODE 1; exit 1; }
-
-echo "TEST $0"
-
-root="$(git rev-parse --show-toplevel)"
-
-for name in "" {--returns,--outputs}
-do
-  file="$root/api/check-command$name.bash" 
-  source "$file" && {
-    PASS "'$file' is sourceable"
-  } || {
-    FAIL "sourcing '$file' returns code $?"
-  }
-done
+source autotest
 
 function dry-assert-failure () {
   test $code -eq "${1:?'missing expected code'}" && {
     PASS "returns $code when $case"
   } || {
-    FAIL "should return $1 when $case, but returns $code"
+    FAIL --next "should return $1 when $case, but returns $code"
   }
-  test -n "$output" && {
-    PASS "writes something to std(out|err) when $case"
+  test -z "$output" && {
+    PASS "writes nothing to stdout when $case"
   } || {
-    FAIL "writes nothing to std(out|err) when $case"
+    while read l; do echo "   | out: $l"; done <<<"$output" >&2
+    FAIL "writes something to stdout when $case"
   }
-  grep "$case" <<<"$output" && {
+  test -n "$errput" && {
+    PASS "writes something to stderr when $case"
+  } || {
+    FAIL "writes nothing to stderr when $case"
+  }
+  grep "$case" <<<"$errput" && {
     PASS "gracefully fails when $case"
   } || {
-    FAIL "tells nothing about $case when $case"
+    while read l; do echo "   | err: $l"; done <<<"$errput" >&2
+    FAIL --next "tells nothing about $case when $case"
   }
 }
 
+
+root="$(git rev-parse --show-toplevel)"
+file="$root/api/check-command.bash" 
+
+"$root/test/all-bash-source" "$file" || exit
+source "$file"
+
+echo "TEST $0"
+
 case="missing arguments"
-output="$(check-command 2>&1)"
+output="$(check-command 2>/dev/null)"
+errput="$(check-command 2>&1 >/dev/null)"
 code=$?
-dry-assert-failure 2
+dry-assert-failure 2 # usage code (EUSAGE)
 
 case="no assertions specified"
-output="$(check-command 'true' 2>&1)"
+output="$(check-command 'true' 2>/dev/null)"
+errput="$(check-command 'true' 2>&1 >/dev/null)"
 code=$?
-dry-assert-failure 2
+dry-assert-failure 2 # usage code (EUSAGE)
 
 case="unexistant plugin specified"
-output="$(check-command 'true' --unexistant-plugin 2>&1)"
+output="$(check-command 'true' --unexistant-plugin 2>/dev/null)"
+errput="$(check-command 'true' --unexistant-plugin 2>&1 >/dev/null)"
 code=$?
 dry-assert-failure 127 # not-found code (ENOENT)
 
-FAIL "more tests need to be written here"
+function dry-assert-equal () {
+  test "$1" = "$2" && {
+    PASS "value '$1' is equal to '$2'"
+  } || {
+    caller 0 >&2
+    FAIL "actual value is '$1' but should be '$2'"
+  }
+}
+
+function check-command--example-plugin () {
+  function was_run () { :; }; export -f was_run
+  dry-assert-equal "$1" "a"
+  dry-assert-equal "${AUTOPLUG[1]}" "a"
+  dry-assert-equal "$2" 4
+  dry-assert-equal "${AUTOPLUG[2]}" 4
+  dry-assert-equal "$3" "b c"
+  dry-assert-equal "${AUTOPLUG[3]}" "b c"
+  dry-assert-equal "$4" "-key"
+  dry-assert-equal "${AUTOPLUG[4]}" "-key"
+  dry-assert-equal "$5" "val"
+  dry-assert-equal "${AUTOPLUG[5]}" "val"
+  dry-assert-equal "$6" "--"
+  dry-assert-equal "$7" "true"
+  echo "$FUNCNAME stdout"
+  echo "$FUNCNAME stderr" >&2
+  dry-assert-equal "${AUTOCMD[0]}" "true"
+  dry-assert-equal "${AUTOPLUG[0]}" "check-command--example-plugin"
+  return 43
+}
+
+case="when specified the --example-plugin"
+check-command 'true' --example-plugin "a" 4 "b c" -key val
+test "$(type -t was_run)" = 'function' && {
+  PASS "plugin function gets executed $case"
+} || {
+  FAIL "plugin function was not executed $case"
+}
+# does subshell define de function?
+output="$(check-command 'true' --example-plugin "a" 4 "b c" -key val)"
+code=$?
+test $code -eq 43 && {
+  PASS "plugin return value is preserved $case"
+} || {
+  FAIL "should preserve return code 43 $case but returns $code instead"
+}
+grep -q stdout <<<"$output" && {
+  PASS "plugin stdout gets captured the usual way"
+} || {
+  FAIL "expected plugin stdout to contain the string 'stdout'"
+}
+! grep -q stderr <<<"$output" && {
+  PASS "plugin stderr gets ignored the usual way"
+} || {
+  FAIL "expected plugin stdout to NOT contain the string 'stderr'"
+}
 
 echo "CODE 0"
 

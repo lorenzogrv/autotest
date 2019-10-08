@@ -1,0 +1,200 @@
+#!/bin/bash
+
+# test units can't have childs, that's why they are units
+# but any test executable may generate more than one test unit
+
+function none--test () { :; }
+
+function root--test () {
+  # test specified [function_name] outputs the git repository root
+  (
+    stdout="$( $1 2>/dev/null )"
+    stderr="$( $1 2>&1 >/dev/null )"
+    code=$?
+
+    test $code -eq 0 \
+      && pass "exit code should be 0" \
+      || fail "exit code is not 0 (is $code)"
+
+    test -z "$stderr" && {
+      pass "outputs nothing to stderr"
+    } || {
+      echo "FAIL should output nothing to stderr"
+      while read l; do echo "   | err: $l"; done
+    }
+
+    test "$stdout" = "$(git rev-parse --show-toplevel)" \
+      && pass "outputs the git repo root to stdout" \
+      || fail "should output the git repo root to stdout"
+
+    exit $code #to be explicit
+  )
+  return $? #to be explicit
+}
+
+function pass--test () {
+  # tests specified [function_name] echoes PASS "$@" and continues
+  # > - Cowboy: Is this really need?
+  # > - Wiseman: Yes, no tests provide no good features
+  local func="${1:-PASS}"
+  ( #to avoid pollution
+    stdout="$( "$func" $FUNCNAME 2>/dev/null )"
+    code=$?
+
+    test $code -eq 0 \
+      && pass "exit code should be 0" \
+      || fail "exit code is not 0 (is $code)"
+
+    [[ "$stdout" =~ ^PASS ]] \
+      && pass "stdout begins with PASS" \
+      || fail "'$stdout' does not begin with 'PASS'" \
+
+    test "$($func $FUNCNAME)" = 'PASS' \
+      && fail "stdout is just 'PASS'" \
+      || pass "stdout is not just 'PASS'" \
+
+    test $( $func $FUNCNAME 2>/dev/null | wc -l ) -ne 1 \
+      && fail "should write ONE line to stdout" \
+      || pass "writes one line to stdout"
+
+    exit $code #to be explicit
+  )
+  return $? #to be explicit
+}
+
+function bail--test () {
+  # usage: [function_name] [argv]{1,n}
+  (
+    case="'$@'"
+    stdout="$( ${case//\'/} &>/dev/null; echo next)"
+    code=$?
+    test "$code" -eq 0 \
+      && fail "exit code should not be 0" \
+      || { pass "exit code is not 0"; code=0; }
+    test "$stdout" = 'next' \
+      && fail "should exit subshell" \
+      || pass "exits subshell"
+    exit $code
+  )
+  return $? #to be explicit
+}
+
+function next--test () {
+  # usage: [function_name] [argv]{1,n}
+  (
+    case="'$@'"
+    stdout="$( ${case//\'/} &>/dev/null; echo next)"
+    code=$?
+    test "$code" -eq 0 \
+      && pass "exit code is 0" \
+      || fail "exit code should be 0 (is $code)"
+    test "$stdout" != 'next' \
+      && fail "should not exit subshell" \
+      || pass "does not exit subshell"
+    exit $code
+  )
+  return $? #to be explicit
+}
+
+function fail--test () {
+  # usage: [function_name]
+
+  local func="$1"
+  ( #to avoid pollution
+    ####
+    case="'$func $FUNCNAME'"
+    ####
+    stdout="$( ${case//\'/} 2>/dev/null)"
+    test $( wc -l <<<"$stdout" ) -ne 2 \
+      && fail "should write TWO lines to stdout" \
+      || pass "writes TWO lines to stdout"
+
+    lines=("")
+    lines+=("FAIL $FUNCNAME")
+    lines+=("CODE 1 by FAIL @fail--test")
+
+    for n in {1,2}; do
+      read line
+      test "$line" != "${lines[$n]}" \
+        && fail "stdout line $n should be '${lines[$n]}'" \
+        || pass "stdout line $n is '${lines[$n]}'"
+    done <<<"$stdout"
+
+    ####
+    case="'$func --next $FUNCNAME'"
+    ####
+    stdout="$( ${case//\'/} 2>/dev/null)"
+    test $( wc -l <<<"$stdout" ) -ne 1 \
+      && fail "should write ONE line to stdout" \
+      || pass "writes 1 line to stdout"
+    
+    test "$stdout" != "${lines[1]}" \
+      && fail "stdout should be '${lines[1]}'" \
+      || pass "stdout is '${lines[1]}'"
+
+    exit $code #to be explicit
+  )
+  return $? #to be explicit
+}
+
+
+case "$1" in
+  # any test script must be able to run with no arguments (aka "bare" run)
+  '')
+    for name in {PASS,FAIL}; do
+      "$0" "autotest" "${name,,}" "$name"
+    done
+    "$0" autotest bail FAIL
+    "$0" autotest next FAIL --next
+    "$0" autotest next PASS
+  ;;
+  # it's often better to use test units to specify the values to be tested
+  # instead of using test units to specify the test logic to be executed
+  #
+  # sharing the test logic between test units eases:
+  #   - adding test cases (values to be tested)
+  #   - mantaining the test script (less logic = less code = less pain)
+  #   - mantaining the test suite tidy (Don't Repeat Yourself)
+  #
+  # consider writing another test script if logic can't be shared somehow
+  *)
+    source "$1" || {
+      echo "Bad usage: '$1' is not sourceable" >&2
+      exit 2
+    }
+    unit="$2--test"
+    test "$(type -t "$unit")" = 'function'|| {
+      echo "Bad usage: '$2' is not an unit case" >&2
+      exit 2
+    }
+    # keep in mind: TEST statement specifies how to run the test (command)
+    echo "TEST $0 $*"
+    
+    shift 2
+
+    pass () { echo "PASS $case $@"; }
+    bail () { echo "FAIL $case $@"; exit 1; }
+    
+    #### 
+    case="function '$1'"
+    ####
+    test "$(type -t "$1")" = 'function' \
+      && pass "is a function" \
+      || bail "should be a function"
+
+    fail () { echo "FAIL $case $@"; code=1; }
+
+    $unit "$@"
+    code=$?
+    
+    echo "CODE $code"
+    exit $code
+  ;;
+  *)
+    ;;
+esac
+
+##
+# vim modeline (see vim +'help modeline')
+# /* vim: set expandtab: */
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

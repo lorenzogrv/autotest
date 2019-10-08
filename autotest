@@ -4,173 +4,107 @@ function autotest--root () {
   # outputs the autotest root directory
   AUTOTEST_ROOT="$(dirname "$(readlink -f "$BASH_SOURCE")")"
   autotest--root () { echo "$AUTOTEST_ROOT"; }
+  autotest--root
 }
 
-function autotest--source () {
-  # outputs all autotest old-api source code to stdout
-  # TODO testodo <<<"tool to report tests pending to write"
+# this is done early because no more source code is need to perform this task
+if test "$0" = "$BASH_SOURCE" && ! (( $# ))
+then
+  # output all autotest old-api source code to stdout
   find "$(autotest--root)/old-api" -name "*.bash" -type f -exec cat '{}' +
-}
-
-function autotest () {
-  # dumb function which bypasses old-api tests
-  autotest--source
-}
-
-function PASS () {
-  echo PASS "$@" 
-}
-function PASS--test () {
-  # usage: PASS--test [function_name]
-  # tests specified [function_name] echoes PASS "$@" and continues
-  # function name defaults to PASS
-  # > - Cowboy: Is this really need?
-  # > - Wiseman: Yes, no tests provide no good features
-  local func="${1:-PASS}"
-  ( #to avoid pollution
-    echo "TEST autotest $FUNCNAME $1"
-    pass () { echo "PASS $FUNCNAME: '$func' $@"; }
-    fail () { echo "FAIL $FUNCNAME: '$func' $@"; exit 1; }
-
-    stdout="$( "$func" $FUNCNAME 2>/dev/null; echo continues)"
-    code=$?
-
-    [[ "$stdout" =~ continues$ ]] \
-      && pass "does not exit subshell" \
-      || fail "makes subshell exit"
-
-    test $code -eq 0 \
-      && pass "exit code should be 0" \
-      || fail "exit code is not 0 (is $code)"
-
-    [[ "$stdout" =~ ^PASS ]] \
-      && pass "stdout begins with PASS" \
-      || fail "'$stdout' does not begin with 'PASS'" \
-
-    test "$($func $FUNCNAME)" = 'PASS' \
-      && fail "stdout is just 'PASS'" \
-      || pass "stdout is not just 'PASS'" \
-
-    test $( $func $FUNCNAME 2>/dev/null | wc -l ) -ne 1 \
-      && fail "should write ONE line to stdout" \
-      || pass "writes one line to stdout"
-
-    echo "CODE 0"
-    exit 0 #to be explicit
-  )
-  return $? #to be explicit
-}
-function FAIL () {
-  # usage: FAIL [code]? [arguments]{0,n}
-  # echoes specified [arguments] to standard output and exits with code 1
-  # TODO if [code] is known (see `autocode`), exits with that code instead
-  echo FAIL "$@"
-  echo CODE 1
-  exit 1
-}
-function FAIL--test () {
-  # usage: FAIL--test [function_name]
-  # tests specified [function_name] echoes FAIL "$@" and exits with code > 0
-  # function name defaults to FAIL
-  # > - Cowboy: Is this really need?
-  # > - Wiseman: Yes, no tests provide no good features
-
-  local func="${1:-FAIL}"
-  ( #to avoid pollution
-    echo "TEST autotest $FUNCNAME $1"
-    pass () { echo "PASS '$func' $@"; }
-    fail () { echo "FAIL '$func' $@"; exit 1; }
-
-    test "$(type -t "$func")" != 'function' \
-      && fail "should be a function" \
-      || pass "is a function"
-
-    stdout="$( "$func" $FUNCNAME 2>/dev/null; echo continues)"
-    code=$?
-
-    [[ "$stdout" =~ continues$ ]] \
-      && fail "should had exit subshell" \
-      || pass "makes subshell exit"
-
-    test $code -eq 0 \
-      && fail "exit code should NOT be 0" \
-      || pass "exit code is not 0"
-
-    stdout="$( $func $FUNCNAME 2>/dev/null)"
-    test $( wc -l <<<"$stdout" ) -ne 2 \
-      && fail "should write TWO lines to stdout" \
-      || pass "writes TWO lines to stdout"
-
-    for n in {1,2}; do
-      read line
-      case $n in
-        1)
-          test "$line" != "FAIL $FUNCNAME" \
-            && fail "line 1 is not 'FAIL $FUNCNAME'" \
-            || pass "line 1 is 'FAIL $FUNCNAME'"
-          ;;
-        2)
-          test "$line" != "CODE 1" \
-            && fail "line 2 is not 'CODE 1'" \
-            || pass "line 2 is 'FAIL $FUNCNAME'"
-          ;;
-      esac
-    done <<<"$stdout"
-
-    echo "CODE 0"
-    exit 0 #to be explicit
-  )
-  return $? #to be explicit
-}
-
-function load () { echo "not implemented"; exit 1; }
-
-test "$0" != "$BASH_SOURCE" && return 0
-
-# autotest source code  is sent to stdout when this script receives 0 arguments
-# this is done early because no more functions are need to perform this task
-(( $# )) || { autotest--source; exit $?; }
-
-function autotest--help () {
-  # outputs the autotest usage help
-  source "$(autotest--root)/README.sh" "$@";
-}
-
-# some subcomands can be run now to speed-up them
-case "$1" in
-  help|-h|--help) autotest--help "$@"; exit ;;
-  root) autotest--root; exit ;;
-esac
-
-##
-# UTILS: functions that this script needs to work hereafter
-##
-
-# Logging functions
-function emsg () {
-  echo "$(basename "$BASH_SOURCE"):" "$@"
-} >&2 # better than >&2 echo
-function verb () { :; } # meant for debugging. Uncomment line below to activate
-#function verb () { emsg "debug: $(caller 0):" "$@"; }
-
-# helper to fail fast
+  exit $?
+fi
+  
+function emsg () { echo "autotest:" "$@"; } >&2 # better than >&2 echo
+function verb () { :; } # meant for debugging
+if test "$1" = '--debug'; then
+  function verb () { emsg "debug: $(caller 0):" "$@"; }
+fi
 function fail () {
+  # helper to fail fast
   code=$(autocode "${1:?'missing exit code'}") || exit
   emsg "$1: ${2:?'missing message'}"
   exit $code
 }
 
-source "$(autotest--root)/api/autocode.bash"
-# run autocode subcommand ASAP to speed it up a bit
-case "$1" in code) shift; autocode "$@"; exit; esac
+if test "$0" = "$BASH_SOURCE"
+then
+  #
+  # assume autotest is being executed
+  #
+  
+  # some subcomands can be run now to speed-up them
+  case "$1" in
+    help|-h|--help)
+      source "$(autotest--root)/README.sh" "$@";
+      exit $?
+      ;;
+    root) autotest--root; exit ;;
+  esac
 
-source "$(autotest--root)/api/autotext.bash"
-# this subcommands can be run here to speed' em up a bit
-case "$*" in
-  -) autotext; exit ;;
-  'report '*)
-    test $# -ge 2 || fail "expecting at least 2 arguments" 2
-    test -f "$2" || fail "'$2' is not a file" 127
+  source "$(autotest--root)/api/autocode.bash"
+  # run autocode subcommand ASAP to speed it up a bit
+  case "$1" in code) shift; autocode "$@"; exit; esac
+
+  source "$(autotest--root)/api/autotext.bash"
+  # this subcommands can be run here to speed' em up a bit
+  case "$*" in
+    -) autotext; exit ;;
+    'report '*)
+      test $# -ge 2 || fail "expecting at least 2 arguments" 2
+      test -f "$2" || fail "'$2' is not a file" 127
+      ## generate report discarding all stderr
+      "$0" "$2" "${@:3}" 2>/dev/null
+      exit $? # preserve report exit status
+      ;;
+  esac
+
+  # TEST RUNNER USAGE: <FILE> [ARG .. LIST] should be handled here
+  source "$(autotest--root)/api/autoexec.bash"
+  test -f "$1" && { autoexec "$@"; exit $?; }
+
+  # when $1 is not a file neither a subcommand, fail with ENOENT
+  emsg "ENOENT: '$1' is not a subcommand, neither a file"
+  emsg "try '$(basename "$0") help' for ussage information"
+  exit $(autocode ENOENT)
+
+##
+##
+  case "$1" in
+    checkup)
+      # TODO define after, this should be refactored
+      # TODO replace this and use 1 file and {brace,expansion} instead?
+      find "$(autotest--root)/old-api" -name "*.bash" -type f -exec bash -c '
+        file={}
+        tool=${file##*/}
+        tool=${tool%%.bash}
+        source "$file" || exit
+        test "$(type -t ${tool}--test)" = "function" || {
+          echo "\"$tool--test\" should be a function defined in $file"
+          exit 1
+        }
+        $tool--test
+      ' \;
+      source <(autotest)
+      tested "autotest can be sourced with process substitution"
+      exit $?
+      ;;
+  esac
+
+else
+  #
+  # assume autotest is being sourced
+  #
+  
+  source "$(autotest--root)/api/autotest.bash"
+  return $? # source should return true, but may not
+fi
+
+
+##
+# TRASHCAN HEREAFTER
+##
+
     # here come edirection trick? => NO, WRITE TESTS FIRST FKIN COWBOY
     #autotest "$2"  2>/dev/null | autotest--protocol.v1 2>/dev/null
     #UNIT="" TEST=""
@@ -187,60 +121,9 @@ case "$*" in
     #    exit 99
     #  fi
     #done < <
-    ## generate report discarding all stderr
-    "$0" "$2" "${@:3}" 2>/dev/null
-    exit $? # preserve report exit status
-    ;;
-esac
 
-source "$(autotest--root)/api/autoexec.bash"
-
-##
-# TEST RUNNER ROUTINE: given a file as argument 1
-##
-if test -f "$1"
-then # autotest <FILE> [ARG .. LIST] should be handled here
-  autoexec "$@"
-  exit $?
-fi
-
-##
-# TRASHCAN HEREAFTER
-##
-case "$1" in
-  checkup)
-    # TODO define after, this should be refactored
-    # TODO replace this and use 1 file and {brace,expansion} instead?
-    find "$(autotest--root)/old-api" -name "*.bash" -type f -exec bash -c '
-      file={}
-      tool=${file##*/}
-      tool=${tool%%.bash}
-      source "$file" || exit
-      test "$(type -t ${tool}--test)" = "function" || {
-        echo "\"$tool--test\" should be a function defined in $file"
-        exit 1
-      }
-      $tool--test
-    ' \;
-    source <(autotest)
-    tested "autotest can be sourced with process substitution"
-    exit $?
-    ;;
-  *)
-  ;;
-esac
-
-# when $1 is not a file neither a subcommand, fail with ENOENT
-emsg "ENOENT: '$1' is not a subcommand, neither a file"
-emsg "try '$(basename "$0") help' for ussage information"
-exit $(autocode ENOENT)
-
-##
-# CHECKUP ROUTINE
-##
-
-# should be defined here
 
 ##
 # vim modeline (see vim +'help modeline')
-# vim: expandtab filetype=sh ts=2 shiftwidth=2
+# /* vim: set expandtab: */
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */
