@@ -1,79 +1,98 @@
 #!/bin/bash
 
+# > - Cowboy: Is this really need?
+# > - Wiseman: Yes, no tests provide no good features
+
 # test units can't have childs, that's why they are units
 # but any test executable may generate more than one test unit
+
+function dry-assert-code () {
+    test "${code?:missing actual code}" \
+      "${1:?missing operator}" "${2:?missing value}" \
+      && pass "code is $@" \
+      || fail "code should be $@, but is $code"
+}
+
+function dry-diagnose () {
+  test -v "${1:?missing output variable name}" || {
+    echo "can't diagnose, variable '$1' is not set"
+    return 2
+  } >&2
+  local n=0
+  while read l; do
+    printf ' %-2s| %s: %s\n' "$n" "${1#std}" "$l"
+  done <<<"${!1}" >&2
+  code=1
+}
+
+function dry-assert-lines () {
+  test -v "${1:?missing output variable name}" || {
+    echo "$FUNCNAME: variable '$1' is not set"
+    return 2
+  } >&2
+
+  lines=()
+  while read l; do lines+=("$l"); done
+
+  count="$( wc -l <<<"${!1}" )"
+  test "$count" -eq "${#lines[@]}" && {
+    pass "stdout has ${#lines[@]} data line(s)"
+  } || {
+    echo FAIL "$case $1 should have ${#lines[@]} data line(s), but has $count"
+    dry-diagnose "$1"
+    return $?
+  }
+
+  local n=0
+  while (( n++ < ${#lines[@]} )); do
+    expect="${lines[$((n-1))]}"
+    read actual
+    test "$actual" == "$expect" \
+      && pass "$1 line $n is '$expect'" \
+      || {
+      echo FAIL "$case $1 line $n should be '$expect'"
+      printf ' %-2s| %s: %s\n' "$n" "${1#std}" "$actual"
+    }
+  done <<<"${!1}"
+}
 
 function none--test () { :; }
 
 function root--test () {
   # test specified [function_name] outputs the git repository root
-  (
-    stdout="$( $1 2>/dev/null )"
-    stderr="$( $1 2>&1 >/dev/null )"
-    code=$?
+	dry-assert-code -eq 0
+	test -z "$stderr" && {
+		pass "stderr has nothing"
+	} || {
+		echo "FAIL stderr should have nothing"
+		dry-diagnose "stderr"
+	}
 
-    test $code -eq 0 \
-      && pass "exit code should be 0" \
-      || fail "exit code is not 0 (is $code)"
-
-    test -z "$stderr" && {
-      pass "outputs nothing to stderr"
-    } || {
-      echo "FAIL should output nothing to stderr"
-      while read l; do echo "   | err: $l"; done
-    }
-
-    test "$stdout" = "$(git rev-parse --show-toplevel)" \
-      && pass "outputs the git repo root to stdout" \
-      || fail "should output the git repo root to stdout"
-
-    exit $code #to be explicit
-  )
-  return $? #to be explicit
+	dry-assert-lines "stdout" <<-LINES
+	$(git rev-parse --show-toplevel)
+	LINES
+  return $code #to be explicit
 }
 
 function pass--test () {
   # tests specified [function_name] echoes PASS "$@" and continues
-  # > - Cowboy: Is this really need?
-  # > - Wiseman: Yes, no tests provide no good features
-  local func="${1:-PASS}"
-  ( #to avoid pollution
-    stdout="$( "$func" $FUNCNAME 2>/dev/null )"
-    code=$?
-
-    test $code -eq 0 \
-      && pass "exit code should be 0" \
-      || fail "exit code is not 0 (is $code)"
-
-    [[ "$stdout" =~ ^PASS ]] \
-      && pass "stdout begins with PASS" \
-      || fail "'$stdout' does not begin with 'PASS'" \
-
-    test "$($func $FUNCNAME)" = 'PASS' \
-      && fail "stdout is just 'PASS'" \
-      || pass "stdout is not just 'PASS'" \
-
-    test $( $func $FUNCNAME 2>/dev/null | wc -l ) -ne 1 \
-      && fail "should write ONE line to stdout" \
-      || pass "writes one line to stdout"
-
-    exit $code #to be explicit
-  )
+	dry-assert-code -eq 0
+	shift
+	dry-assert-lines "stdout" <<-LINES
+	PASS $*
+	LINES
   return $? #to be explicit
 }
 
 function bail--test () {
   # usage: [function_name] [argv]{1,n}
   (
-    case="'$@'"
-    stdout="$( ${case//\'/} &>/dev/null; echo next)"
+    stdout="$( "$@" &>/dev/null; echo next)"
     code=$?
-    test "$code" -eq 0 \
-      && fail "exit code should not be 0" \
-      || { pass "exit code is not 0"; code=0; }
+    dry-assert-code -ne 0
     test "$stdout" = 'next' \
-      && fail "should exit subshell" \
-      || pass "exits subshell"
+      && fail "function should exit subshell" \
+      || { pass "function exits subshell"; code=0; }
     exit $code
   )
   return $? #to be explicit
@@ -82,55 +101,36 @@ function bail--test () {
 function next--test () {
   # usage: [function_name] [argv]{1,n}
   (
-    case="'$@'"
-    stdout="$( ${case//\'/} &>/dev/null; echo next)"
+    stdout="$( "$@" &>/dev/null; echo next)"
     code=$?
-    test "$code" -eq 0 \
-      && pass "exit code is 0" \
-      || fail "exit code should be 0 (is $code)"
+    dry-assert-code -eq 0
     test "$stdout" != 'next' \
-      && fail "should not exit subshell" \
-      || pass "does not exit subshell"
+      && fail "function should not exit subshell" \
+      || pass "function does not exit subshell"
     exit $code
   )
   return $? #to be explicit
 }
 
 function fail--test () {
-  # usage: [function_name]
-
-  local func="$1"
+  # usage: [function_name] [argv]{1,n}
   ( #to avoid pollution
-    ####
-    case="'$func $FUNCNAME'"
-    ####
-    stdout="$( ${case//\'/} 2>/dev/null)"
-    test $( wc -l <<<"$stdout" ) -ne 2 \
-      && fail "should write TWO lines to stdout" \
-      || pass "writes TWO lines to stdout"
+	  func="$1"
+		shift
 
-    lines=("")
-    lines+=("FAIL $FUNCNAME")
-    lines+=("CODE 1 by FAIL @fail--test")
+    dry-assert-code -ne 0
+    dry-assert-lines "stdout" <<-LINES
+		FAIL $*
+    CODE 1 by $func @main
+		LINES
 
-    for n in {1,2}; do
-      read line
-      test "$line" != "${lines[$n]}" \
-        && fail "stdout line $n should be '${lines[$n]}'" \
-        || pass "stdout line $n is '${lines[$n]}'"
-    done <<<"$stdout"
-
-    ####
-    case="'$func --next $FUNCNAME'"
-    ####
-    stdout="$( ${case//\'/} 2>/dev/null)"
-    test $( wc -l <<<"$stdout" ) -ne 1 \
-      && fail "should write ONE line to stdout" \
-      || pass "writes 1 line to stdout"
-    
-    test "$stdout" != "${lines[1]}" \
-      && fail "stdout should be '${lines[1]}'" \
-      || pass "stdout is '${lines[1]}'"
+    case="after calling '$func --next $@'"
+    stdout="$( $func --next "$@" 2>/dev/null)"
+		code=$?
+    dry-assert-code -eq 0
+    dry-assert-lines "stdout" <<-LINES
+		FAIL $*
+		LINES
 
     exit $code #to be explicit
   )
@@ -141,12 +141,12 @@ function fail--test () {
 case "$1" in
   # any test script must be able to run with no arguments (aka "bare" run)
   '')
-    for name in {PASS,FAIL}; do
-      "$0" "autotest" "${name,,}" "$name"
-    done
-    "$0" autotest bail FAIL
+    "$0" autotest fail FAIL "should be"
+    "$0" autotest bail FAIL "should be"
     "$0" autotest next FAIL --next
-    "$0" autotest next PASS
+
+    "$0" autotest pass PASS "is"
+    "$0" autotest next PASS "is"
   ;;
   # it's often better to use test units to specify the values to be tested
   # instead of using test units to specify the test logic to be executed
@@ -170,23 +170,24 @@ case "$1" in
     # keep in mind: TEST statement specifies how to run the test (command)
     echo "TEST $0 $*"
     
-    shift 2
-
     pass () { echo "PASS $case $@"; }
     bail () { echo "FAIL $case $@"; exit 1; }
     
-    #### 
-    case="function '$1'"
-    ####
+    case="after sourcing $1, function '$3'"
     test "$(type -t "$1")" = 'function' \
       && pass "is a function" \
       || bail "should be a function"
 
     fail () { echo "FAIL $case $@"; code=1; }
 
+    shift 2
+    case="after calling '$@',"
+    stdout="$( "$@" 2>/dev/null)"
+    stderr="$( "$@" 2>&1 >/dev/null)"
+    code=$?
+
     $unit "$@"
     code=$?
-    
     echo "CODE $code"
     exit $code
   ;;
