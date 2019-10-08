@@ -1,10 +1,13 @@
 
 function autotest () {
   # dumb function which bypasses api tests
-  :;
+  case "$1" in
+    load)
+      source "$(autotest--root)/api/${2:?missing name}.bash"
+      ;;
+    *) return 1
+  esac
 }
-
-function load () { echo "not implemented"; exit 1; }
 
 function PASS () {
   echo PASS "$@" 
