@@ -1,11 +1,101 @@
 #!/bin/bash
 
-root="$(git rev-parse --show-toplevel)"
+function dry-assert-code () {
+  test "$code" -eq $1 && {
+    echo PASS "code is $1 when $case"
+  } || {
+    echo FAIL "code should be $1 when $case, but returns $code"
+    return 1
+  }
+}
+function dry-diagnose () {
+  test -v "${1:?missing output variable name}"
+  while read l; do
+    echo "   | ${1#std}: $l"
+  done <<<"${!1}" >&2
+  code=1
+}
+function dry-assert-output () {
+  test -v "${1:?missing output variable name}"
+  test -n "${!1}" && {
+    echo PASS "$1 has data when $case"
+  } || {
+    echo FAIL "$1 should have data when $case"
+    return 1
+  }
+}
+function dry-refute-output () {
+  test -v "${1:?missing output variable name}"
+  test -z "${!1}" && {
+    echo PASS "$1 has no data when $case"
+  } || {
+    echo FAIL  "$1 should have no data when $case"
+    dry-diagnose "$1"
+    return 1
+  }
+}
 
-"$root/test/all-bash-source" "autotest"
+case "$1" in
+  '')
+    # run all units
+    root="$(git rev-parse --show-toplevel)"
 
-"$root/test/api-functions" "autotest" none "autotest"
-"$root/test/api-functions" "autotest" root "autotest--root"
+    "$root/test/all-bash-source" "autotest"
+    "$root/test/api-functions" "autotest" none "autotest"
+    "$root/test/api-functions" "autotest" root "autotest--root"
+
+    $0 load 'autotest'
+    $0 load 'check-command'
+    $0 load 'check-command--returns'
+    ;;
+  dry-*)
+    echo "Bad usage: '$1' is not a valid test unit" >&2
+    exit 2
+    ;;
+  *)
+    # run specified unit
+    source autotest || exit
+    
+    function load () {
+      dry-assert-code 0
+      dry-refute-output "stdout"
+      dry-refute-output "stderr"
+      (
+        test "$(type -t "$1")" = 'function' && {
+          echo FAIL function "'$1'" is already loaded
+          exit 1
+        }
+        autotest load "$1"
+        test "$(type -t "$1")" = 'function' && {
+          echo PASS load "'$1'" defines function "$1"
+        } || {
+          echo FAIL load "'$1'" should define function "$1"
+        }
+        exit 0 #to be explicit
+      )
+      return $?
+    }
+
+    unit="$1"
+    test "$(type -t "$unit")" != 'function' && {
+      echo "Bad usage: test '$unit' is not defined"
+      exit 2
+    } >&2
+
+    shift
+    echo TEST $unit "$@"
+
+    stdout="$(autotest $unit "$@")"
+    stderr="$(autotest $unit "$@")"
+    code=$?
+
+    case="$unit $1"
+    $unit "$@"
+    code=$?
+    echo CODE $code
+    exit $code
+    ;;
+esac
 
 ##
 # vim modeline (see vim +'help modeline')
