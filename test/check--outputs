@@ -70,10 +70,9 @@ function main () {
   stderr="$( check-command $argv 2>&1 1>/dev/null )"
   code=$?
 
-  $unit "$@"
-  code=$?
-  echo CODE $code
-  exit $code
+  #use subshell to catch allways a code
+  ( $unit "$@" ); code=$?
+  echo CODE $code; exit $code
 }
 
 function usage () {
