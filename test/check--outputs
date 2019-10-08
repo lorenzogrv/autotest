@@ -1,0 +1,129 @@
+#!/bin/bash
+
+case "$1" in
+  # run all test cases when no arguments specified
+  '')
+    codes=0 #to know what code to exit
+
+    run-cases () {
+      for argv in "${cases[@]}"; do
+        "$0" "${1:?missing test unit to be run}" "$argv"
+        codes+=$?
+      done
+    }
+
+    cases=() #that should fail with code EUSAGE
+    cases+=(": --outputs") #no arguments at all
+    cases+=(": --outputs ''") #empty string as first argument
+
+    run-cases 'usage'
+
+    cases=() #that should fail with code FAIL
+    for cmd in {:,true,false}; do
+      cases+=("$cmd --outputs something")
+      cases+=("$cmd --outputs anything") #both keywords mean the same
+    done
+
+    run-cases 'failure'
+
+    cases=() #that should succeed
+    for cmd in {:,true,false}; do
+      cases+=("$cmd --outputs nothing")
+    done
+
+    run-cases 'success'
+
+    #report whenever there were failures vía exit code
+    (( $codes )); exit $?
+    ;;
+
+  main|dry-*)
+    echo "Bad usage: '$1' is not a valid test unit" >&2
+    exit 2
+    ;;
+esac
+
+function main () {
+  # runs specified unit, gets called at this script end
+  unit="$1"
+  test "$(type -t "$unit")" != 'function' && {
+    echo "Bad usage: test unit '$unit' is not defined"
+    exit 2
+  } >&2
+  shift
+  
+  argv="${1:?missing check-command argument list}"
+  case=""
+  for arg in $argv; do
+    case "$arg" in --outputs) break ;; *) case+="$arg" ;; esac
+  done
+  case="for command '$case', '${argv#$case }'"
+
+  source autotest
+  source "$(autotest--root)/test/dry-assert.bash"
+  autotest load check-command
+  autotest load check-command--outputs
+
+  echo "TEST $0 $unit '$argv'"
+
+  stdout="$( check-command $argv 2>/dev/null )"
+  stderr="$( check-command $argv 2>&1 1>/dev/null )"
+  code=$?
+
+  $unit "$@"
+  code=$?
+  echo CODE $code
+  exit $code
+}
+
+function usage () {
+  dry-assert-code 2
+  dry-refute-output "stdout"
+  dry-assert-output "stderr" || return
+  egrep "EUSAGE|usage|invalid" <<<"$stderr" &>/dev/null && {
+    PASS "$case fails gracefully about EUSAGE"
+  } || {
+    FAIL --next "$case should fail gracefully about EUSAGE"
+    dry-diagnose "stderr"
+  }
+}
+
+function failure () {
+  dry-assert-code 1
+  dry-refute-output "stderr"
+  test $(wc -l <<<"$stdout") -eq 1 &&  {
+    PASS "outputs exactly ONE line on stdout when $case"
+  } || {
+    FAIL --next "should output exactly ONE line on stdout when $case"
+    dry-diagnose "stdout"
+  }
+  egrep -q "^FAIL .+" <<<"$stdout" >/dev/null && {
+    PASS "stdout contains the FAIL statement when $case"
+  } || {
+    FAIL --next "stdout should contain the FAIL statement when $case"
+    dry-diagnose "stdout"
+  }
+}
+
+function success () {
+  dry-assert-code 0
+  dry-refute-output "stderr"
+  test $(wc -l <<<"$stdout") -eq 1 &&  {
+    PASS "outputs exactly ONE line on stdout when $case"
+  } || {
+    FAIL --next "should output exactly ONE line on stdout when $case"
+    dry-diagnose "stdout"
+  }
+  egrep -q "^PASS .+" <<<"$stdout" >/dev/null && {
+    PASS "stdout contains the PASS statement when $case"
+  } || {
+    FAIL --next "stdout should contain the PASS statement when $case"
+    dry-diagnose "stdout"
+  }
+}
+
+main "$@"
+
+##
+# vim modeline
+# Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:
