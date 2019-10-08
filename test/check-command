@@ -65,6 +65,16 @@ function dry-assert-line-count () {
     return 2
   } >&2
 
+  # when expected 0 lines, just refute-output
+  test ${2:?missing expected line count} -eq 0 && {
+    test -z "${!1}" && PASS "$case $1 has no data lines" || {
+      FAIL --next "$case $1 should have no data lines"
+      dry-diagnose "$1"
+      return 1
+    }
+    return 0
+  }
+
   count="$( wc -l <<<"${!1}" )"
   test "$count" -eq "${2:?missing expected line count}" && {
     PASS "$case $1 has $2 data line(s)"
@@ -96,6 +106,7 @@ case $# in
     "$0" {1..3} --arguments '' # is acceptable?
     "$0" {1..4} --arguments -- # double dash is acceptable
     "$0" {1..5} --arguments a -b ! -- # double dash is acceptable
+    "$0" {1..5} -- --arguments a -b ! # 
 
     exit $?
     ;;
@@ -116,7 +127,7 @@ case $# in
     shift
     echo "TEST $0 '${cmd[1]}' $@"
    
-    case="after running,"
+    case="after running '${cmd[@]}',"
     stdout="$( "${cmd[@]}" 2>/dev/null )"
     stderr="$( "${cmd[@]}" 2>&1 1>/dev/null )"
     code=$?
@@ -128,12 +139,13 @@ case $# in
         check-command--arguments () {
           was_run () { :; }; export -f was_run
           dry-assert-equal $# $(( ${#cmd[@]}-1 )) 'plugin arity ($#)' || {
-            verb "arguments are '$@'" >&2
+            echo "$FUNCNAME: arguments are '$@'" >&2
           }
           local n=1
           until test "${!n}" = '-command'; do
             (( ++n < $# )) || {
               echo "FAIL $case plugin should receive -command parameter"
+              echo "$FUNCNAME: arguments are '$@'" >&2
               return 1
             }
           done
@@ -141,8 +153,9 @@ case $# in
             dry-assert-equal "${!c}" "${cmd[ ${#cmd[@]}-$n+$c ]}" "plugin \$$c"
           done
           dry-assert-equal "${!n}" "-command" 'plugin $'$n
-          local a=0; while (( ++a <= $n )) && (( c++ < $# )); do
-            dry-assert-equal "${!c}" "${cmd[ $a ]}" "plugin \$$c"
+          local a=0; while (( ++c <= $# )); do
+            #echo "$FUNCNAME: a=$a n=$n c=$c '$@'" >&2
+            dry-assert-equal "${!c}" "${cmd[ $((++a)) ]}" "plugin \$$c"
           done
         }
         ;;
@@ -176,7 +189,7 @@ case $# in
 
     case "${cmd[@]:1}" in
       *--arguments*)
-        dry-assert-line-count "stdout" $(( ${#cmd[@]} ))
+        dry-assert-line-count "stdout" "$(( ${#cmd[@]} ))"
         dry-assert-line-count "stderr" 0
         ;;
       *--variables*)

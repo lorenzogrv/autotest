@@ -18,7 +18,7 @@ fi
 function emsg () { echo "autotest:" "$@"; } >&2 # better than >&2 echo
 function verb () { :; } # meant for debugging
 if test "$1" = '--debug'; then
-  function verb () { emsg "debug: $(caller 0):" "$@"; }
+  function verb () { echo "@${FUNCNAME[1]}" "$@"; } >&2
 fi
 function fail () {
   # helper to fail fast
