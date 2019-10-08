@@ -2,71 +2,204 @@
 
 source autotest
 
-function dry-assert-failure () {
-  test $code -eq "${1:?'missing expected code'}" && {
-    PASS "returns $code when $case"
-  } || {
-    FAIL --next "should return $1 when $case, but returns $code"
-  }
-  test -z "$output" && {
-    PASS "writes nothing to stdout when $case"
-  } || {
-    while read l; do echo "   | out: $l"; done <<<"$output" >&2
-    FAIL "writes something to stdout when $case"
-  }
-  test -n "$errput" && {
-    PASS "writes something to stderr when $case"
-  } || {
-    FAIL "writes nothing to stderr when $case"
-  }
-  grep "$case" <<<"$errput" && {
-    PASS "gracefully fails when $case"
-  } || {
-    while read l; do echo "   | err: $l"; done <<<"$errput" >&2
-    FAIL --next "tells nothing about $case when $case"
-  }
+function dry-diagnose () {
+  test -v "${1:?missing output variable name}" || {
+    echo "can't diagnose, variable '$1' is not set"
+    return 2
+  } >&2
+  local n=0
+  while read l; do
+    printf ' %-2s| %s: %s\n' "$((++n))" "${1#std}" "$l"
+  done <<<"${!1}" >&2
+  code=1
 }
 
-
-root="$(git rev-parse --show-toplevel)"
-file="$root/api/check-command.bash" 
-
-"$root/test/all-bash-source" "$file" || exit
-source "$file"
-
-echo "TEST $0"
-
-case="missing arguments"
-output="$(check-command 2>/dev/null)"
-errput="$(check-command 2>&1 >/dev/null)"
-code=$?
-dry-assert-failure 2 # usage code (EUSAGE)
-
-case="no assertions specified"
-output="$(check-command 'true' 2>/dev/null)"
-errput="$(check-command 'true' 2>&1 >/dev/null)"
-code=$?
-dry-assert-failure 2 # usage code (EUSAGE)
-
-case="unexistant plugin specified"
-output="$(check-command 'true' --unexistant-plugin 2>/dev/null)"
-errput="$(check-command 'true' --unexistant-plugin 2>&1 >/dev/null)"
-code=$?
-dry-assert-failure 127 # not-found code (ENOENT)
+function dry-assert-failure () {
+  desc="${2:?missing failure description}"
+  case="${case%,} ($desc),"
+  test $code -eq "${1:?'missing expected code'}" && {
+    PASS "$case code is $code"
+    code=0
+  } || {
+    FAIL --next "$case code should be $1, but is $code"
+    (($code > 0 )) || code=1
+  }
+  test -z "$stdout" && {
+    PASS "$case stdout has no data"
+  } || {
+    FAIL --next "$case stdout should have no data"
+    dry-diagnose "stdout"
+  }
+  test -n "$stderr" && {
+    PASS "$case stderr has some data"
+  } || {
+    FAIL "$case stderr has no data"
+  }
+  grep "$desc" <<<"$stderr" &>/dev/null && {
+    PASS "$case gracefully fails containing '$desc'"
+  } || {
+    FAIL --next "$case should contain '$desc'"
+    dry-diagnose "stderr"
+  }
+  return $code
+}
 
 function dry-assert-equal () {
+  local value="${3:?missing value description}"
   test "$1" = "$2" && {
-    PASS "value '$1' is equal to '$2'"
+    PASS "$case $value ($1) is equal to '$2'"
   } || {
-    caller 0 >&2
-    FAIL "actual value is '$1' but should be '$2'"
+    FAIL --next "$case $value should be '$2', but is '$1'"
+    {
+      printf '   | cmd[@]: '
+      printf " '%s'" "${cmd[@]}"
+      printf \\n
+    } >&2
+    return 1
   }
 }
+
+function dry-assert-line-count () {
+  test -v "${1:?missing output variable name}" || {
+    echo "$FUNCNAME: variable '$1' is not set"
+    return 2
+  } >&2
+
+  count="$( wc -l <<<"${!1}" )"
+  test "$count" -eq "${2:?missing expected line count}" && {
+    PASS "$case $1 has $2 data line(s)"
+  } || {
+    FAIL --next "$case $1 should have $2 data line(s), but has $count"
+    dry-diagnose "$1"
+    return 1
+  }
+}
+
+case $# in
+  0)
+    # run all test units
+    root="$(git rev-parse --show-toplevel)"
+
+    file="$root/api/check-command.bash" 
+    "$root/test/all-bash-source" "$file" || exit
+
+    "$0" "" #to trigger missing arguments, empty string must be specified
+    
+    for cmd in {:,true,false}; do
+      "$0" "$cmd" # no assertions
+      "$0" "$cmd" --unexistant #plugin
+      "$0" "$cmd" --arguments # no arguments is acceptable
+    done
+
+    "$0" {1..5} --arguments {a..d}
+    "$0" {1..2} --arguments {a..f}
+    "$0" {1..3} --arguments '' # is acceptable?
+    "$0" {1..4} --arguments -- # double dash is acceptable
+    "$0" {1..5} --arguments a -b ! -- # double dash is acceptable
+
+    exit $?
+    ;;
+  *)
+    # run specified test unit
+    {
+      source autotest #--debug
+      autotest load "check-command"
+    } || {
+      echo "$0: can't load test dependencies"
+      exit 127
+    } >&2
+
+    function quit () { echo CODE $code; exit $code; }
+
+    cmd=("check-command" "$@") 
+
+    shift
+    echo "TEST $0 '${cmd[1]}' $@"
+   
+    case="after running,"
+    stdout="$( "${cmd[@]}" 2>/dev/null )"
+    stderr="$( "${cmd[@]}" 2>&1 1>/dev/null )"
+    code=$?
+
+    case "${cmd[@]:1}" in
+      '') dry-assert-failure 2 "missing arguments"; quit ;;
+      *--unexistant*) dry-assert-failure 127 "unexistant plugin"; quit ;;
+      *--arguments*)
+        check-command--arguments () {
+          was_run () { :; }; export -f was_run
+          dry-assert-equal $# $(( ${#cmd[@]}-1 )) 'plugin arity ($#)' || {
+            verb "arguments are '$@'" >&2
+          }
+          local n=1
+          until test "${!n}" = '-command'; do
+            (( ++n < $# )) || {
+              echo "FAIL $case plugin should receive -command parameter"
+              return 1
+            }
+          done
+          local c=0; while (( ++c < $n )); do
+            dry-assert-equal "${!c}" "${cmd[ ${#cmd[@]}-$n+$c ]}" "plugin \$$c"
+          done
+          dry-assert-equal "${!n}" "-command" 'plugin $'$n
+          local a=0; while (( ++a <= $n )) && (( c++ < $# )); do
+            dry-assert-equal "${!c}" "${cmd[ $a ]}" "plugin \$$c"
+          done
+        }
+        ;;
+      *--variables*)
+        check-command--variables () {
+          was_run () { :; }; export -f was_run
+          dry-assert-equal \
+            "$(( ${#AUTOPLUG[@]} + ${#AUTOCMD[@]} ))" \
+            "$#"  "number of arguments"
+        }
+        ;;
+      *--?*)
+        echo "$0: no test unit for argv '$*'" >&2
+        exit 1
+        ;;
+      *) dry-assert-failure 2 "no assertions specified"; quit ;;
+    esac
+
+    stdout="$( "${cmd[@]}" 2>/dev/null )"
+    stderr="$( "${cmd[@]}" 2>&1 1>/dev/null )"
+    code=$?
+
+    (
+      "${cmd[@]}" &>/dev/null
+      test "$(type -t was_run)" = 'function' && {
+        PASS "$case plugin function has been executed"
+      } || {
+        FAIL "$case plugin function should have been executed"
+      }
+    )
+
+    case "${cmd[@]:1}" in
+      *--arguments*)
+        dry-assert-line-count "stdout" $(( ${#cmd[@]} ))
+        dry-assert-line-count "stderr" 0
+        ;;
+      *--variables*)
+        dry-assert-line-count "stdout" 1
+        dry-assert-line-count "stderr" 0
+        egrep '^PASS' <<<"$stdout" &>/dev/null && {
+          PASS "$case plugin assertion succeeds"
+        } || {
+          FAIL --next "$case plugin assertion should succeed"
+          dry-diagnose "stdout"
+          code=1
+        }
+        ;;
+    esac
+
+    echo "CODE $code"
+    exit $code
+
+  ;;
+esac
 
 function check-command--example-plugin () {
   function was_run () { :; }; export -f was_run
-  dry-assert-equal "$1" "a"
-  dry-assert-equal "${AUTOPLUG[1]}" "a"
   dry-assert-equal "$2" 4
   dry-assert-equal "${AUTOPLUG[2]}" 4
   dry-assert-equal "$3" "b c"
@@ -79,20 +212,19 @@ function check-command--example-plugin () {
   dry-assert-equal "$7" "true"
   echo "$FUNCNAME stdout"
   echo "$FUNCNAME stderr" >&2
-  dry-assert-equal "${AUTOCMD[0]}" "true"
-  dry-assert-equal "${AUTOPLUG[0]}" "check-command--example-plugin"
   return 43
 }
 
-case="when specified the --example-plugin"
-check-command 'true' --example-plugin "a" 4 "b c" -key val
+case="when specified the --example-plugin,"
+check-command 'true' --example-plugin "a" 4 "b c" -key val &>/dev/null
 test "$(type -t was_run)" = 'function' && {
-  PASS "plugin function gets executed $case"
+  PASS "$case plugin function gets executed"
 } || {
-  FAIL "plugin function was not executed $case"
+  FAIL "$case plugin function was not executed"
 }
-# does subshell define de function?
-output="$(check-command 'true' --example-plugin "a" 4 "b c" -key val)"
+output="$(
+  check-command 'true' --example-plugin "a" 4 "b c" -key val 2>/dev/null
+)"
 code=$?
 test $code -eq 43 && {
   PASS "plugin return value is preserved $case"

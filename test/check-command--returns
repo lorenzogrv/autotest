@@ -2,13 +2,8 @@
 
 source autotest
 
-root="$(git rev-parse --show-toplevel)"
-
-source "$root/api/check-command.bash"
-
-file="$root/api/check-command--returns.bash" 
-
-source "$file"
+autotest load check-command
+autotest load check-command--returns
 
 function dry-assert-code () {
   test "$code" -eq $1 && {
@@ -76,8 +71,6 @@ function failure () {
 case "$1" in
   # run all test cases
   '')
-    "$root/test/all-bash-source" "$file" || exit
-
     $0 usage ": --returns" "missing [value]"
     $0 usage ": --returns ''" "[value] is empty string"
 
