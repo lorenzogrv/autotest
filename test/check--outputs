@@ -1,43 +1,66 @@
 #!/bin/bash
 
 case "$1" in
-  # run all test cases when no arguments specified
   '')
+    # runs all test cases when no arguments specified
     codes=0 #to know what code to exit
-
-    run-cases () {
-      for argv in "${cases[@]}"; do
-        "$0" "${1:?missing test unit to be run}" "$argv"
-        codes+=$?
-      done
-    }
-
-    cases=() #that should fail with code EUSAGE
-    cases+=(": --outputs") #no arguments at all
-    cases+=(": --outputs ''") #empty string as first argument
-
-    run-cases 'usage'
-
-    cases=() #that should fail with code FAIL
-    for cmd in {:,true,false}; do
-      cases+=("$cmd --outputs something")
-      cases+=("$cmd --outputs anything") #both keywords mean the same
+    RUN () { "$0" "all=$1"; }
+    for unit in {usage,failure-normal,failure-loudly,success}
+      do RUN $unit; codes+=$?
     done
-
-    run-cases 'failure'
-
-    cases=() #that should succeed
-    for cmd in {:,true,false}; do
-      cases+=("$cmd --outputs nothing")
-    done
-
-    run-cases 'success'
-
     #report whenever there were failures vía exit code
-    (( $codes )); exit $?
+    test $codes -gt 0
+    exit $?
     ;;
+  all=?*)
+    # runs all cases for specified unit
+    unit="${1#all=}"
+    codes=0 #to know what code to exit
+    CASE () { "$0" "unit=$unit" "$@"; codes+=$?; }
 
-  main|dry-*)
+    case "$unit" in
+      usage)
+        # cases that should fail with code EUSAGE
+        CASE : \; --outputs #no arguments at all
+        CASE : \; --outputs '' #empty string as first argument
+        ;;
+      failure-normal)
+        # cases that should fail WITHOUT diagnose present on stderr
+        unit=failure
+        # when command outputs nothing, there is nothing to diagnose
+        CASE : \; --outputs something
+        CASE : \; --outputs anything #an expressive alias for something
+        ;;
+      failure-loudly)
+        # cases that should fail WITH diagnose present on stderr
+        unit=failure
+        # diagnose argument specifies how much lines should be present
+        CASE diagnose=1 echo foo \; --outputs nothing 
+        CASE diagnose=1 echo bar \; --outputs string foo
+        CASE diagnose=1 printf foo \; --outputs nothing 
+        CASE diagnose=3 printf '%s\n' {a..c} \; --outputs nothing 
+        CASE diagnose=3 printf '%s\n' {a..c} \; --outputs string b
+        ;;
+      success)
+        # cases that should succeed and continue execution
+        CASE true \; --outputs nothing
+        CASE false \; --outputs nothing
+        CASE exit 15 \; --outputs nothing
+        CASE printf foo \; --outputs something
+        CASE echo bar \; --outputs anything
+        CASE printf foo \; --outputs string foo
+        CASE echo bar \; --outputs string bar
+        ;;
+      *)
+        echo "Bad usage: no cases for test unit '$unit'"
+        exit 2
+        ;;
+    esac
+    #report whenever there were failures vía exit code
+    exit $(( $codes ))
+    ;;
+  unit=?*) ;; # let main() run specified unit
+  *)
     echo "Bad usage: '$1' is not a valid test unit" >&2
     exit 2
     ;;
@@ -45,80 +68,73 @@ esac
 
 function main () {
   # runs specified unit, gets called at this script end
-  unit="$1"
+  unit="${1#unit=}"
   test "$(type -t "$unit")" != 'function' && {
     echo "Bad usage: test unit '$unit' is not defined"
     exit 2
   } >&2
   shift
   
-  argv="${1:?missing check-command argument list}"
-  case=""
-  for arg in $argv; do
-    case "$arg" in --outputs) break ;; *) case+="$arg" ;; esac
-  done
-  case="for command '$case', '${argv#$case }'"
+  argv=("$@")
+  
+  echo "TEST $0 unit=${unit}$(printf " '%s'" "$@")"
 
   source autotest
   source "$(autotest--root)/test/dry-assert.bash"
   autotest load check-command
   autotest load check-command--outputs
 
-  echo "TEST $0 $unit '$argv'"
+  if test "$unit" = "failure"; then
+    case "$1" in
+      diagnose=?*)
+        diagnose="${1#diagnose=}"
+        shift
+        ;;
+      *) diagnose=0 ;;
+    esac
+  fi
 
-  stdout="$( check-command $argv 2>/dev/null )"
-  stderr="$( check-command $argv 2>&1 1>/dev/null )"
+  case="check-command"
+  stdout="$( check-command "$@" 2>/dev/null )"
+  stderr="$( check-command "$@" 2>&1 1>/dev/null )"
   code=$?
 
-  #use subshell to catch allways a code
-  ( $unit "$@" ); code=$?
+  $unit "$@"; code=$?
+
   echo CODE $code; exit $code
 }
 
 function usage () {
   dry-assert-code 2
   dry-refute-output "stdout"
-  dry-assert-output "stderr" || return
-  egrep "EUSAGE|usage|invalid" <<<"$stderr" &>/dev/null && {
-    PASS "$case fails gracefully about EUSAGE"
-  } || {
-    FAIL --next "$case should fail gracefully about EUSAGE"
-    dry-diagnose "stderr"
-  }
+  dry-assert-output "stderr"
+  dry-assert-grep-count "stderr" 1 "EUSAGE|usage|invalid"
 }
+
 
 function failure () {
   dry-assert-code 1
-  dry-refute-output "stderr"
-  test $(wc -l <<<"$stdout") -eq 1 &&  {
-    PASS "outputs exactly ONE line on stdout when $case"
-  } || {
-    FAIL --next "should output exactly ONE line on stdout when $case"
-    dry-diagnose "stdout"
-  }
-  egrep -q "^FAIL .+" <<<"$stdout" >/dev/null && {
-    PASS "stdout contains the FAIL statement when $case"
-  } || {
-    FAIL --next "stdout should contain the FAIL statement when $case"
-    dry-diagnose "stdout"
-  }
+  dry-assert-line-count "stdout" 2
+  dry-assert-grep-count "stdout" 1 "^FAIL .+"
+  dry-assert-grep-count "stdout" 1 "^CODE [0-9]+"  
+  # failure cases should exit the subshell execution
+  dry-assert-flow-exits check-command "$@"
+  if test $diagnose -eq 0; then
+    # no diagnose information means no stderr data
+    dry-refute-output "stderr"
+  else
+    # diagnose information presence tests
+    dry-assert-output "stderr"
+    dry-assert-line-count "stderr" $diagnose
+    dry-assert-grep-count "stderr" $diagnose "^[ 0-9]{3}\| (1|2)> .*$"
+  fi
 }
 
 function success () {
   dry-assert-code 0
   dry-refute-output "stderr"
-  test $(wc -l <<<"$stdout") -eq 1 &&  {
-    PASS "outputs exactly ONE line on stdout when $case"
-  } || {
-    FAIL --next "should output exactly ONE line on stdout when $case"
-    dry-diagnose "stdout"
-  }
-  egrep -q "^PASS .+" <<<"$stdout" >/dev/null && {
-    PASS "stdout contains the PASS statement when $case"
-  } || {
-    FAIL --next "stdout should contain the PASS statement when $case"
-    dry-diagnose "stdout"
-  }
+  dry-assert-line-count "stdout" 1
+  dry-assert-grep-count "stdout" 1 "^PASS .+"
 }
 
 main "$@"
