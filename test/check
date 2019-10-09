@@ -1,240 +1,175 @@
 #!/bin/bash
 
-source autotest
+case "$1" in
+  '')
+    # run all test units
 
-function dry-diagnose () {
-  test -v "${1:?missing output variable name}" || {
-    echo "can't diagnose, variable '$1' is not set"
-    return 2
-  } >&2
-  local n=0
-  while read l; do
-    printf ' %-2s| %s: %s\n' "$((++n))" "${1#std}" "$l"
-  done <<<"${!1}" >&2
-  code=1
+    #cases=() #that should be considered EUSAGE
+    "$0" "unit=EUSAGE" # no arguments at all
+    "$0" "unit=EUSAGE" "" # empty string as arguments
+    "$0" "unit=EUSAGE" "true" # no assertion options (but command exists)
+    "$0" "unit=EUSAGE" "true" --unexistant #plugin (but command exists)
+
+    #cases=() #that should be considered ENOENT
+    "$0" "unit=ENOENT" "true" \; --unexistant #plugin
+    "$0" "unit=ENOENT" "bad-command" \; --unexistant #plugin
+
+    # special care must be taken with multiple-parametized commands
+    "$0" "unit=EUSAGE" {1..5} --noop
+    "$0" "unit=EUSAGE" {y..z} -- --noop
+    "$0" "unit=EUSAGE" {1..3} --noop
+    "$0" "unit=EUSAGE" {1..7} \! --noop
+    "$0" "unit=EUSAGE" {h..k} \+ --noop
+    
+    #cases() #that should succeed
+    "$0" "unit=OK" "true" \; --noop # plugins may accept no arguments
+    "$0" "unit=OK" "bad-command" \; --noop #127 command may be a test!
+    "$0" "unit=OK" ":" \; --noop --void --lines 0
+    "$0" "unit=OK" 'echo' {1..4} \; --noop --params 5 --lines 1
+    "$0" "unit=OK" 'printf' '%s\n' {a..c} \; --noop --params 5 --lines 3
+    "$0" "unit=OK" echo foo bar \; --lines 1 --exact "foo bar"
+   
+    #cases() #that should fail WITHOUT diagnose present on stderr 
+    "$0" "unit=FAIL" ":" \; --lines 1
+
+    #cases() #that should fail WITH diagnose present on stderr 
+    "$0" "unit=DIAG" "echo" something \; --void
+    "$0" "unit=DIAG" "echo foo" \; --void #command "echo foo" is not found
+    
+    exit $?
+    ;;
+  unit=*) ;;
+  *)
+    echo "$1" is not a valid test unit >&2
+    exit 2
+    ;;
+esac
+
+function main () {
+  # run specified test unit
+  source autotest #--debug
+  source "$(autotest--root)/test/dry-assert.bash"
+  autotest load "check-command"
+
+  unit="unit${1#unit=}"
+  
+  test "$(type -t "$unit")" != "function" && {
+    echo "Test unit '$unit' is not defined here" >&2
+    exit 2
+  }
+
+  echo "TEST $0" "$( printf " '%s'" "$@" )"
+  shift
+  cmd=("check-command" "$@") 
+
+  # define some plugins for testing purposes
+  # does nothing
+  check-command--noop () {
+    case="running inside $FUNCNAME for '${AUTOCMD[@]}'"
+    echo "PASS plugin $FUNCNAME received $# arguments"
+    echo "PASS plugin $FUNCNAME is awesome"
+  }
+  # asserts AUTOCMD array length is N
+  check-command--params () {
+    case="$case, inside plugin $FUNCNAME"
+    #this should receive one param
+    dry-assert-equality "${#AUTOPLUG[@]}" 2 "AUTOPLUG length"
+    dry-assert-equality "${#AUTOCMD[@]}" "$1" "AUTOCMD length"
+  }
+  # refutes command stdout and stderr
+  check-command--void () {
+    case="$case, running '${AUTOCMD[@]}' inside $FUNCNAME"
+    #should receive no params (autoplug length 1)
+    dry-assert-equality "${AUTOPLUG[@]}" "$FUNCNAME"
+    local output="$( "${AUTOCMD[@]}" 2>&1 )"
+    dry-refute-output "output" "$1"
+  }
+  # asserts command succeeds and its stdout has N lines
+  check-command--lines () {
+    case="$case, running '${AUTOCMD[@]}' from $FUNCNAME"
+    output="$( "${AUTOCMD[@]}" 2>/dev/null )"
+    code=$?
+    dry-assert-code 0
+    dry-assert-line-count "output" "$1"
+  }
+  # asserts command succeeds and its stdout is exact to STRING
+  check-command--exact () {
+    case="$case, running '${AUTOCMD[@]}' from $FUNCNAME"
+    output="$( "${AUTOCMD[@]}" 2>/dev/null )"
+    code=$?
+    dry-assert-code 0
+    dry-assert-equality "$output" "$1"
+  }
+  
+  plugin_count=0
+  for arg in "$@"; do case "$arg" in 
+    #KISS, don't test multi-param commands with this long options
+    --noop|--params|--void|--lines|--exact) 
+  let plugin_count++;; esac; done
+   
+  case="while running check-command"
+
+  stdout="$( "${cmd[@]}" 2>/dev/null )"
+  stderr="$( "${cmd[@]}" 2>&1 1>/dev/null )"
+  code=$?
+  
+  case="at $unit,"
+
+  $unit "$@" #run the unit
+  code=$?
+
+  echo "CODE $code"
+  exit $code
 }
 
-function dry-assert-failure () {
+function failure () {
   desc="${2:?missing failure description}"
-  case="${case%,} ($desc),"
-  test $code -eq "${1:?'missing expected code'}" && {
-    PASS "$case code is $code"
-    code=0
-  } || {
-    FAIL --next "$case code should be $1, but is $code"
-    (($code > 0 )) || code=1
-  }
-  test -z "$stdout" && {
-    PASS "$case stdout has no data"
-  } || {
-    FAIL --next "$case stdout should have no data"
-    dry-diagnose "stdout"
-  }
-  test -n "$stderr" && {
-    PASS "$case stderr has some data"
-  } || {
-    FAIL "$case stderr has no data"
-  }
-  grep "$desc" <<<"$stderr" &>/dev/null && {
-    PASS "$case gracefully fails containing '$desc'"
-  } || {
-    FAIL --next "$case should contain '$desc'"
-    dry-diagnose "stderr"
-  }
+  dry-assert-code "${1:?'missing expected code'}"
+  dry-refute-output "stdout"
+  dry-assert-output "stderr"
+  dry-assert-grep-count "stderr" 1 "$desc"
+  code=0
   return $code
 }
 
-function dry-assert-equal () {
-  local value="${3:?missing value description}"
-  test "$1" = "$2" && {
-    PASS "$case $value ($1) is equal to '$2'"
-  } || {
-    FAIL --next "$case $value should be '$2', but is '$1'"
-    {
-      printf '   | cmd[@]: '
-      printf " '%s'" "${cmd[@]}"
-      printf \\n
-    } >&2
-    return 1
-  }
+function unitEUSAGE () { failure 2 "EUSAGE|usage|invalid"; }
+function unitENOENT () { failure 127 "ENOENT|does not exist"; }
+
+function unitOK () {
+  dry-assert-code 0
+  # each test-purpose plugin draws 2 assertions
+  dry-assert-output "stdout"
+  dry-assert-line-count "stdout" "$(( plugin_count*2 ))"
+  # if it's success, every line should be PASS
+  dry-assert-grep-count "stdout" "$(( plugin_count*2 ))" "^PASS .+"
+  # if it's success, stderr should be empty
+  dry-refute-output "stderr"
 }
 
-function dry-assert-line-count () {
-  test -v "${1:?missing output variable name}" || {
-    echo "$FUNCNAME: variable '$1' is not set"
-    return 2
-  } >&2
-
-  # when expected 0 lines, just refute-output
-  test ${2:?missing expected line count} -eq 0 && {
-    test -z "${!1}" && PASS "$case $1 has no data lines" || {
-      FAIL --next "$case $1 should have no data lines"
-      dry-diagnose "$1"
-      return 1
-    }
-    return 0
-  }
-
-  count="$( wc -l <<<"${!1}" )"
-  test "$count" -eq "${2:?missing expected line count}" && {
-    PASS "$case $1 has $2 data line(s)"
-  } || {
-    FAIL --next "$case $1 should have $2 data line(s), but has $count"
-    dry-diagnose "$1"
-    return 1
-  }
+function fail-common () {
+  dry-assert-code 1
+  dry-assert-output "stdout"
+  # if it's code FAIL, it must provide at least one FAIL and one CODE
+  dry-assert-grep-count "stdout" 1 "^FAIL .+"
+  dry-assert-grep-count "stdout" 1 "^CODE .+"
+}
+function unitFAIL () {
+  fail-common
+  # KISS: use this unit for FAIL cases with no diagnose on stderr
+  dry-refute-output "stderr"
+}
+function unitDIAG () {
+  fail-common
+  # KISS: use this unit for FAIL cases with diagnose on stderr
+  dry-assert-output "stderr"
 }
 
-case $# in
-  0)
-    # run all test units
-    root="$(git rev-parse --show-toplevel)"
-
-    file="$root/api/check-command.bash" 
-    "$root/test/all-bash-source" "$file" || exit
-
-    "$0" "" #to trigger missing arguments, empty string must be specified
-    
-    for cmd in {:,true,false}; do
-      "$0" "$cmd" # no assertions
-      "$0" "$cmd" --unexistant #plugin
-      "$0" "$cmd" --arguments # no arguments is acceptable
-    done
-
-    "$0" {1..5} --arguments {a..d}
-    "$0" {1..2} --arguments {a..f}
-    "$0" {1..3} --arguments '' # is acceptable?
-    "$0" {1..4} --arguments -- # double dash is acceptable
-    "$0" {1..5} --arguments a -b ! -- # double dash is acceptable
-    "$0" {1..5} -- --arguments a -b ! # 
-
-    exit $?
-    ;;
-  *)
-    # run specified test unit
-    {
-      source autotest #--debug
-      autotest load "check-command"
-    } || {
-      echo "$0: can't load test dependencies"
-      exit 127
-    } >&2
-
-    function quit () { echo CODE $code; exit $code; }
-
-    cmd=("check-command" "$@") 
-
-    shift
-    echo "TEST $0 '${cmd[1]}' $@"
-   
-    case="after running '${cmd[@]}',"
-    stdout="$( "${cmd[@]}" 2>/dev/null )"
-    stderr="$( "${cmd[@]}" 2>&1 1>/dev/null )"
-    code=$?
-
-    case "${cmd[@]:1}" in
-      '') dry-assert-failure 2 "missing arguments"; quit ;;
-      *--unexistant*) dry-assert-failure 127 "unexistant plugin"; quit ;;
-      *--arguments*)
-        check-command--arguments () {
-          was_run () { :; }; export -f was_run
-          dry-assert-equal $# $(( ${#cmd[@]}-1 )) 'plugin arity ($#)' || {
-            echo "$FUNCNAME: arguments are '$@'" >&2
-          }
-          local n=1
-          until test "${!n}" = '-command'; do
-            (( ++n < $# )) || {
-              echo "FAIL $case plugin should receive -command parameter"
-              echo "$FUNCNAME: arguments are '$@'" >&2
-              return 1
-            }
-          done
-          local c=0; while (( ++c < $n )); do
-            dry-assert-equal "${!c}" "${cmd[ ${#cmd[@]}-$n+$c ]}" "plugin \$$c"
-          done
-          dry-assert-equal "${!n}" "-command" 'plugin $'$n
-          local a=0; while (( ++c <= $# )); do
-            #echo "$FUNCNAME: a=$a n=$n c=$c '$@'" >&2
-            dry-assert-equal "${!c}" "${cmd[ $((++a)) ]}" "plugin \$$c"
-          done
-        }
-        ;;
-      *--variables*)
-        check-command--variables () {
-          was_run () { :; }; export -f was_run
-          dry-assert-equal \
-            "$(( ${#AUTOPLUG[@]} + ${#AUTOCMD[@]} ))" \
-            "$#"  "number of arguments"
-        }
-        ;;
-      *--?*)
-        echo "$0: no test unit for argv '$*'" >&2
-        exit 1
-        ;;
-      *) dry-assert-failure 2 "no assertions specified"; quit ;;
-    esac
-
-    stdout="$( "${cmd[@]}" 2>/dev/null )"
-    stderr="$( "${cmd[@]}" 2>&1 1>/dev/null )"
-    code=$?
-
-    (
-      "${cmd[@]}" &>/dev/null
-      test "$(type -t was_run)" = 'function' && {
-        PASS "$case plugin function has been executed"
-      } || {
-        FAIL "$case plugin function should have been executed"
-      }
-    )
-
-    case "${cmd[@]:1}" in
-      *--arguments*)
-        dry-assert-line-count "stdout" "$(( ${#cmd[@]} ))"
-        dry-assert-line-count "stderr" 0
-        ;;
-      *--variables*)
-        dry-assert-line-count "stdout" 1
-        dry-assert-line-count "stderr" 0
-        egrep '^PASS' <<<"$stdout" &>/dev/null && {
-          PASS "$case plugin assertion succeeds"
-        } || {
-          FAIL --next "$case plugin assertion should succeed"
-          dry-diagnose "stdout"
-          code=1
-        }
-        ;;
-    esac
-
-    echo "CODE $code"
-    exit $code
-
-  ;;
-esac
+main "$@"; exit $?
 
 function check-command--example-plugin () {
-  function was_run () { :; }; export -f was_run
-  dry-assert-equal "$2" 4
-  dry-assert-equal "${AUTOPLUG[2]}" 4
-  dry-assert-equal "$3" "b c"
-  dry-assert-equal "${AUTOPLUG[3]}" "b c"
-  dry-assert-equal "$4" "-key"
-  dry-assert-equal "${AUTOPLUG[4]}" "-key"
-  dry-assert-equal "$5" "val"
-  dry-assert-equal "${AUTOPLUG[5]}" "val"
-  dry-assert-equal "$6" "--"
-  dry-assert-equal "$7" "true"
-  echo "$FUNCNAME stdout"
-  echo "$FUNCNAME stderr" >&2
   return 43
 }
 
-case="when specified the --example-plugin,"
-check-command 'true' --example-plugin "a" 4 "b c" -key val &>/dev/null
-test "$(type -t was_run)" = 'function' && {
-  PASS "$case plugin function gets executed"
-} || {
-  FAIL "$case plugin function was not executed"
-}
 output="$(
   check-command 'true' --example-plugin "a" 4 "b c" -key val 2>/dev/null
 )"
@@ -244,18 +179,7 @@ test $code -eq 43 && {
 } || {
   FAIL "should preserve return code 43 $case but returns $code instead"
 }
-grep -q stdout <<<"$output" && {
-  PASS "plugin stdout gets captured the usual way"
-} || {
-  FAIL "expected plugin stdout to contain the string 'stdout'"
-}
-! grep -q stderr <<<"$output" && {
-  PASS "plugin stderr gets ignored the usual way"
-} || {
-  FAIL "expected plugin stdout to NOT contain the string 'stderr'"
-}
 
-echo "CODE 0"
 
 ##
 # vim modeline

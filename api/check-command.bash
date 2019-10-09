@@ -3,17 +3,24 @@ function check-command () {
   local c # will be the pointer for argument parsing strategy
   local AUTOCMD # will store the command to be executed
 
-  verb "arguments are '$@'"
-  { ! (( $# )) || test -z "$*"; } && {
-    echo "$FUNCNAME: missing arguments"
+  test -z "$*" && {
+    echo "$FUNCNAME: bad usage (missing arguments)"
     return 2
   } >&2
-  
-  # the command argv ends just before first "long option" argument
+ 
+  # the command argv ends just before first semicolon
   while (($#)); do
-    case "$1" in --?*) break ;; esac
+    case "$1" in \;) break ;; esac
     AUTOCMD+=("$1"); shift
   done
+
+  if test "$1" != ';'; then
+    echo "$FUNCNAME: bad usage (no trailing semicolon for command)" >&2
+    return 2
+  else
+    shift
+  fi
+
   verb "AUTOCMD='${AUTOCMD[@]}'"
 
   while (($#))
@@ -22,7 +29,7 @@ function check-command () {
     shift
     
     test "$(type -t "$AUTOPLUG")" = 'function' || {
-      echo "$FUNCNAME: unexistant plugin specified: '$AUTOPLUG'"
+      echo "$FUNCNAME: plugin does not exist: '$AUTOPLUG'"
       return 127
     } >&2
 
@@ -41,7 +48,7 @@ function check-command () {
   done
 
   test -n "$AUTOPLUG" || {
-    echo "$FUNCNAME: no assertions specified"
+    echo "$FUNCNAME: invalid usage (no assertions specified)"
     return 2
   } >&2
 }

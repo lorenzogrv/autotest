@@ -9,15 +9,16 @@ function dry-nonvoid () {
 function dry-defined () {
   for var in "$@"; do
     test -v "$var" || FAIL "variable '$var' is not defined"
+    test "${!var}" = "${!var}" || FAIL "variable name invalid"
   done
 }
 
 function dry-assert-code () {
   dry-nonvoid 'case' 'code'
   test "$code" -eq "${1:?missing expected code}" && {
-    PASS "$case code is $1"
+    PASS "$case \$code is $1"
   } || {
-    FAIL --next "$case code should be $1, but is $code"
+    FAIL --next "$case \$code should be $1, but is $code"
     for o in {output,stdout,stderr}; do
       test -n "${!o}" && dry-diagnose "$o"
     done
@@ -31,47 +32,109 @@ function dry-diagnose () {
     printf '%2s | %s: %s\n' "$((++n))" "${1#std}" "$l"
   done <<<"${!1}" >&2
   code=1
+  return $code
 }
 function dry-assert-output () {
   dry-nonvoid 'case'
   dry-defined "${1:?missing output variable name}"
   test -n "${!1}" && {
-    PASS "$case $1 has data"
+    PASS "$case \$$1 has data"
   } || {
-    FAIL --next "$case $1 should have data"
-    return 1
+    FAIL "$case \$$1 should have data"
   }
 }
 function dry-refute-output () {
   dry-nonvoid 'case'
   dry-defined "${1:?missing output variable name}"
   test -z "${!1}" && {
-    PASS "$case $1 has no data"
+    PASS "$case \$$1 has no data"
   } || {
-    FAIL --next "$case $1 should have no data"
+    FAIL --next "$case \$$1 should have no data"
     dry-diagnose "$1"
-    return 1
+    echo CODE 1
+    exit 1
   }
 }
 
 function dry-assert-function () {
   local fname="${1:?missing function name}"
-  dry-defined 'case'
+  dry-nonvoid 'case'
   test "$(type -t "$fname")" = 'function' && {
-    PASS "$case defines function '$fname'"
+    PASS "$case '$fname' is a function"
   } || {
-    FAIL "$case should define function '$fname'"
+    FAIL --next "$case '$fname' should be a function"
+    functions="$(declare -F)"
+    dry-diagnose "functions"
+    echo CODE 1
+    exit 1
   }
 }
 
 function dry-assert-equality () {
-  dry-defined 'case'
+  dry-nonvoid 'case'
+  value="${3:-unespecified value}"
   test "${1:?missing actual value}" = "${2:?missing expect value}" && {
-    PASS "$case value is '$2'"
+    PASS "$case '$value' is '$2'"
   } || {
-    caller 0 >&2
-    FAIL "$case value should be '$2', but is '$1'"
+    FAIL "$case '$value' should be '$2', but is '$1'"
   }
+}
+
+function dry-assert-line-count () {
+  dry-nonvoid 'case'
+  dry-defined "${1:?missing output variable name}"
+  case "${2:?missing expected line count}" in
+    0) dry-refute-output "$1"; return $? ;; #as wc -l will report 1 line
+    *) test -z "${!1}" && {
+      FAIL "$case \$$1 should have $2 data line(s), but is empty"
+      } ;; #as wc -l will report 1 line for empty variables
+  esac
+  local count="$( wc -l <<<"${!1}" )"
+  test "$count" -eq "$2" && {
+    PASS "$case \$$1 has $2 data line(s)"
+  } || {
+    FAIL --next "$case \$$1 should have $2 data line(s), but has $count"
+    dry-diagnose "$1"
+    echo CODE 1
+    exit 1
+  }
+}
+function dry-assert-grep-count () {
+  dry-nonvoid 'case'
+  dry-defined "${1:?missing output variable name}"
+  local expect="${2:?missing expected line matches number}"
+  (( $# > 2 )) || FAIL EUSAGE "no arguments for egrep"
+
+  local count="$( egrep "${@:3}" <<<"${!1}" | wc -l )" 
+  test "$count" -eq "$2" && {
+    PASS "$case \$$1 matches 'egrep ${@:3}' $2 time(s)"
+  } || {
+    FAIL --next "$case \$$1 should match 'egrep ${@:3}' $2 times, but matches $count"
+    dry-diagnose "$1"
+    echo CODE 1
+    exit 1
+  }
+}
+
+function dry-assert-flow-exits () {
+  # usage: [function_name] [argv]{1,n}
+  ( #avoid pollution with subshell
+    stdout="$( "$@" &>/dev/null; echo next)"
+    code=$?
+    test "$code" -eq 0 && {
+      FAIL --next "'$@' code should not be 0"
+    } || {
+      PASS "'$@' code is not 0, is $code"
+    }
+    test "$stdout" = 'next' && {
+      FAIL "'$@' should exit subshell"
+    } || {
+      PASS "'$@' exits subshell"
+      code=0
+    }
+    exit $code
+  )
+  (( $? )) && echo CODE 1 && exit 1
 }
 
 #YAGNI
