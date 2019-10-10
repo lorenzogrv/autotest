@@ -44,7 +44,7 @@ function check-command () {
     # plugin functions will run with the following argument list:
     # its parameters, followed by '-command', followed by the command
     # if plugin fails will return its exit code, omiting subsequent actions
-    "${AUTOPLUG[@]}" -command "${AUTOCMD[@]}" || return $?
+    "${AUTOPLUG[@]}" || return $? #-command "${AUTOCMD[@]}" || return $?
   done
 
   test -n "$AUTOPLUG" || {

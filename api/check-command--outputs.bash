@@ -1,60 +1,97 @@
 # dirty, but working
 function check-command--outputs () {
-  local MODE EXPECT
+  local expect
   case "$1" in
-    -command)
-        echo "$FUNCNAME: bad usage, insuficient parameters" >&2
-        exit 2
-      ;;
-    something|anything)
-      EXPECT=$1; MODE='read -N 1'
-      ;;
-    nothing)
-      EXPECT=$1; MODE='read -N 1 ; (($?))'
-      ;;
+    something|anything|nothing) expect=$1 ;;
     string)
-      EXPECT="the string '$2'"
-      MODE="read out; test \"\$out\" = '$2' && ! read -N 1"
+      test $# -eq 2 || {
+        echo "$FUNCNAME: invalid argv: expecting 2 arguments"
+        exit 2
+      } >&2
+      expect="the string $(printf '%q' "$2")"
       ;;
     stdin)
-      EXPECT="same data read from stdin"
+      expect="the data read from stdin"
       test -t 0 && FAIL "stdin is a terminal"
       INPUT="$(cat)"
-      MODE="my-custom-diff - <(echo $(printf %q "$INPUT"))"
+      test -z "$INPUT" && {
+        echo EUSAGE "stdin is empty, use 'nothing' instead" >&2
+        exit 2
+      }
       ;;
-    *) echo "$FUNCNAME: invalid argv: $@" >&2; return 2 ;;
+    *) echo "$FUNCNAME: invalid argv: $@" >&2; exit 2 ;;
   esac
 
-  local output="" n=0
-  
-  diag-msg () {
-    printf '%2s | %s%s %s %s\n' $((++n)) "${1:-?}" "${4:->}" "$2" "${3:-<}"
-  }
-  diag () {
-    local l
-    while read l; do diag-msg $1 "$l" "$2" "$3"; unset -v l; done
-    test -n "$l" && diag-msg $1 "$l" "<(no line break present)" "$3"
-  } >&2
+  local stdout="$FUNCNAME.stdout" stderr="$FUNCNAME.stderr"
+  exec 3<> $stderr
+  exec 4<> $stdout
+  case "$1" in
+    something|anything) ;; # don't need all output
+    nothing|string|stdin) ("${AUTOCMD[@]}") 1>&4 2>&3 ;;
+  esac
+  exec 4>&-
 
-  if output="$( "${AUTOCMD[@]}" 2> >(diag 2) | eval "$MODE" )"
-  then # test passed
-    echo "PASS$( printf " '%s'" "${AUTOCMD[@]}") outputs $EXPECT"
-    unset -f diag diag-msg
-    return 0
+  local probe diff
+  case "$1" in
+    something|anything) ("${AUTOCMD[@]}") 2>&3 | read -N 1 ;;
+    nothing) read -N 1 < $stdout || read -N 1 < $stderr; (($?)) ;;
+    string) diff="$(< $stdout)"; test "$diff" = "$2" ;;
+    stdin) diff="$( my-custom-diff $stdout - <<<"$INPUT" 2>&3 )" ;;
+  esac
+  probe=$? # 0 means success, > 0 is failure
+  
+  local topic="$( printf ' %q' "${AUTOCMD[@]}" )"; topic="'${topic# }'"
+  if (( $probe ))
+  then
+    echo "FAIL $topic should output $expect"
   else
-    echo "FAIL '${AUTOCMD[@]}' should output $EXPECT, but it does not"
-    test -n "$INPUT" && diag 0 '>' '<' <<<"$INPUT"
-    case "$1" in something|anything) ;; *)
-      n=0
-      if test -n "$output"; then
-        diag 1 <<<"$output"
-      else
-        diag 1 <<<"$( "${AUTOCMD[@]}" 2>/dev/null )"
-      fi
-    esac
-    echo CODE 1
-    exit 1
+    echo "PASS $topic outputs $expect"
   fi
+ 
+  if (( $probe ))
+  then
+    local n=0
+    diag-msg () {
+      local line="${2:-<(empty line)}"
+      printf '%-3s| %s%s %s %s\n' \
+        "$((++n))" "${1:-?}" "${4:->}" \
+        "${line//$'\n'/(newline char)}" \
+        "${3:-<}"
+    } >&2
+    diag () {
+      local l probe=0
+      while IFS= read l; do
+        diag-msg $1 "${l#${BASH_SOURCE%/*}/}" "$2" "$3";
+        probe=1
+      done
+      test "$l" != '' \
+        && diag-msg $1 "$l" "<(no line break present)" "$3" \
+        || (( $probe )) # returns true when data was output
+      #echo "diag $@ end l='$l' probe=$probe" >&2
+    }
+    test -n "$INPUT" && { diag 0 '>' '<' <<<"$INPUT"; n=0; }
+    if test -n "$diff"
+    then diag 1 <<<"$diff"
+    elif test "$(cat $stdout)" != ''
+    then 
+      diag 1 < $stdout
+      #diag-msg 1 "$(cat $stdout)"
+    else # last resort: print the character we now is there
+      read -N 1 thing < $stdout && diag-msg 1 "${thing}" 
+      #/$'\n'/(newline character)}" >&2
+    fi
+    n=0
+    diag 2 < $stderr
+    unset -f diag diag-msg
+  fi
+
+  # teardown logging machinery
+  exec 3>&-; rm $stderr
+  exec 4>&-; rm $stdout
+
+  # now exit/whatever it's need to do
+  test $probe -gt 0 && { echo CODE $probe; exit $probe; }
+  return 0
 }
 
 function my-custom-diff () {
