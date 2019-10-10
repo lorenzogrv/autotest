@@ -34,12 +34,26 @@ case "$1" in
       failure-loudly)
         # cases that should fail WITH diagnose present on stderr
         unit=failure
-        # diagnose argument specifies how much lines should be present
+        # diagnose specifies how much lines should be present on stderr
+        CASE diagnose=1 echo \; --outputs nothing 
+        CASE diagnose=1 printf ' ' \; --outputs nothing 
         CASE diagnose=1 echo foo \; --outputs nothing 
         CASE diagnose=1 echo bar \; --outputs string foo
-        CASE diagnose=1 printf foo \; --outputs nothing 
-        CASE diagnose=3 printf '%s\n' {a..c} \; --outputs nothing 
+        CASE diagnose=1 printf foo \; --outputs nothing
+        CASE diagnose=3 printf '%s\n' {a..c} \; --outputs nothing
+        CASE diagnose=3 printf '%s\n' {a..c} \; --outputs string a
         CASE diagnose=3 printf '%s\n' {a..c} \; --outputs string b
+        CASE diagnose=3 printf '%s\n' {a..c} \; --outputs string c
+        CASE diagnose=3 printf '%s\n' {a..c} \; --outputs stdin <<-STDIN
+        1
+        2
+        3
+				STDIN
+        CASE diagnose=5 printf '%s\n' {1..5} \; --outputs stdin <<-STDIN
+        a
+        b
+        c
+				STDIN
         ;;
       success)
         # cases that should succeed and continue execution
@@ -49,7 +63,14 @@ case "$1" in
         CASE printf foo \; --outputs something
         CASE echo bar \; --outputs anything
         CASE printf foo \; --outputs string foo
-        CASE echo bar \; --outputs string bar
+        CASE echo bar \; --outputs string bar #KISS, but should fail instead
+        # KISS, but test case above should be instead:
+        # CASE echo bar \; --outputs string 'bar\n'
+        CASE printf '%s\n' {a..c} \; --outputs stdin <<-STDIN
+        a
+        b
+        c
+				STDIN
         ;;
       *)
         echo "Bad usage: no cases for test unit '$unit'"
@@ -77,7 +98,7 @@ function main () {
   
   argv=("$@")
   
-  echo "TEST $0 unit=${unit}$(printf " '%s'" "$@")"
+  echo "TEST $0 unit=${unit}$(printf " %s" "$@")"
 
   source autotest
   source "$(autotest--root)/test/dry-assert.bash"
@@ -126,7 +147,7 @@ function failure () {
     # diagnose information presence tests
     dry-assert-output "stderr"
     dry-assert-line-count "stderr" $diagnose
-    dry-assert-grep-count "stderr" $diagnose "^[ 0-9]{3}\| (1|2)> .*$"
+    dry-assert-grep-count "stderr" $diagnose "^([0-9]| ){3}\| (1|2)> .*$"
   fi
 }
 
