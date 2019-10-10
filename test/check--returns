@@ -1,30 +1,37 @@
 #!/bin/bash
 
+# This test script defines only test cases, delegating test unit executions
+# on other test script
+
 case "$1" in
   '') # runs all test cases
     codes=0
     RUN () { "$0" "all=$1"; codes+=$?; }
-    for unit in {usage,failure,success}; do RUN "$unit"; done
-    exit $(( $codes ))
+    for unit in {OK,FAIL,EUSAGE}; do RUN $unit; done
+    test $codes -gt 0
+    exit $?
     ;;
   all=?*) # runs all cases for that unit
     unit="${1#all=}"; codes=0
-    CASE () { "$0" "unit=$unit" "$@"; codes+=$?; }
+    source autotest
+    run="$(autotest--root)/test/check-command"
+    run="${run/$PWD/.}"
+    CASE () { "$run" "unit=$unit" "$@"; codes+=$?; }
 
     case "$unit" in
-      usage) #cases that should fail with EUSAGE
+      EUSAGE) #cases that should fail with EUSAGE
         CASE : \; --returns # missing [value]
         CASE : \; --returns '' # [value] is empty string
         CASE : \; --returns 0 13 # two integer parameters
         ;;
-      failure) #cases that should fail with code 1 (FAIL)
+      FAIL) #cases that should fail with code 1 (FAIL)
         CASE false \; --returns zero
         CASE true \; --returns non-zero
         CASE true \; --returns nonzero
         CASE false \; --returns 13
         CASE true \; --returns 51
         ;;
-      success) #cases that should succed
+      OK) #cases that should succed
         CASE true \; --returns zero
         CASE false \; --returns non-zero
         CASE false \; --returns nonzero
@@ -36,89 +43,14 @@ case "$1" in
         exit 2
         ;;
     esac
-    exit $(( $codes ))
+    test $codes -gt 0
+    exit $?
     ;;
-  unit=?*) ;; # let main() run
   *)
     echo "Bad usage: invalid argument '$1'" >&2
     exit 2
     ;;
 esac
-
-function main () {
-  unit="${1#unit=}"
-  test "$(type -t "$unit")" != 'function' && {
-    echo "Bad usage: test unit '$unit' is not defined"
-    exit 2
-  } >&2
-
-  source autotest
-  source "$(autotest--root)/test/dry-assert.bash"
-  autotest load check-command
-  autotest load check-command--returns
-
-  shift
-  echo "TEST $0 unit=$unit $@"
-  case="running check command with argv '$@'"
-
-  stdout="$( check-command "$@" 2>/dev/null )"
-  stderr="$( check-command "$@" 2>&1 >/dev/null )"
-  code=$?
-
-  $unit "$@"
-  code=$?
-  echo CODE $code
-  exit $code
-}
-
-
-function usage () {
-  dry-assert-code 2
-  dry-refute-output "stdout"
-  dry-assert-output "stderr" || return
-  egrep "EUSAGE|usage|invalid" <<<"$stderr" &>/dev/null && {
-    PASS "it gracefully fails when $case"
-  } || {
-    FAIL --next "stderr tells nothing about usage error"
-    dry-diagnose "stderr"
-  }
-}
-
-function failure () {
-  dry-assert-code 1
-  dry-refute-output "stderr"
-  test $(wc -l <<<"$stdout") -eq 1 &&  {
-    PASS "outputs exactly ONE line on stdout when $case"
-  } || {
-    FAIL --next "should output exactly ONE line on stdout when $case"
-    dry-diagnose "stdout"
-  }
-  egrep -q "^FAIL .+" <<<"$stdout" >/dev/null && {
-    PASS "stdout contains the FAIL statement when $case"
-  } || {
-    FAIL --next "stdout should contain the FAIL statement when $case"
-    dry-diagnose "stdout"
-  }
-}
-
-function success () {
-  dry-assert-code 0
-  dry-refute-output "stderr"
-  test $(wc -l <<<"$stdout") -eq 1 &&  {
-    PASS "outputs exactly ONE line on stdout when $case"
-  } || {
-    FAIL --next "should output exactly ONE line on stdout when $case"
-    dry-diagnose "stdout"
-  }
-  egrep -q "^PASS .+" <<<"$stdout" >/dev/null && {
-    PASS "stdout contains the PASS statement when $case"
-  } || {
-    FAIL --next "stdout should contain the PASS statement when $case"
-    dry-diagnose "stdout"
-  }
-}
-
-main "$@"
 
 ##
 # vim modeline
