@@ -56,13 +56,25 @@ function main () {
   source autotest
   source "$(autotest--root)/test/dry-assert.bash"
   autotest load check-command
-  autotest load check-command--outputs
 
-  #while $#
-  case "$1" in
-    diagnose=?*) diagnose="${1#diagnose=}"; shift ;;
-    *) diagnose=0 ;;
-  esac
+  while (( $# ));
+  do
+    case "$1" in
+      load=?*)
+        autotest load "check-command--${1#load=}" || {
+          echo "can't load 'check-command--${1#load=}" >&2
+          exit 1
+        }
+        case="after loading --${1#load=} plugin"
+        dry-assert-function "check-command--${1#load=}"
+        ;;
+      diagnose=?*) diagnose="${1#diagnose=}" ;;
+      *) break ;;
+    esac
+    shift
+  done
+  # assume it should not be diagnose when it's not specified
+  test -n "$diagnose" || diagnose=0
 
   case="check-command"
   stdout="$( check-command "$@" <<<"$stdin" 2>/dev/null )"

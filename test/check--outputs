@@ -24,7 +24,7 @@ case "$1" in
     source autotest;
     run="$(autotest--root)/test/check-command"
     run="${run/$PWD/.}"
-    CASE () { "$run" "unit=$unit" "$@"; codes+=$?; }
+    CASE () { "$run" unit=$unit load=outputs "$@"; codes+=$?; }
 
     case "$unit" in
       EUSAGE)
