@@ -119,8 +119,8 @@ function main () {
   fi
 
   case="check-command"
-  stdout="$( check-command "$@" 2>/dev/null )"
-  stderr="$( check-command "$@" 2>&1 1>/dev/null )"
+  stdout="$( check-command "$@" <<<"$stdin" 2>/dev/null )"
+  stderr="$( check-command "$@" <<<"$stdin" 2>&1 1>/dev/null )"
   code=$?
 
   $unit "$@"; code=$?
@@ -149,8 +149,12 @@ function failure () {
   else
     # diagnose information presence tests
     dry-assert-output "stderr"
-    dry-assert-line-count "stderr" $diagnose
-    dry-assert-grep-count "stderr" $diagnose "^([0-9]| ){3}\| (1|2)> .*$"
+    # when there is stdin data, it should be present at diagnose
+    test -n "$stdin" && input=$(wc -l <<<"$stdin") || input=0
+    dry-assert-line-count "stderr" $((diagnose+input))
+    dry-assert-grep-count "stderr" $diagnose "^([0-9]| ){3}\| 1> .* <$"
+    test -z "$stdin" && return
+    dry-assert-grep-count "stderr" $input "^([0-9]| ){3}\| 0< .* >$"
   fi
 }
 
