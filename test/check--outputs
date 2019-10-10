@@ -44,15 +44,16 @@ case "$1" in
         CASE diagnose=3 printf '%s\n' {a..c} \; --outputs string a
         CASE diagnose=3 printf '%s\n' {a..c} \; --outputs string b
         CASE diagnose=3 printf '%s\n' {a..c} \; --outputs string c
+        # care, use :set expandtab for HERE docs and ident with tabs
         CASE diagnose=3 printf '%s\n' {a..c} \; --outputs stdin <<-STDIN
-        1
-        2
-        3
+				1
+				2
+				3
 				STDIN
         CASE diagnose=5 printf '%s\n' {1..5} \; --outputs stdin <<-STDIN
-        a
-        b
-        c
+				a
+				b
+				c
 				STDIN
         ;;
       success)
@@ -67,9 +68,9 @@ case "$1" in
         # KISS, but test case above should be instead:
         # CASE echo bar \; --outputs string 'bar\n'
         CASE printf '%s\n' {a..c} \; --outputs stdin <<-STDIN
-        a
-        b
-        c
+				a
+				b
+				c
 				STDIN
         ;;
       *)
@@ -97,8 +98,10 @@ function main () {
   shift
   
   argv=("$@")
-  
-  echo "TEST $0 unit=${unit}$(printf " %s" "$@")"
+ 
+  test -t 0 && stdin="" || stdin="$(cat)"
+
+  echo "TEST $0 unit=${unit}$(printf " %q" "$@") <<<$(printf %q "${stdin}")"
 
   source autotest
   source "$(autotest--root)/test/dry-assert.bash"
