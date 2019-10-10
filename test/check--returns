@@ -12,17 +12,28 @@ case "$1" in
     exit $?
     ;;
   all=?*) # runs all cases for that unit
-    unit="${1#all=}"; codes=0
     source autotest
     run="$(autotest--root)/test/check-command"
     run="${run/$PWD/.}"
-    CASE () { "$run" "unit=$unit" "$@"; codes+=$?; }
+    unit="${1#all=}"; codes=0
+    CASE () {
+      "$run" unit=$unit load=returns "$@"
+      (( codes+=$? ))
+    }
 
     case "$unit" in
       EUSAGE) #cases that should fail with EUSAGE
-        CASE : \; --returns # missing [value]
-        CASE : \; --returns '' # [value] is empty string
-        CASE : \; --returns 0 13 # two integer parameters
+        for op in {'',eq,ne,gt,ge,lt,le}
+        do
+          test -n "$op" && op="-$op"
+          CASE : \; --returns $op # no arguments
+          CASE : \; --returns ${op} '' # empty string
+          CASE : \; --returns ${op} -1 # negative integer
+          CASE : \; --returns ${op} 256 # integer over exit status range
+          CASE : \; --returns ${op} 0 13 # two integer parameters
+          CASE : \; --returns ${op} string # non-integer value
+          CASE : \; --returns ${op} {x..z} # non-sense parameters
+        done
         ;;
       FAIL) #cases that should fail with code 1 (FAIL)
         CASE false \; --returns zero
@@ -31,12 +42,20 @@ case "$1" in
         CASE false \; --returns 13
         CASE true \; --returns 51
         ;;
+      ENOENT) #cases that should fail with code FAIL and diagnose
+        CASE diagnose=1 "echo foo" \; --returns zero
+        CASE diagnose=1 unexistant-command \; --returns zero
+        ;;
       OK) #cases that should succed
         CASE true \; --returns zero
         CASE false \; --returns non-zero
         CASE false \; --returns nonzero
         CASE exit 13 \; --returns 13
+        CASE exit 127 \; --returns non-zero
         CASE exit 3 \; --returns -lt 5
+        CASE exit 3 \; --returns -lt 5
+        # it must be defined how to deal with the following case, as is true
+        CASE unexistant-command \; --returns 127
         ;;
       *)
         echo "Bad usage: '$unit' has no cases defined" >&2
