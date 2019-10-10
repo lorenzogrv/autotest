@@ -1,11 +1,16 @@
 #!/bin/bash
 
 case "$1" in
+  --help|help|-h)
+    echo "usage: $0 # runs all test cases"
+    echo "       $0 all=[CASES] # runs [CASES] group"
+    exit 0
+    ;;
   '')
     # runs all test cases when no arguments specified
     codes=0 #to know what code to exit
     RUN () { "$0" "all=$1"; }
-    for unit in {usage,failure-normal,failure-loudly,success}
+    for unit in {OK,FAIL-quiet,FAIL-loud,EUSAGE,ENOENT}
       do RUN $unit; codes+=$?
     done
     #report whenever there were failures vía exit code
@@ -19,21 +24,35 @@ case "$1" in
     CASE () { "$0" "unit=$unit" "$@"; codes+=$?; }
 
     case "$unit" in
-      usage)
+      EUSAGE)
         # cases that should fail with code EUSAGE
         CASE : \; --outputs #no arguments at all
         CASE : \; --outputs '' #empty string as first argument
+        CASE : \; --outputs stdin <<<'' #empty stdin
+        CASE : \; --outputs string #missing string parameter
+        CASE : \; --outputs string {1..2} #to much string parameters
         ;;
-      failure-normal)
+      ENOENT)
+        # cases that could fail with code ENOENT (command not found)
+        # > this may happen for bad quoted argvs, or unexistant commands
+        # but must be reported as FAIL (and include diagnose) because:
+        # 1. they output nothing to stdout but there is something on stderr
+        CASE diagnose=1 this-cmd-does-not-exist \; --outputs nothing
+        CASE diagnose=1 "echo foo" \; --outputs nothing
+        # 2. they output something to stderr but nothing to stdout
+        CASE diagnose=1 this-cmd-does-not-exist \; --outputs something
+        CASE diagnose=1 "echo foo" \; --outputs something
+        ;;
+      FAIL-quiet)
         # cases that should fail WITHOUT diagnose present on stderr
-        unit=failure
+        unit=FAIL
         # when command outputs nothing, there is nothing to diagnose
         CASE : \; --outputs something
         CASE : \; --outputs anything #an expressive alias for something
         ;;
-      failure-loudly)
+      FAIL-loud)
         # cases that should fail WITH diagnose present on stderr
-        unit=failure
+        unit=FAIL
         # diagnose specifies how much lines should be present on stderr
         CASE diagnose=1 echo \; --outputs nothing 
         CASE diagnose=1 printf ' ' \; --outputs nothing 
@@ -50,28 +69,25 @@ case "$1" in
 				2
 				3
 				STDIN
-        CASE diagnose=5 printf '%s\n' {1..5} \; --outputs stdin <<-STDIN
-				a
-				b
-				c
-				STDIN
+        CASE diagnose=5 printf '%s\n' {1..5} \; --outputs stdin <<<$'a\nb\nc'
         ;;
-      success)
+      OK)
         # cases that should succeed and continue execution
         CASE true \; --outputs nothing
         CASE false \; --outputs nothing
-        CASE exit 15 \; --outputs nothing
         CASE printf foo \; --outputs something
         CASE echo bar \; --outputs anything
         CASE printf foo \; --outputs string foo
-        CASE echo bar \; --outputs string bar #KISS, but should fail instead
+        CASE : \; --outputs string '' # empty string is ok, unlike stdin
+        # when command outputs nothing, it's OK even if code is ENOENT
+        CASE exit 127 \; --outputs nothing
+        # of course it's OK for other codes
+        CASE exit 15 \; --outputs nothing
+        # KISS, but the following should fail
+        CASE echo bar \; --outputs string bar
         # KISS, but test case above should be instead:
-        # CASE echo bar \; --outputs string 'bar\n'
-        CASE printf '%s\n' {a..c} \; --outputs stdin <<-STDIN
-				a
-				b
-				c
-				STDIN
+        #CASE echo bar \; --outputs string $'bar\n'
+        CASE printf '%s\n' {a..c} \; --outputs stdin <<<$'a\nb\nc'
         ;;
       *)
         echo "Bad usage: no cases for test unit '$unit'"
@@ -79,7 +95,8 @@ case "$1" in
         ;;
     esac
     #report whenever there were failures vía exit code
-    exit $(( $codes ))
+    test $codes -gt 0
+    exit $?
     ;;
   unit=?*) ;; # let main() run specified unit
   *)
@@ -91,78 +108,99 @@ esac
 function main () {
   # runs specified unit, gets called at this script end
   unit="${1#unit=}"
-  test "$(type -t "$unit")" != 'function' && {
+  case $unit in ENOENT|EUSAGE|FAIL|OK) ;; *)
     echo "Bad usage: test unit '$unit' is not defined"
     exit 2
-  } >&2
-  shift
+  esac
   
-  argv=("$@")
- 
   test -t 0 && stdin="" || stdin="$(cat)"
 
-  echo "TEST $0 unit=${unit}$(printf " %q" "$@") <<<$(printf %q "${stdin}")"
+  echo "TEST ${0}$(printf " %q" "$@") <<<$(printf %q "${stdin}")"
+  shift # unit=* argument
 
   source autotest
   source "$(autotest--root)/test/dry-assert.bash"
   autotest load check-command
   autotest load check-command--outputs
 
-  if test "$unit" = "failure"; then
-    case "$1" in
-      diagnose=?*)
-        diagnose="${1#diagnose=}"
-        shift
-        ;;
-      *) diagnose=0 ;;
-    esac
-  fi
+  #while $#
+  case "$1" in
+    diagnose=?*) diagnose="${1#diagnose=}"; shift ;;
+    *) diagnose=0 ;;
+  esac
 
   case="check-command"
   stdout="$( check-command "$@" <<<"$stdin" 2>/dev/null )"
   stderr="$( check-command "$@" <<<"$stdin" 2>&1 1>/dev/null )"
   code=$?
 
-  $unit "$@"; code=$?
+  case $unit in
+    OK)
+      test $diagnose -eq 0 || {
+        echo "> Remember:"
+        echo "> succesful commands should never write data to stderr"
+        diagnose=0
+      } >&2
+      expect_code=0
+      dry-assert-line-count "stdout" 1
+      dry-assert-grep-count "stdout" 1 "^PASS .+"
+      ;;
+    FAIL)
+      expect_code=1
+      dry-assert-line-count "stdout" 2
+      dry-assert-grep-count "stdout" 1 "^FAIL .+"
+      dry-assert-grep-count "stdout" 1 "^CODE [0-9]+"  
+      ;;
+    EUSAGE)
+      test $diagnose -eq 0 || {
+        echo "> Remember:"
+        echo "> bad usage failures should write no diagnose, but usage error"
+        diagnose=0
+      } >&2
+      expect_code=2
+      dry-refute-output "stdout"
+      dry-assert-grep-count "stderr" 1 "EUSAGE|usage|invalid"
+      ;;
+    ENOENT)
+      test $diagnose -eq 1 || {
+        echo "> Remember:"
+        echo "> not-found commands should write exactly one diagnose line"
+        diagnose=1
+      } >&2
+      expect_code=1 # see cases coments
+      dry-assert-line-count "stdout" 2 # be loud, include stdout
+      dry-assert-grep-count "stdout" 1 "^FAIL .+"
+      dry-assert-grep-count "stdout" 1 "^CODE 1( .+)?"  
+      dry-assert-grep-count "stderr" 1 "ENOENT|not found|no encontrada"
+      ;;
+  esac
 
-  echo CODE $code; exit $code
-}
-
-function usage () {
-  dry-assert-code 2
-  dry-refute-output "stdout"
-  dry-assert-output "stderr"
-  dry-assert-grep-count "stderr" 1 "EUSAGE|usage|invalid"
-}
-
-
-function failure () {
-  dry-assert-code 1
-  dry-assert-line-count "stdout" 2
-  dry-assert-grep-count "stdout" 1 "^FAIL .+"
-  dry-assert-grep-count "stdout" 1 "^CODE [0-9]+"  
-  # failure cases should exit the subshell execution
-  dry-assert-flow-exits check-command "$@"
   if test $diagnose -eq 0; then
-    # no diagnose information means no stderr data
-    dry-refute-output "stderr"
+    # no diagnose information means no stderr data except for EUSAGE because
+    # stderr is not diagnosing the command BUT the check-command call itself
+    test $expect_code -ne 2 && dry-refute-output "stderr"
   else
     # diagnose information presence tests
     dry-assert-output "stderr"
     # when there is stdin data, it should be present at diagnose
     test -n "$stdin" && input=$(wc -l <<<"$stdin") || input=0
     dry-assert-line-count "stderr" $((diagnose+input))
-    dry-assert-grep-count "stderr" $diagnose "^([0-9]| ){3}\| 1> .* <$"
-    test -z "$stdin" && return
+    dry-assert-grep-count "stderr" $diagnose "^([0-9]| ){3}\| (1|2)> .* <"
     dry-assert-grep-count "stderr" $input "^([0-9]| ){3}\| 0< .* >$"
   fi
-}
+  
+  dry-assert-code $expect_code
 
-function success () {
-  dry-assert-code 0
-  dry-refute-output "stderr"
-  dry-assert-line-count "stdout" 1
-  dry-assert-grep-count "stdout" 1 "^PASS .+"
+  if test $expect_code -gt 0; then
+    # any non-success case should exit the subshell execution
+    dry-assert-flow-exits check-command "$@" <<<"$stdin"
+  else
+    # but any success case should continue
+    dry-assert-flow-continues check-command "$@" <<<"$stdin"
+  fi
+
+  # if reaches here, assume test succeed
+  echo CODE 0 #implicit return 0
 }
 
 main "$@"
