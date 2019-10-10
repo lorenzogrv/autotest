@@ -119,9 +119,9 @@ function dry-assert-grep-count () {
 function dry-assert-flow-exits () {
   # usage: [function_name] [argv]{1,n}
   ( #avoid pollution with subshell
+    cmd="$(printf " %s" "$@")"; cmd="\`${cmd# }\`"
     stdout="$( "$@" &>/dev/null; echo next)"
     code=$?
-    cmd="$(printf " %s" "$@")"; cmd="\`${cmd# }\`"
     test "$code" -eq 0 && {
       FAIL --next "$cmd code should not be 0"
     } || {
@@ -135,7 +135,27 @@ function dry-assert-flow-exits () {
     }
     exit $code
   )
-  (( $? )) && echo CODE 1 && exit 1
+  (( $? )) && exit 1
+}
+function dry-assert-flow-continues () {
+  # usage: [function_name] [argv]{1,n}
+  ( #avoid pollution with subshell
+    cmd="$(printf " %s" "$@")"; cmd="\`${cmd# }\`"
+    stdout="$( "$@" >/dev/null; echo next)"
+    code=$?
+    test "$code" -ne 0 && {
+      FAIL --next "$cmd code should be 0, but is $code"
+    } || {
+      PASS "$cmd code is 0"
+    }
+    test "$stdout" != 'next' && {
+      FAIL --next "$cmd should continue running subshell"
+    } || {
+      PASS "$cmd continues subshell"
+    }
+    exit $code
+  )
+  (( $? )) && { echo CODE 1; exit 1; }
 }
 
 #YAGNI
