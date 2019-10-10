@@ -121,15 +121,16 @@ function dry-assert-flow-exits () {
   ( #avoid pollution with subshell
     stdout="$( "$@" &>/dev/null; echo next)"
     code=$?
+    cmd="$(printf " %s" "$@")"; cmd="\`${cmd# }\`"
     test "$code" -eq 0 && {
-      FAIL --next "'$@' code should not be 0"
+      FAIL --next "$cmd code should not be 0"
     } || {
-      PASS "'$@' code is not 0, is $code"
+      PASS "$cmd code is not 0, is $code"
     }
     test "$stdout" = 'next' && {
-      FAIL "'$@' should exit subshell"
+      FAIL "$cmd should exit subshell"
     } || {
-      PASS "'$@' exits subshell"
+      PASS "$cmd exits subshell"
       code=0
     }
     exit $code
