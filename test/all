@@ -7,5 +7,5 @@ find "$(git rev-parse --show-toplevel)/test" -type f -executable -print0 \
 | while IFS= read -d '' testfile
 do
   test "$testfile" = "$skipme" && continue
-  "$testfile" || exit
+  "$testfile" </dev/null || exit 1
 done
