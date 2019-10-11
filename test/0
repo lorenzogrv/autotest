@@ -1,0 +1,66 @@
+#!/bin/bash
+
+echo "TEST $0"
+
+stderr="$( type autotest 2>&1 1>/dev/null )"
+code=$?
+
+if (( $code ))
+then
+  echo "FAIL type exit status should be 0, but is $code"
+  {
+    echo "DIAG 'type autotest'"
+    echo "$stderr"
+  } >&2 # write diagnose information to standard error
+else
+  echo "PASS 'type autotest' exit status code is 0"
+fi
+
+stdout="$(type -t autotest 2>/dev/null)"
+expect="file"
+
+if test "$stdout" != "$expect"
+then
+  echo "FAIL type -t stdout should be '$expect', but is '$stdout'"
+  echo "CODE 1"
+  exit 1
+else
+  echo "PASS 'type -t autotest' stdout is '$expect'"
+fi
+
+stdout="$(source autotest 2>/dev/null)"
+code=$?
+
+if (( $code ))
+then
+  echo "FAIL source should return code 0, but is $code"
+  echo "DIAG 'source autotest'"
+  ( source autotest ) 2>&1 1>/dev/null | while read line
+  do
+    echo "stderr: $line"
+  done >&2
+  echo "CODE $code"
+  exit $code
+else
+  echo "PASS 'source autotest' returns code 0"
+fi
+
+if test -n "$stdout"
+then
+  echo "FAIL source should write nothing to stdout"
+  echo "DIAG 'source autotest'"
+  while read line; do echo "out: $line"; done <<<"$stdout" >&2
+  echo "CODE 1"
+  exit 1
+else
+  echo "PASS 'source autotest' writes nothing to stdout"
+fi
+
+echo "CODE $code"
+
+(( $code )) && exit $code
+
+##
+# vim modeline (see vim +'help modeline')
+# /* vim: set expandtab: */
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */
