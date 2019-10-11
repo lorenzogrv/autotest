@@ -13,34 +13,46 @@ function dry-defined () {
   done
 }
 
+function dry-diagnose () {
+  dry-defined "${1:?missing output variable name}"
+  n=0; while read l; do
+    printf '%2s | %s: %s\n' "$((++n))" "${1#std}" "$l"
+  done <<<"${!1}" >&2
+}
+function dry-diagnose-all () {
+  variables=({stdout,stderr,code})
+  while (($#)); do
+    case "$1" in stdout|stderr|code) ;; *)
+      dry-defined "$1"
+      variables+=("$1")
+    esac
+    shift
+  done
+  for o in "${variables[@]}"; do
+    test -n "${!o}" && dry-diagnose "$o"
+  done
+  echo CODE 1
+  exit 1
+}
+
 function dry-assert-code () {
   dry-nonvoid 'case' 'code'
   test "$code" -eq "${1:?missing expected code}" && {
     PASS "$case \$code is $1"
   } || {
     FAIL --next "$case \$code should be $1, but is $code"
-    for o in {output,stdout,stderr}; do
-      test -n "${!o}" && dry-diagnose "$o"
-    done
-    exit 1
+    dry-diagnose-all
   }
 }
 
-function dry-diagnose () {
-  dry-defined "${1:?missing output variable name}"
-  n=0; while read l; do
-    printf '%2s | %s: %s\n' "$((++n))" "${1#std}" "$l"
-  done <<<"${!1}" >&2
-  code=1
-  return $code
-}
 function dry-assert-output () {
   dry-nonvoid 'case'
   dry-defined "${1:?missing output variable name}"
   test -n "${!1}" && {
     PASS "$case \$$1 has data"
   } || {
-    FAIL "$case \$$1 should have data"
+    FAIL --next "$case \$$1 should have data"
+    dry-diagnose-all "$1"
   }
 }
 function dry-refute-output () {
@@ -50,9 +62,7 @@ function dry-refute-output () {
     PASS "$case \$$1 has no data"
   } || {
     FAIL --next "$case \$$1 should have no data"
-    dry-diagnose "$1"
-    echo CODE 1
-    exit 1
+    dry-diagnose-all "$1"
   }
 }
 
@@ -64,9 +74,7 @@ function dry-assert-function () {
   } || {
     FAIL --next "$case '$fname' should be a function"
     functions="$(declare -F)"
-    dry-diagnose "functions"
-    echo CODE 1
-    exit 1
+    dry-diagnose-all "functions"
   }
 }
 
@@ -85,18 +93,18 @@ function dry-assert-line-count () {
   dry-defined "${1:?missing output variable name}"
   case "${2:?missing expected line count}" in
     0) dry-refute-output "$1"; return $? ;; #as wc -l will report 1 line
-    *) test -z "${!1}" && {
-      FAIL "$case \$$1 should have $2 data line(s), but is empty"
-      } ;; #as wc -l will report 1 line for empty variables
+    *) # wc -l will report 1 line for empty variables
+      test -z "${!1}" && {
+        FAIL --next "$case \$$1 should have $2 data line(s), but is empty"
+        dry-diagnose-all "$1"
+      } ;;
   esac
   local count="$( wc -l <<<"${!1}" )"
   test "$count" -eq "$2" && {
     PASS "$case \$$1 has $2 data line(s)"
   } || {
     FAIL --next "$case \$$1 should have $2 data line(s), but has $count"
-    dry-diagnose "$1"
-    echo CODE 1
-    exit 1
+    dry-diagnose-all "$1"
   }
 }
 function dry-assert-grep-count () {
@@ -110,9 +118,7 @@ function dry-assert-grep-count () {
     PASS "$case \$$1 matches 'egrep ${@:3}' $2 time(s)"
   } || {
     FAIL --next "$case \$$1 should match 'egrep ${@:3}' $2 times, but matches $count"
-    dry-diagnose "$1"
-    echo CODE 1
-    exit 1
+    dry-diagnose-all "$1"
   }
 }
 
