@@ -50,9 +50,10 @@ case "$1" in
         # cases that should fail WITHOUT diagnose present on stderr
         # when command outputs nothing, there is nothing to diagnose
         unit=FAIL
-        CASE : \; --outputs something
-        CASE : \; --outputs anything
-        CASE printf \; --outputs error
+        for feature in {something,anything,error}; do
+          CASE : \; --outputs $feature
+          CASE printf '' \; --outputs $feature
+        done
         ;;
       FAIL-loud)
         # cases that should fail WITH diagnose present on stderr
@@ -96,6 +97,7 @@ case "$1" in
         #CASE echo bar \; --outputs string $'bar\n'
         CASE printf '%s\n' {a..c} \; --outputs stdin <<<$'a\nb\nc'
         CASE unexistant-command \; --outputs error
+        CASE printf \; --outputs error # printf usage failure
         ;;
       *)
         echo "Bad usage: no cases for test unit '$unit'"

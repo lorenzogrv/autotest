@@ -2,7 +2,9 @@
 function check-command--outputs () {
   local expect
   case "$1" in
-    something|anything|nothing) expect=$1 ;;
+    something|anything) expect="anything but data on stdout" ;;
+    nothing) expect="nothing at all"  ;;
+    error) expect="anything but data on stderr" ;;
     string)
       test $# -eq 2 || {
         echo "$FUNCNAME: invalid argv: expecting 2 arguments"
@@ -26,7 +28,7 @@ function check-command--outputs () {
   exec 3<> $stderr
   exec 4<> $stdout
   case "$1" in
-    something|anything) ;; # don't need all output
+    something|anything|error) ;; # don't need all output
     nothing|string|stdin) ("${AUTOCMD[@]}") 1>&4 2>&3 ;;
   esac
   exec 4>&-
@@ -34,6 +36,9 @@ function check-command--outputs () {
   local probe diff
   case "$1" in
     something|anything) ("${AUTOCMD[@]}") 2>&3 | read -N 1 ;;
+    error)
+      ("${AUTOCMD[@]}") 2>&1 1>&3 | read -N 1 && ! read -N 1 < $stderr
+    ;;
     nothing) read -N 1 < $stdout || read -N 1 < $stderr; (($?)) ;;
     string) diff="$(< $stdout)"; test "$diff" = "$2" ;;
     stdin) diff="$( my-custom-diff $stdout - <<<"$INPUT" 2>&3 )" ;;
