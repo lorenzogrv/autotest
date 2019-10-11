@@ -9,6 +9,7 @@ function check-command--returns () {
   case "$1" in
     -eq|-ne|-gt|-ge|-lt|-le) operator="$1"; expect="$2"; shift ;;
     zero) operator="-eq"; expect=0 ;;
+    error) operator="-ge"; expect=2 ;;
     nonzero|non-zero) operator="-ne"; expect=0 ;;
     *) operator="-eq"; expect="$1" ;;
   esac
