@@ -51,24 +51,6 @@ function check-command--outputs () {
   if (( $probe ))
   then
     local n=0
-    diag-msg () {
-      local line="${2:-<(empty line)}"
-      printf '%-3s| %s%s %s %s\n' \
-        "$((++n))" "${1:-?}" "${4:->}" \
-        "${line//$'\n'/(newline char)}" \
-        "${3:-<}"
-    } >&2
-    diag () {
-      local l probe=0
-      while IFS= read l; do
-        diag-msg $1 "${l#${BASH_SOURCE%/*}/}" "$2" "$3";
-        probe=1
-      done
-      test "$l" != '' \
-        && diag-msg $1 "$l" "<(no line break present)" "$3" \
-        || (( $probe )) # returns true when data was output
-      #echo "diag $@ end l='$l' probe=$probe" >&2
-    }
     test -n "$INPUT" && { diag 0 '>' '<' <<<"$INPUT"; n=0; }
     if test -n "$diff"
     then diag 1 <<<"$diff"
@@ -82,7 +64,6 @@ function check-command--outputs () {
     fi
     n=0
     diag 2 < $stderr
-    unset -f diag diag-msg
   fi
 
   # teardown logging machinery

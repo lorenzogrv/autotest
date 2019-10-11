@@ -53,24 +53,7 @@ function check-command--returns () {
   }
   return 0 #be explicit
 }
-    diag-msg () {
-      local line="${2:-<(empty line)}"
-      printf '%-3s| %s%s %s %s\n' \
-        "$((++n))" "${1:-?}" "${4:->}" \
-        "${line//$'\n'/(newline char)}" \
-        "${3:-<}"
-    } >&2
-    diag () {
-      local l probe=0
-      while IFS= read l; do
-        diag-msg $1 "${l#${BASH_SOURCE%/*}/}" "$2" "$3";
-        probe=1
-      done
-      test "$l" != '' \
-        && diag-msg $1 "$l" "<(no line break present)" "$3" \
-        || (( $probe )) # returns true when data was output
-      #echo "diag $@ end l='$l' probe=$probe" >&2
-    }
+
 ##
 # vim modeline
 # Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:
