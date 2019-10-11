@@ -41,6 +41,8 @@ case "$1" in
         CASE true \; --returns nonzero
         CASE false \; --returns 13
         CASE true \; --returns 51
+        CASE true \; --returns error
+        CASE false \; --returns error
         ;;
       ENOENT) #cases that should fail with code FAIL and diagnose
         CASE diagnose=1 "echo foo" \; --returns zero
@@ -54,6 +56,9 @@ case "$1" in
         CASE exit 127 \; --returns non-zero
         CASE exit 3 \; --returns -lt 5
         CASE exit 3 \; --returns -lt 5
+        CASE exit 2 \; --returns error
+        CASE exit 127 \; --returns error
+        CASE exit invalid-code \; --returns error
         # it must be defined how to deal with the following case, as is true
         CASE unexistant-command \; --returns 127
         ;;
