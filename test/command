@@ -14,49 +14,49 @@ echo "TEST $0"
 #
 
 # keep-in-mind: "bare" autotest is "output source code"
-check-command autotest --returns zero --outputs something || exit
-check-command autotest checkup --returns zero --outputs something || exit
-check-command autotest help --returns zero --outputs something || exit
+check-command autotest \; --returns zero --outputs something
+check-command autotest checkup \; --returns zero --outputs something
+check-command autotest help \; --returns zero --outputs something
 
 #
 # INTERNALS
 #
 
 # need autotest root to find examples later
-check-command autotest root \
+check-command autotest root \; \
   --returns zero \
-  --outputs string "$root" \
-  || exit
+  --outputs string "$root"
 
 # "unexistant" example MUST not exist
 UNEXISTANT="$(autotest root)/example/unexistant"
 if test -e "$UNEXISTANT"; then
-  echo "FAIL $EXAMPLE should not exist, but it does"; exit 1
+  FAIL "$EXAMPLE should not exist, but it does"
 fi
 
 # "non-executable" must be a non-executable file
 NONEXECUTABLE="$(autotest root)/example/non-executable"
 if ! test -f "$NONEXECUTABLE"; then
-  echo "FAIL $NONEXECUTABLE should be a file, but it isn't"; exit 1
+  FAIL "$NONEXECUTABLE should be a file, but it isn't"
 fi
 if test -x "$NONEXECUTABLE"; then
-  echo "FAIL $NONEXECUTABLE should not be executable, but it is"; exit 1
+  FAIL "$NONEXECUTABLE should not be executable, but it is"
 fi
 
 #
 # NEW API
 #
 
-check-command autotest "" --returns non-zero # empty filename
-check-command autotest "$UNEXISTANT" --returns 127 --outputs nothing
-check-command autotest "$NONEXECUTABLE" --returns 126 --outputs nothing
+for f in {,report}
+do
+  check-command autotest $f "" \; --returns error --outputs error
+  check-command autotest $f "$UNEXISTANT" \; --returns 127 --outputs error
+  check-command autotest $f "$NONEXECUTABLE" \; --returns 126 --outputs error
+done
 
-check-command autotest report --returns non-zero # missing filename
-check-command autotest report "" --returns non-zero # empty filename
-check-command autotest report "$UNEXISTANT" --returns 127
-check-command autotest report "$NONEXECUTABLE" --returns 126
+# bare report is not valid, but bare autotest is valid
+check-command autotest report \; --returns error --outputs error
 
-echo "CODE"
+echo "CODE 0"
 
 ##
 # vim modeline
