@@ -1,0 +1,91 @@
+#!/bin/bash
+
+source autotest C || ENOENT "missing autotest layer C" || exit 127
+
+autotest load check-command--outputs
+
+function only () {
+  local b="type=builtin"
+  local none="type=none"
+  case "$only" in
+    EUSAGE) # cases that should fail with code EUSAGE
+      CASE $b : \; --outputs #no arguments at all
+      CASE $b : \; --outputs '' #empty string as first argument
+      CASE $b : \; --outputs stdin <<<'' #empty stdin
+      CASE $b : \; --outputs string #missing string parameter
+      CASE $b : \; --outputs string {1..2} #to much string parameters
+      ;;
+    ENOENT) # cases for unexistant commands
+      # cases that instead fail with code ENOENT (command not found)
+      # > this may happen for bad quoted argvs, or unexistant commands
+      only=FAIL
+      # must be reported as FAIL (and include diagnose) because:
+      # 1. they output nothing to stdout but there is something on stderr
+      CASE $none diag=1 this-cmd-does-not-exist \; --outputs nothing
+      CASE $none diag=1 "echo foo" \; --outputs nothing
+      # 2. they output something to stderr but nothing to stdout
+      CASE $none diag=1 this-cmd-does-not-exist \; --outputs something
+      CASE $none diag=1 "echo foo" \; --outputs something
+      ;;
+    QUIET) # cases that should fail WITHOUT diagnose present on stderr
+      # when command outputs nothing, there is nothing to diagnose
+      only=FAIL
+      for feature in {something,anything,error}; do
+        CASE $b : \; --outputs $feature
+        CASE $b printf '' \; --outputs $feature
+      done
+      ;;
+    LOUD) # cases that should fail WITH diagnose present on stderr
+      only=FAIL
+      # diagnose specifies how much lines should be present on stderr
+      CASE $b diag=1 echo \; --outputs nothing 
+      CASE $b diag=1 printf ' ' \; --outputs nothing 
+      CASE $b diag=1 echo foo \; --outputs nothing 
+      CASE $b diag=1 echo bar \; --outputs string foo
+      CASE $b diag=1 printf foo \; --outputs nothing
+      CASE $b diag=3 printf '%s\n' {a..c} \; --outputs nothing
+      CASE $b diag=3 printf '%s\n' {a..c} \; --outputs string a
+      CASE $b diag=3 printf '%s\n' {a..c} \; --outputs string b
+      CASE $b diag=3 printf '%s\n' {a..c} \; --outputs string c
+      CASE $b diag=5 printf '%s\n' {1..5} \; --outputs stdin <<<$'a\nb\nc'
+      # care, use :set expandtab for HERE docs and ident with tabs
+      CASE $b diag=3 printf '%s\n' {a..c} \; --outputs stdin <<-STDIN
+			1
+			2
+			3
+			STDIN
+      CASE $b diag=1 echo \; --outputs error
+      CASE $b diag=1 printf foo \; --outputs error
+      CASE $b diag=7 printf '%s\n' {1..7} \; --outputs error
+      ;;
+    OK) # cases that should succeed and continue execution
+      CASE $b true \; --outputs nothing
+      CASE $b false \; --outputs nothing
+      CASE $b printf foo \; --outputs something
+      CASE $b echo bar \; --outputs anything
+      CASE $b printf foo \; --outputs string foo
+      CASE $b : \; --outputs string '' # empty string is ok, unlike stdin
+      # when command outputs nothing, it's OK even if code is ENOENT
+      CASE $b exit 127 \; --outputs nothing
+      # of course it's OK for other codes
+      CASE $b exit 15 \; --outputs nothing
+      # KISS, but the following should fail
+      CASE $b echo bar \; --outputs string bar
+      # KISS, but test case above should be instead:
+      #CASE echo bar \; --outputs string $'bar\n'
+      CASE $b printf '%s\n' {a..c} \; --outputs stdin <<<$'a\nb\nc'
+      CASE $none unexistant-command \; --outputs error
+      CASE $b printf \; --outputs error # printf usage failure
+      ;;
+    *)
+      echo "Bad usage: no cases for test unit '$unit'"
+      exit 2
+      ;;
+  esac
+}
+
+test "$BASH_SOURCE" = "$0" && MAIN "$@" || return 0
+
+##
+# vim modeline
+# Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:

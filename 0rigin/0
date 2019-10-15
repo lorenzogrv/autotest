@@ -1,0 +1,564 @@
+#!/bin/bash
+
+# this is the autotest layer 0 (aka 0rigin), which defines interface for tests
+# it is the 0rigin, it has no dependencies, it tests itself
+# each layer above (A-Z) may implement this source and reuse its tests
+
+function MAIN () {
+  # begins test execution flow at the script end
+  # usage: (help|grep|only=[UNIT] [halt]?|unit=[UNIT][..key=value] ..ARG)?
+  # commanded by [TEST_FILE] "$@", see [TEST_FILE] help
+  # usual: [TEST_FILE] only=[UNIT], [TEST_FILE] help
+  # @spec: "$BASH_SOURCE" = "$0" && MAIN "$@" || return 0
+  case "$1" in
+    -h|help) HELP "$@" ;; # greps help from source, try: help usage
+    -l|list) grep -E --color "[A-Z0-9]+) #" <"$0" ;; # lists [UNIT] names
+    ''|halt) main "$1" ;; # main() calls UNIT() for each [UNIT] listed
+    only=?*) UNIT "$@" ;; # UNIT() calls only() after CASE() is defined
+    unit=?*) TEST "$@" ;; # TEST() calls unit() after consuming keys=values
+
+    # output for humans:
+    grep) shift; MAIN "$@" | egrep --color "^(TEST|FAIL .+|CODE [^0][1-9]*)";;
+    todo) shift; MAIN "$@" | egrep --color "^(TEST|FAIL .+|SKIP .+)";;
+    test) shift; MAIN "$@" 2>&1 | egrep --color "^(TEST .+|FAIL .+|)";;
+
+    *) (MAIN -h); Error --trace 2 "invalid parameter: '$1'" >&2; exit 2 ;;
+  esac
+  exit $? # 0=OK, 1=FAIL, greater is error
+}
+
+function main () {
+  # runs all tests at current script, halts at first failure on demand
+  # usage: [TEST_FILE] [halt]?
+  # commanded by MAIN() when the script runs bare or 'halt'
+  # usual: ...
+  # by default, commands MAIN() unit=[UNIT] for each [UNIT] in MAIN() list
+  codes=0
+  for cases in $(
+    MAIN -l | while IFS= read -d \) c; do echo $c; read; done
+  ); do
+    ( UNIT only=$cases "$1" )
+    ((codes+=$?))
+    test "$1" = 'halt' && test $codes -gt 0 && break
+  done
+  (MAIN list) >/dev/null || { ENOENT "no [CASES] found at $0" || exit 2; }
+  test $codes -eq 0; return $?
+}
+
+function UNIT () {
+  # prepares suitable environment to run only the specified UNIT test cases
+  # usage: [TEST_FILE] only=[UNIT] [halt]?
+  # commanded by MAIN(), defines $only (uppercased [UNIT]) and CASE() function
+  # usual: this function commands only() to run [UNIT] cases with CASE()
+  # by default, CASE() commands TEST() unit=$only "$@"
+  local only codes halt
+  only="${1#only=}"; codes=0; halt="$2"
+  function CASE () {
+    ( TEST unit=$only "$@" )
+    ((codes+=$?))
+    test "$halt" = 'halt' && test $codes -gt 0 && exit $codes
+  }
+  only "${only^^}" # controls what cases to run via constant uppercase names
+  test $codes -eq 0
+  return $?
+}
+
+function TEST () {
+  # echoes the TEST statement and immediately runs the **unit** test
+  # usage: [TEST_FILE] unit=[UNIT] (param=[value]){0,n} ..[ARGV]{0,n}
+  # commanded by MAIN(), defines parameters as variables for later usage
+  # usual: source=[FILE] instructs TEST() to source [FILE] before unit() call
+  # usual: type=[TYPE:-function] asserts ARGV has [TYPE] before unit() call
+  # consumes all **leading** key=value params
+  local stdin
+  test -t 0 && stdin="" || stdin="$(cat)"
+  echo TEST "$0$(printf ' %q' "$@")" "<<<$(printf %q "${stdin}")"
+
+  # consume argv's leading key=value parameters
+  for v in "$@"; do
+    case "$v" in ?*=*) declare "${v%=*}=${v#*=}";; *) break;; esac
+    case "${v%=*}" in case|stdout|stderr|code)
+      echo "$FUNCNAME: invalid key=value argument name: $v" >&2
+      exit 2
+    esac
+    shift
+  done
+
+  # defaults for [key=value] parameters
+  test -z "$unit" && {
+    EUSAGE "$0 TEST @0rigin: no especified unit '$@'"
+    exit 2
+  } >&2
+  
+  # preload specified source=file1,fileN on demand
+  if test -n "$source"
+  then
+    for file in ${source//,/ }; do
+      case="for source $(printf %q "$file"),"
+      output="$(source "$file" &>/dev/null)"
+      code=$?
+      refute-output "output"
+      assert-status 0
+      unset -v output code
+      source "$file"
+    done
+    case="after source ${source//,/ and /}, >$(printf ' %q' "$@"),"
+  else
+    case=">$(printf ' %q' "$@"),"
+  fi
+
+  if test $# -gt 0
+  then
+    type="${type:-function}"
+    expect="$type"
+    test "$type" = none && expect=""
+    assert-type-t "$1" "$expect"
+    unset -v expect
+  fi
+
+  unit "$@"
+  CODE
+}
+
+function only () {
+  # interface to run tests **only** for specified cases, via CASE()
+  # usage: [TEST_FILE] only=[UNIT]
+  # this function is called by UNIT() after CASE() is defined
+  # usual: CASE ..[ARGV] or reuse tests with: autotest [LAYER] ..[ARGV]
+  # any [UNIT] type may receive key=value params at unit(), parsed by TEST()
+  # @spec: case "$only" in *) ENOENT "invalid unit type: $only"; esac
+
+  case "${only}" in
+    BOTH) # stdout test: both=[BOTH] ..ARGV
+      # ..ARGV should succeed, stdout & stderr combined are equal to [BOTH]
+      root="$(git rev-parse --show-toplevel)"
+      CASE type=file "both=$root" autotest root # backwards compat
+      CASE source=autotest "both=$root" autotest--root
+      ;;
+    EVAL) # 0ld api (pre-0rigins): ..ARGV
+      # eval $(..ARGV) should succeed (..ARGV outputs bash source code)
+      # Backwards compat, only valid when autotest has not being sourced
+      CASE type=file load=tested,teskip autotest
+      ;;
+    EV0L) # EV0lution api: load=[LOAD,functions] lazy=[LAZY,ones] ..ARGV
+      # source ..ARGV should load [LOAD,functions] but NOT [LAZY,ones]
+      # sourcing autotest with no arguments should load:
+      load=autotest,autotest--root # main function and --root
+      load+=,Error,EUSAGE,ENOENT # basic error handlers
+      # and should not load Layer 0 functions like:
+      lazy=CODE,FAIL,DIAG,HELP # Basics
+      lazy+=,MAIN,UNIT,TEST # Control functions
+      lazy+=,main,only,unit # Interface hooks
+      CASE type=file load=$load lazy=$lazy autotest
+      # sourcing autotest Layer 0 should load everything except CASE()
+      CASE type=file load=$load,$lazy lazy=CASE autotest 0
+      ;;
+    LOAD) # Loading api: load=[LOAD,functions] lazy=[LAZY,ones] ..ARGV
+      # ..ARGV should load [LOAD,functions] but NOT [LAZY,ones]
+      load=MAIN,UNIT,TEST, # Control functions
+      load+=main,only,unit # Interface hooks
+      CASE source=autotest load=$load lazy=CASE autotest load 0
+      ;;
+    SOME) # General success, exemplify test reusage between layers: ..ARGV
+      # ..ARGV should succeed, output something, and have code 0
+      for word in {list,-l,help,-h}; do
+        CASE source=autotest autotest 0 $word
+      done
+      # test reuse example (run specific [UNIT] for specific ..ARGV):
+      CASE source=autotest autotest 0 unit=EVAL type=file load=tested autotest
+      # test reuse example (All [UNIT] cases):
+      CASE source=autotest autotest 0 only=BOTH
+      ;;
+    HALT) # General execution stoppage: status=[CODE] ..ARGV
+      # ..ARGV should halt with exit status [CODE]. 
+      CASE status=1 FAIL "some reason"
+      CASE status=3 CODE "invalid code"
+      for c in {1..3}; do CASE status=$c CODE $c; done
+      ;;
+    EUSAGE) # General usage error: ..ARGV
+      # ..ARGV should have exit status 2, no stdout data, stderr data
+      CASE source=autotest autotest
+      CASE source=autotest autotest ''
+      CASE source=autotest autotest load
+      CASE source=autotest autotest load ''
+      CASE FAIL # no reason
+      CASE FAIL '' # empty reason
+      ;;
+    EXCODE) # General invalid exit status code error: ..ARGV
+      # ..ARGV should have exit status 3, no stdout data, stderr data
+      CASE CODE "invalid xcode"
+      ;;
+    ENOENT) # General not-found error: ..ARGV
+      # ..ARGV should have exit status 127, no stdout data, stderr data
+      CASE source=autotest autotest Z # layer not found
+      CASE type=file autotest load 0 # file type, won't halt
+      CASE type=file autotest 0 help # Without sourcing the function first
+      CASE type=none autotest--root # no type, won't halt
+      CASE source=autotest autotest load 'future'
+      ;;
+    *) ENOENT "$0: unknown unit: '$unit'" || exit ;;
+  esac
+}
+
+function unit () {
+  # runs specified test $unit as described by TEST() environment setup
+  # usage: [TEST_FILE] unit=UNIT ..[ARGS]
+  # may use optional, already parsed by TEST(), [key=value] parameters
+  # usual: reuse assertions or tests from ancestor layers
+
+  # function or command call, if aplicable
+  case "$unit" in
+    EVAL) mode='eval $($@)'; argv=(eval "$("$@")") ;;
+    EV0L) mode='source $@'; argv=(source "$@") ;;
+    *) mode='$@'; argv=("$@") ;;
+  esac
+  case "$unit" in
+    BOTH|EVAL|EV0L|LOAD|SOME|HALT)
+      case="$case"' output=$( '"$mode"' ),'
+      output="$( "${argv[@]}" 2>&1 )"
+      ;;
+    EUSAGE|EXCODE|ENOENT)
+      case="$case"' stderr/stdout=$( '"$mode"' ),'
+      stdout="$( "$@" 2>/dev/null )"
+      stderr="$( "$@" 2>&1 1>/dev/null )"
+      ;;
+    *) FAIL ENOENT "$0: invalid unit: '$unit'" ;;
+  esac
+  code=$?
+
+  # behaviour conformance tests
+  case "$unit" in
+    BOTH)
+      expect-params both # parameter both is mandatory
+      assert-equals output both
+      ;;
+    EVAL|EV0L|LOAD)
+      refute-output output
+      # loading behaviour tests, load is mandatory but lazy optional
+      expect-params "load"
+      (
+        # ensure the functions don't exist before
+        unset -f ${load//,/ }
+        test -n "$lazy" && unset -f ${lazy//,/ }
+        "${argv[@]}"
+        code=$?
+        assert-functions ${load//,/ }
+        test -n "$lazy" && refute-existance ${lazy//,/ }
+        exit $code
+      )
+      ;;
+    SOME|HALT)
+      assert-output output
+      ;;
+    E*)
+      refute-output stdout
+      assert-output stderr
+      ;;
+    *) FAIL "no behaviour tests are defined for $unit"
+  esac
+
+  # flow execution resume/halt tests
+  case "$unit" in
+    HALT|E*)
+      expect-params type
+      if test "$type" = file || test "$type" = none; then
+        echo PASS "$case $mode will not halt subshell because has $type type"
+      else
+        assert-flow-finish "${argv[@]}"
+      fi
+      ;;
+    *) refute-flow-finish "${argv[@]}" ;;
+  esac
+
+  # exit status tests
+  case "$unit" in
+    EUSAGE) assert-status 2 ;;
+    EXCODE) assert-status 3 ;;
+    ENOENT) assert-status 127 ;;
+    HALT)
+      expect-params status
+      assert-status $status
+      ;;
+    *) assert-status 0 ;;
+  esac
+}
+
+##
+## AUTOTEST BASICS (0ld API style)
+##
+## 0ld API is more a coding style than a true API, but still allows kind of
+## _writting less_ while _doing more_, resulting in leaner code at tests.
+##
+## ```
+## test something-is-as-expected \
+##   || FAIL "the thing should be as it is expected to be"
+## echo PASS "the thing is as it is expected to be"
+## ```
+##
+
+function FAIL () {
+  # echoes FAIL statement, dumps diagnose information, and puts CODE
+  # usage: FAIL [REASON]
+  # when no $code value is present, or $code is 0, will force CODE 1
+  local diag=
+  test "$1" = "--diag" && diag="$2" && shift 2
+  if test -z "$*"; then
+    echo "$FUNCNAME @0rigin: bad usage: no reason specified" >&2
+    exit 2
+  fi
+  echo FAIL "$@"
+  false && for ((a=1; a < ${#FUNCNAME[@]}; a++))
+  do
+    echo "   @ ${FUNCNAME[a]} +${BASH_LINENO[a-1]} ${BASH_SOURCE[a]}"
+  done >&2
+  if test -n "$diag"; then
+    for var in ${diag//,/ }; do
+      DIAG "$var"
+    done
+  else
+    false && for var in {case,stdout,stderr,output,code}; do
+      test -n "${!var}" && DUMP "   | ${var/std/ }:" <<<"${!var}"
+    done
+  fi
+  (( $code )) && CODE $code || CODE 1
+}
+
+function CODE () {
+  # echoes CODE statement and immediately exits subshell environment
+  # usage: CODE [STATUS]? [..ARGV}
+  # exit code is the specified [STATUS], or the last known code ($?)
+  # usual: called by TEST() once unit() is done and returns
+  # valid exit status codes range from 0 to 255
+  code="${1:-$?}"
+  if ! test "$code" -lt 256 2>/dev/null; then
+    echo "$FUNCNAME @0rigin: invalid exit status code: $code" >&2
+    code=3
+  else
+    echo CODE $code @0rigin by \@${FUNCNAME[1]} from \@${FUNCNAME[2]}
+  fi
+  exit $code
+}
+
+function DUMP () {
+  # echoes any data it reads to stderr, prefixed with received argv
+  # usage: DUMP [PREFIX]? <<<"[DATA]"
+  # returns success when data was output
+  local line probe=0
+  while IFS= read line; do
+    echo "$@" "$line" "<"
+    probe=1
+  done
+  test "$line" != '' \
+    && echo "$@" "$line" "<(no line break present)" \
+    || (( $probe )) # returns success when probe > 0
+} >&2
+
+function DIAG () {
+  # writes diagnose information to stderr for each variable [NAME] given
+  # usage: DIAG [NAME1] ..[NAMEn]
+  local count dname
+  for var in "$@"; do
+    count="$(wc -l <<<"${!var}")"
+    dname="${var#std}"
+    if test "$var" != "${var#std}" || test "$var" != "${var#output}"
+    then
+      dname="${var/stdin/0<}"
+      dname="${dname/stdout/1>}"
+      dname="${dname/stderr/2>}"
+      dname="${dname/output/&>}"
+    else
+      dname="$var:"
+    fi
+    DUMP "   |" "$dname" <<<"${!var}"
+  done
+}
+
+diag () {
+  local l probe=0
+  while IFS= read l; do
+    diag-msg $1 "${l#${BASH_SOURCE%/*}/}" "$2" "$3";
+    probe=1
+  done
+  test "$l" != '' \
+    && diag-msg $1 "$l" "<(no line break present)" "$3" \
+    || (( $probe )) # returns true when data was output
+  #echo "diag $@ end l='$l' probe=$probe" >&2
+}
+
+diag-msg () {
+  local line="${2:-<(empty line)}"
+  printf '%2s | %s%s %s %s\n' \
+    "$((++n))" "${1:-?}" "${4:->}" \
+    "${line//$'\n'/(newline char)}" \
+    "${3:-<}"
+} >&2
+
+##
+## BASIC EXPECT ASSERTIONS (they don't write PASS statements to stdout)
+##
+
+function expect-exists () {
+  # asserts each [VARIABLE] name given is active on subshell
+  # usage: assert-exists [VARIABLE]{1,n}
+  # useful within unit() or assert-X functions to assert presence of variables
+  test $# -gt 0 || FAIL "$FUNCNAME: no [VARIABLE] names given"
+  for var in "$@"; do
+    test -v "$var" \
+      || FAIL "variable '$var' should be active at shell lvl $BASH_SUBSHELL"
+  done
+}
+
+function expect-params () {
+  # asserts each [VARIABLE] name given is active and not empty on subshell
+  # usage: assert-params [VARIABLE]{1,n}
+  # useful within unit() or assert-X to assert environment parameters are set
+  expect-exists "$@"
+  for var in "$@"; do
+    test -n "${!var}" \
+      || FAIL "variable '$var' should have value at shell lvl $BASH_SUBSHELL"
+  done
+}
+
+##
+## BASIC ASSERTIONS (no $case relationship but write PASS statements)
+##
+
+function assert-type-t () {
+  # asserts the [COMMAND] name given has [TYPE] on subshell (type -t equality)
+  # usage: assert-type-t [COMMAND] [|alias|keyword|function|builtin|file]
+  # useful within unit() to assert a command has specified type, or no type
+  test $# -eq 2 || FAIL "$FUNCNAME: expecting exactly 2 parameters"
+  test "$(type -t "$1")" = "$2" \
+    || FAIL "at shell lvl $BASH_SUBSHELL, $1 should have ${2:-no} type"
+  echo PASS "at shell lvl $BASH_SUBSHELL, $1 has ${2:-no} type"
+}
+
+function refute-existance () {
+  # asserts each [COMMAND] name given has no type at subshell (type='')
+  # usage: refute-existance [COMMAND]{1,n}
+  # useful within unit() to assert commands are not found at subshell
+  test $# -gt 0 || FAIL "$FUNCNAME: expecting at least 1 parameter"
+  for name in "$@"; do assert-type-t "$name" ''; done
+}
+
+function assert-functions () {
+  # asserts each [COMMAND] name given has function type at subshell
+  # usage: assert-functions [COMMAND]{1,n}
+  # useful within unit() to assert commands are functions at subshell
+  test $# -gt 0 || FAIL "$FUNCNAME: expecting at least 1 parameter"
+  for name in "$@"; do assert-type-t "$name" 'function'; done
+}
+
+##
+## EXECUTION FLOW ASSERTIONS (no $case relationship, write PASS statements)
+##
+
+function assert-flow-finish () {
+  # asserts [COMMAND] [ARGV] "exits", halting the subshell execution 
+  # usage: assert-flow-finish [COMMAND] [ARGV]{0,n}
+  local cmd="running$(printf " %q" "$@")"
+  test "$( "$@" &>/dev/null; echo next )" != 'next' \
+    || FAIL "$cmd should halt the subshell"
+  echo PASS "$cmd halts the subshell"
+}
+function refute-flow-finish () {
+  # asserts [COMMAND] [ARGV] resumes subshell execution upon completion
+  # usage: refute-flow-finish [COMMAND] [ARGV]{0,n}
+  local cmd="running $(printf " %q" "$@")"
+  test "$( "$@" &>/dev/null; echo next )" = 'next' \
+    || FAIL "$cmd should not halt the subshell"
+  echo PASS "$cmd does not halt the subshell"
+}
+
+##
+## BASIC CONTENT ASSERTIONS ($case relationship, write PASS statements)
+##
+
+function assert-output () {
+  # asserts the variable [NAME] exists and has content (test -n)
+  # usage: assert-output [NAME]
+  # useful within unit() to assert presence of parameter/output values
+  expect-params 'case' "${1:?missing [NAME]}"
+  test -n "${!1}" \
+    || FAIL "$case \$$1 should have data"
+  echo PASS "$case \$$1 has data"
+}
+
+function refute-output () {
+  # asserts the variable [NAME] exists and has no content (test -z)
+  # usage: assert-output [NAME]
+  # useful within unit() to assert absence of parameter/output values
+  expect-params 'case'
+  expect-exists "${1:?missing [NAME]}"
+  test -z "${!1}" \
+    || FAIL --diag $1 "$case \$$1 should have no data"
+  echo PASS "$case \$$1 has no data"
+}
+
+function assert-equals () {
+  # asserts the variables [NAME] and [EXPECT] exist and are equal (test =)
+  # usage: assert-output [NAME] [EXPECT]
+  # useful within unit() to assert equality between parameter/output values
+  expect-params 'case' "${1:?missing [NAME]}" "${2:?missing [EXPECT]}"
+  test "${!1}" = "${!2}" \
+    || FAIL "$case \$$1 should be equal to \$$2"
+  echo PASS "$case \$$1 is equal to \$$2"
+}
+
+function assert-status () {
+  # asserts the variable $code exists and is equal to specified value
+  # usage: assert-status [EXPECTED_CODE]
+  # useful within unit() to assert conformance with specific exit status code
+  expect-params 'case' 'code'
+  test "$code" -eq "${1:?missing [EXPECTED_CODE]}" \
+    || FAIL "$case \$code should be $1, but is $code"
+  echo PASS "$case \$code is $1"
+}
+
+##
+## HELP
+##
+
+function HELP () {
+  # control function to output command usage help and information
+  # usage: HELP (usage|usage [SEARCH]|lineno)? 
+  # useful also to grep documentation from the source, like this comment
+  shift
+  case "$*" in
+    '') # outputs help for MAIN() function
+      read -d ':' N <<<"$( grep -E -n -m1 '^}' "$BASH_SOURCE" )"
+      head -n $N "$BASH_SOURCE" | grep -E --color '# .+|^' #\
+        #| grep -E --color "^[a-z]+|#| # usual .+|  [a-z]+\) #"
+      ;;
+    usage) # grep function usage help from $0 file
+      if ! test -t 1; then
+        grep -E --color=always -A 1 \
+          "^function|^##.*|# us(age|ual):| [a-Z0]+\) #" "$0"
+        return $?
+      fi
+      (
+        HELP help | grep -E --color=always '# .+|^' 
+        echo "##"
+        echo "## $0 USAGE HELP"
+        echo "##"
+        HELP help usage
+      ) | less -R
+      #egrep --color "# |usage|[a-z]+\)" ;;
+      ;;
+    usage*) # grep usage help
+      shift
+      HELP usage | grep --color -E -C 3 "${1^^}|${1,,}" \
+        && echo search for "$@" succed \
+        || echo "$@" "not found"
+      ;;
+    lineno) grep -n -E --color '^function|^}( >&2)?$' "$0" ;;
+  esac
+}
+
+# run the test when issued to do so
+test "$BASH_SOURCE" = "$0" && MAIN "$@" || return 0
+
+##
+# vim modeline (see vim +'help modeline')
+# /* vim: set expandtab: */
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

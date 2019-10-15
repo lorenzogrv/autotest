@@ -1,4 +1,4 @@
-local NAME="$(basename "$(type -p autotest)")"
+NAME="$(basename "$(type -p autotest)")"
 
 # TODO split this file on parts (i.e. USSAGE, USSAGE-SUBCOMAND, etc)
 cat <<HELP

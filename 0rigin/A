@@ -1,0 +1,215 @@
+#!/bin/bash
+
+# This is the layer A, which inherits layer 0
+# when failed sourcing it may write nothing to stderr, so be loud here
+source autotest 0 || ENOENT "missing autotest layer 0" || exit
+
+function only () {
+  case "$only" in
+    PASS) # success assertion statement: count=[N] ..ARGV
+      # ..ARGV should write [N] PASS statement lines on stdout
+      CASE type=builtin count=1 echo PASS "some reason"
+      ;;
+    SKIP) # ignored assertion statement: count=[N] ..ARGV
+      # ..ARGV should write [N] SKIP statement lines on stdout
+      CASE type=builtin count=1 echo SKIP "some reason"
+      ;;
+    FAIL) # failure assertion statement: count=[N] diag=[M] ..ARGV
+      # ..ARGV should write [N-1] FAIL + 1 CODE (stdout), [M] diagnose (stderr)
+      CASE count=2 diag=1 foo=bar FAIL --diag foo "some reason"
+      ;;
+    CODE) # settled unit test statement: ..ARGV
+      for code in {0..3}; do #255}; do
+        CASE CODE $code
+      done
+      CASE CODE 1 "optional description"
+      ;;
+    SPEC) # Protocol line stream conformance: ..ARGV
+      # ..ARGV should stream valid ATP lines (statements) throught stdout
+      CASE type=builtin echo FAIL "some reason" # conforms spec
+      for cases in {PASS,SKIP,FAIL,CODE}; do
+        CASE autotest A only=$cases
+      done
+      # Forward-compatibility: ignore unknown directives
+      for word in {PLAN,CASE,TIME,WORD,VERB,GOOD}; do
+        CASE type=builtin echo $word "some value, data, description, etc"
+      done
+      # running cases from layer 0 should output valid spec
+      # EV0L triggers a bug here, because it sources autotest
+      # LOAD also hangs, still to dig into causes
+      for cases in {BOTH,EVAL,SOME,HALT,EUSAGE,EXCODE,ENOENT}; do
+        CASE autotest 0 only=$cases halt # halt to speedup posible failure
+      done
+      ;;
+    *) echo "$0: invalid cases: '$1'" >&2; exit 2 ;;
+  esac
+}
+
+function unit () {
+  # run specified test as described by environment $unit variable
+  # usage: unit ..ARGV
+  # may handle optional [key=value] parameters already parsed by TEST()
+
+  # command call, if aplicable
+  case "$unit" in
+    SPEC|PASS|SKIP|FAIL|CODE)
+      stdout="$( "$@" 2>/dev/null )"
+      stderr="$( "$@" 2>&1 1>/dev/null )"
+      ;;
+    *) echo "$0: invalid unit: '$unit'" >&2; exit 2 ;;
+  esac
+  code=$?
+
+  # assume it should not be diagnose when it's not specified
+  test -n "$diag" || diag=0
+
+  # parameter conformance
+  case "$unit" in
+    PASS|SKIP)
+      test $diag -eq 0 || {
+        echo "> Remember:"
+        echo "> succesful commands should never write data to stderr"
+        diag=0
+      } >&2
+      ;;
+    FAIL)
+      count=${count:-2}
+      test $count -ge 2 || {
+        echo "> Remember:"
+        echo "> failure assertions shoud always write CODE statement"
+        count=2
+      } >&2
+      ;;
+    CODE)
+      count=${count:-1}
+      test $count -eq 1 || {
+        echo "> Remember:"
+        echo "> settled unit test statements consist on one CODE only"
+        count=1
+      } >&2
+      ;;
+  esac
+
+  # stderr diagnose conformance
+  if test $diag -eq 0; then
+    # no diagnose information means no stderr data except for SPEC because
+    # stderr may be diagnosing
+    test $unit != SPEC && refute-output stderr
+  else
+    # diagnose information presence tests
+    assert-output stderr
+    # when there is stdin data, it should be present at diagnose
+    test -n "$stdin" && input=$(wc -l <<<"$stdin") || input=0
+    assert-line-count stderr $((diag+input))
+    assert-grep-count stderr "$diag" "^([0-9]| ){3}\| ([12]>|[a-Z]+:) .* <"
+    assert-grep-count stderr "$input" "^([0-9]| ){3}\| 0< .* >$"
+  fi
+
+  # stdout conformance tests
+  case "$unit" in
+    EUSAGE|ENOENT) refute-output stdout ;;
+    *)
+      # every line must match protocol: WORD value description
+      assert-grep-every stdout '^[A-Z]{4} .+'
+      test -n "$count" && assert-line-count stdout "$count"
+      ;;
+  esac
+  case "$unit" in
+    PASS)
+      assert-grep-every stdout '^PASS .+'
+      ;;
+    FAIL)
+      expect-params count
+      assert-grep-count stdout $((count-1)) "^FAIL .+"
+      assert-grep-count stdout 1 "^CODE [0-9]+"  
+      ;;
+  esac
+
+  # exit status code tests
+  case "$unit" in
+    CODE|FAIL|E*)
+      case "$unit" in
+        CODE) read key expect etc <<<"${stdout}" ;;
+        EUSAGE) expect=2 ;;
+        ENOENT) expect=127 ;;
+        *) expect=1 ;; # everything else must FAIL
+      esac
+      assert-status $expect
+      code=0
+      ;;
+    SPEC) ;; # Code could be any
+    *) assert-status 0 ;; # everything else must succeed
+  esac
+
+  # flow halt tests
+  case "$unit" in
+    CODE|FAIL|E*) assert-flow-finish "$@";;
+    SPEC)
+      test $code -eq 0 \
+        && refute-flow-finish "$@" \
+        || assert-flow-finish "$@"
+      ;;
+    *) refute-flow-finish "$@" ;;
+  esac
+}
+
+##
+## ADVANCED CONTENT ASSERTIONS
+##
+
+function assert-line-count () {
+  # asserts variable [NAME] exists and contains [COUNT] lines (wc -l)
+  # usage: assert-line-count [NAME] [COUNT]
+  expect-params 'case'
+  expect-exists "${1:?missing [NAME]}"
+  case "${2:?missing [COUNT]}" in
+    0) refute-output "$1"; return $? ;; #as wc -l will report 1 line
+    *) # the wc -l test will report 1 line when feeding in empty variables
+      test -n "${!1}" \
+        || FAIL "$case \$$1 should have $2 data line(s), but is empty"
+      ;;
+  esac
+  local count="$( wc -l <<<"${!1}" )"
+  test "$count" -eq "$2" \
+    || FAIL "$case \$$1 should have $2 data line(s), but has $count"
+  echo PASS "$case \$$1 has $2 data line(s)"
+}
+
+function assert-grep-count () {
+  # asserts variable [NAME] exists and contains [COUNT] lines matching [ARGV]
+  # usage: assert-grep-count [NAME] [COUNT] [ARGV]{1,n}
+  # test is performed via 'wc -l | grep -E [ARGV]{1,n}'
+  expect-params 'case' "${1:?missing [NAME]}"
+  local expect="${2:?missing [COUNT]}"
+  (( $# > 2 )) || EUSAGE "no arguments for egrep" || exit 2
+
+  local count="$( grep -E "${@:3}" <<<"${!1}" | wc -l )" 
+  test "$count" -eq "$2" \
+    || FAIL --diag $1 \
+    "$case \$$1 should match '${@:3}' $2 times, but matches $count"
+  echo PASS "$case \$$1 matches '${@:3}' $2 time(s)"
+}
+
+function assert-grep-every () {
+  # asserts variable [NAME] exists, has content, and every line matches [ARGV]
+  # usage: assert-grep-every [NAME] [ARGV]{1,n}
+  # matching is performed via grep -E
+  expect-params 'case' "${1:?missing [NAME]}"
+  (( $# > 1 )) || EUSAGE "no arguments for grep -E" || exit 2
+
+  local var="$1"; shift
+  local m=$( grep -E "$@" <<<"${!var}" | wc -l )
+  local c=$( wc -l <<<"${!var}" )
+
+  #TODO diag diff{ egrep -v "$expect" <<<"$stdout"; } >&2
+  test "$m" -eq "$c" \
+    || FAIL "$case \$$var every line ($c) should match $@, but only $m match"
+  echo PASS "$case \$$var every line ($c) matches $@"
+}
+
+test "$BASH_SOURCE" = "$0" && MAIN "$@" || return 0
+
+##
+# vim modeline (see vim +'help modeline')
+# /* vim: set expandtab: */
+# /* vim: set filetype=sh ts=2 shiftwidth=2: */

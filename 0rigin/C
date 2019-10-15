@@ -1,0 +1,202 @@
+#!/bin/bash
+
+source autotest A || ENOENT "Can't source Autotest layer A" || exit 127
+
+autotest load check-command
+
+#source "$(autotest--root)/test/dry-assert.bash"
+
+function only () {
+  local b="type=builtin"
+  local none="type=none"
+  case "$only" in
+    OK) # Success cases
+      CASE $b "true" \; --noop # plugins may accept no arguments
+      CASE $none "bad-command" \; --noop #127 command may be a test!
+      CASE $b : \; --noop --void --lines 0
+      CASE $b echo {1..4} \; --noop --params 5 --lines 1
+      CASE $b printf '%s\n' {a..c} \; --noop --params 5 --lines 3
+      CASE $b echo foo bar \; --lines 1 --exact "foo bar"
+      ;;
+    FAIL) # Normal failure cases, diagnose may be present or not
+      CASE $b diag=0 ":" \; --lines 1
+      CASE $b diag=1 "echo" something \; --void
+      CASE $none diag=1 "echo foo" \; --void #command "echo foo" is not found
+      ;;
+    EUSAGE) # wrong usage examples
+      CASE $none # no arguments at all (for check-command)
+      CASE $none ""
+      CASE $none "" \;
+      CASE $b "true" \; # correct command, but no assertions specified
+      # special care with commands not including trailing semicolon
+      CASE $none {1..5} --noop
+      CASE $none {y..z} -- --noop
+      CASE $none {1..3} --noop
+      CASE $none {1..7} \! --noop
+      CASE $none {h..k} \+ --noop
+      ;;
+    ENOENT) # entity not found error examples
+      CASE $b true \; --unexistant #plugin, but command exists
+      CASE $none not-exist \; --unexistant # cause is plugin, not command
+      ;;
+    *) ENOENT "$0: invalid unit name '$only'"; exit 2 ;;
+  esac
+}
+
+
+function unit () {
+  # runs specified unit, gets called at this script end
+  
+  case $unit in ENOENT|EUSAGE|FAIL|OK) ;; *)
+    echo "Bad usage: test unit '$unit' is not defined"
+    exit 2
+  esac
+ 
+  # assume it should not be diagnose when it's not specified
+  test -n "$diag" || diag=0
+  case "$unit" in
+    OK)
+      test $diag -eq 0 || {
+        echo "> Remember:"
+        echo "> succesful commands should never write data to stderr"
+        diag=0
+      } >&2
+      expect_code=0
+      ;;
+    FAIL)
+      expect_code=1
+      ;;
+    EUSAGE)
+      test $diag -eq 0 || {
+        echo "> Remember:"
+        echo "> bad usage failures should write no diagnose, but usage error"
+        diagnose=0
+      } >&2
+      expect_code=2
+      ;;
+    ENOENT)
+      test $diag -eq 0 || {
+        echo "> Remember:"
+        echo "> not-found error is for unexistant plugins, not commands"
+        diagnose=0
+      } >&2
+      expect_code=127
+      ;;
+  esac
+  
+  plugin_count=0
+  for arg in "$@"; do case "$arg" in 
+    #KISS, don't test multi-param commands with this long options
+    #TODO get the correct plugin count for plugin test scripts
+    --noop|--params|--void|--lines|--exact) 
+  let plugin_count++;; esac; done
+  
+
+  cmd=("check-command" "$@") 
+  case="check-command $case"
+  stdout="$( "${cmd[@]}" <<<"$stdin" 2>/dev/null )"
+  stderr="$( "${cmd[@]}" <<<"$stdin" 2>&1 1>/dev/null )"
+  code=$?
+
+  case $unit in
+    OK)
+      # if it's success, every line should be PASS
+      assert-grep-every "stdout" "^PASS .+"
+      test $plugin_count -gt 0 && {
+        # each test-purpose plugin draws 1 assertions
+        assert-line-count "stdout" "$plugin_count"
+      } || {
+        # standard plugins should spite only one assertion
+        assert-line-count "stdout" 1
+      }
+      ;;
+    FAIL)
+      assert-line-count "stdout" 2
+  # if it's code FAIL, it must provide at least one FAIL and one CODE
+      assert-grep-count "stdout" 1 "^FAIL .+"
+      assert-grep-count "stdout" 1 "^CODE 1( .+)?"  
+      ;;
+    EUSAGE|ENOENT)
+      # TODO what happens when EUSAGE is at second plugin or below?
+      refute-output "stdout"
+      ;;
+  esac
+
+  # stderr conformance
+  if test $diag -eq 0; then
+    # no diagnose information means no stderr data except for cases where
+    # stderr is not diagnosing the command BUT the check-command call itself
+    case "$unit" in
+      EUSAGE)
+        assert-grep-count stderr 1 "EUSAGE|usage|invalid"
+        ;;
+      ENOENT)
+        assert-grep-count stderr 1 "ENOENT|not found|no encontrada"
+        ;;
+      *) refute-output "stderr" ;;
+    esac
+  else
+    # diagnose information presence tests
+    assert-output "stderr"
+    # when there is stdin data, it should be present at diagnose
+    test -n "$stdin" && input=$(wc -l <<<"$stdin") || input=0
+    assert-line-count "stderr" $((diag+input))
+    assert-grep-count "stderr" $diag "^([0-9]| ){3}\| [12&]> .* <"
+    assert-grep-count "stderr" $input "^([0-9]| ){3}\| 0< .* >$"
+  fi
+  
+  assert-status $expect_code
+
+  if test $expect_code -gt 0; then
+    # any non-success case should exit the subshell execution
+    assert-flow-finish "${cmd[@]}" <<<"$stdin"
+  else
+    # but any success case should continue
+    refute-flow-finish "${cmd[@]}" <<<"$stdin"
+  fi
+}
+
+if test "$BASH_SOURCE" = "$0"
+then
+  # when commanded to run alone, define plugins for testing purposes
+  check-command--noop () {
+    # does nothing
+    echo "PASS plugin $FUNCNAME received $# arguments"
+  }
+  check-command--params () {
+    # asserts AUTOCMD array length is N
+    test $# -eq 1 || FAIL "$FUNCNAME expects one parameter"
+    case="$case, inside plugin $FUNCNAME"
+    test "${#AUTOCMD[@]}" -eq "$1" \
+      || FAIL "AUTOCMD length should be $1, but is ${#AUTOCMD[@]}"
+    echo PASS "AUTOCMD length is $1"
+  }
+  check-command--void () {
+    # refutes command stdout and stderr
+    test $# -eq 0 || FAIL "$FUNCNAME expects no parameters"
+    case="$case, running '${AUTOCMD[@]}' inside $FUNCNAME"
+    output="$( "${AUTOCMD[@]}" 2>&1 )"
+    refute-output "output"
+  }
+  check-command--lines () {
+    # asserts command stdout has N lines
+    test $# -eq 1 || FAIL "$FUNCNAME expects one parameter"
+    case="$case, running '${AUTOCMD[@]}' from $FUNCNAME"
+    output="$( "${AUTOCMD[@]}" 2>/dev/null )"
+    assert-line-count "output" "$1"
+  }
+  check-command--exact () {
+    # asserts command stdout is exact to STRING
+    test $# -eq 1 || FAIL "$FUNCNAME expects one parameter"
+    expect="$1"
+    case="$case, running '${AUTOCMD[@]}' from $FUNCNAME"
+    output="$( "${AUTOCMD[@]}" 2>/dev/null )"
+    assert-equals "output" "expect"
+  }
+fi
+
+test "$BASH_SOURCE" = "$0" && MAIN "$@" || return 0
+
+##
+# vim modeline
+# Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:

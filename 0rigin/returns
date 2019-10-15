@@ -1,0 +1,65 @@
+#!/bin/bash
+
+# This test script defines only test cases, delegating test unit executions
+# on other test script
+source autotest C || ENOENT "Can't load Autotest layer C" || exit 127
+
+autotest load check-command--returns
+
+function only () {
+  local b="type=builtin"
+  local none="type=none"
+  case "$only" in
+    EUSAGE) #cases that should fail with EUSAGE
+      for op in {'',eq,ne,gt,ge,lt,le}
+      do
+        test -n "$op" && op="-$op"
+        CASE $b : \; --returns $op # no arguments
+        CASE $b : \; --returns ${op} '' # empty string
+        CASE $b : \; --returns ${op} -1 # negative integer
+        CASE $b : \; --returns ${op} 256 # integer over exit status range
+        CASE $b : \; --returns ${op} 0 13 # two integer parameters
+        CASE $b : \; --returns ${op} string # non-integer value
+        CASE $b : \; --returns ${op} {x..z} # non-sense parameters
+      done
+      ;;
+    FAIL) #cases that should fail with code 1 (FAIL)
+      CASE $b false \; --returns zero
+      CASE $b true \; --returns non-zero
+      CASE $b true \; --returns nonzero
+      CASE $b false \; --returns 13
+      CASE $b true \; --returns 51
+      CASE $b true \; --returns error
+      CASE $b false \; --returns error
+      ;;
+    ENOENT) #cases that should fail with code FAIL and diagnose
+      only=FAIL
+      CASE $none diag=1 "echo foo" \; --returns zero
+      CASE $none diag=1 unexistant-command \; --returns zero
+      ;;
+    OK) #cases that should succed
+      CASE $b true \; --returns zero
+      CASE $b false \; --returns non-zero
+      CASE $b false \; --returns nonzero
+      CASE $b exit 13 \; --returns 13
+      CASE $b exit 127 \; --returns non-zero
+      CASE $b exit 3 \; --returns -lt 5
+      CASE $b exit 3 \; --returns -lt 5
+      CASE $b exit 2 \; --returns error
+      CASE $b exit 127 \; --returns error
+      CASE $b exit invalid-code \; --returns error
+      # it must be defined how to deal with the following case, as is true
+      CASE $none unexistant-command \; --returns 127
+      ;;
+    *)
+      echo "Bad usage: '$unit' has no cases defined" >&2
+      exit 2
+      ;;
+  esac
+}
+
+test "$BASH_SOURCE" = "$0" && MAIN "$@" || return 0
+
+##
+# vim modeline
+# Vim: set filetype=sh ts=2 shiftwidth=2 expandtab:
