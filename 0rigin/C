@@ -4,8 +4,6 @@ source autotest A || ENOENT "Can't source Autotest layer A" || exit 127
 
 autotest load check-command
 
-#source "$(autotest--root)/test/dry-assert.bash"
-
 function only () {
   local b="type=builtin"
   local none="type=none"
@@ -137,12 +135,16 @@ function unit () {
     esac
   else
     # diagnose information presence tests
-    assert-output "stderr"
     # when there is stdin data, it should be present at diagnose
     test -n "$stdin" && input=$(wc -l <<<"$stdin") || input=0
     assert-line-count "stderr" $((diag+input))
+    # diag=N param specifies how much output lines
     assert-grep-count "stderr" $diag "^([0-9]| ){3}\| [12&]> .* <"
     assert-grep-count "stderr" $input "^([0-9]| ){3}\| 0< .* >$"
+    # Optionally, diag_out=N and diag_err=N are expected lines for each output
+    # fails with stdout/stderr diag presence but no expected lines especified
+    assert-grep-count "stderr" ${diag_out:-0} "^([0-9]| ){3}\| 1> .* <"
+    assert-grep-count "stderr" ${diag_err:-0} "^([0-9]| ){3}\| 2> .* <"
   fi
   
   assert-status $expect_code
