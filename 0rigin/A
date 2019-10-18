@@ -9,6 +9,9 @@ function only () {
     PASS) # success assertion statement: count=[N] ..ARGV
       # ..ARGV should write [N] PASS statement lines on stdout
       CASE type=builtin count=1 echo PASS "some reason"
+      mock=$'a\nb'
+      CASE count=1 assert-line-count mock 2
+      unset -v mock
       ;;
     SKIP) # ignored assertion statement: count=[N] ..ARGV
       # ..ARGV should write [N] SKIP statement lines on stdout
@@ -17,6 +20,10 @@ function only () {
     FAIL) # failure assertion statement: count=[N] diag=[M] ..ARGV
       # ..ARGV should write [N-1] FAIL + 1 CODE (stdout), [M] diagnose (stderr)
       CASE count=2 diag=1 foo=bar FAIL --diag foo "some reason"
+      mock=$'a\nb'
+      CASE count=2 diag=2 FAIL --diag mock "some reason"
+      CASE count=2 diag=2 assert-line-count mock 1
+      unset -v mock
       ;;
     CODE) # settled unit test statement: ..ARGV
       for code in {0..3}; do #255}; do
@@ -97,7 +104,6 @@ function unit () {
     test $unit != SPEC && refute-output stderr
   else
     # diagnose information presence tests
-    assert-output stderr
     # when there is stdin data, it should be present at diagnose
     test -n "$stdin" && input=$(wc -l <<<"$stdin") || input=0
     assert-line-count stderr $((diag+input))
@@ -171,7 +177,7 @@ function assert-line-count () {
   esac
   local count="$( wc -l <<<"${!1}" )"
   test "$count" -eq "$2" \
-    || FAIL "$case \$$1 should have $2 data line(s), but has $count"
+    || FAIL --diag $1 "$case \$$1 should have $2 data line(s), but has $count"
   echo PASS "$case \$$1 has $2 data line(s)"
 }
 
