@@ -1,5 +1,5 @@
 
-test "$(type -t verb)" = "function" || verb () { :; }
+test "$(type -t verb)" = "function" || verb () { false; }
 
 # quick-and-dirty but working
 function check-command () {
@@ -8,7 +8,7 @@ function check-command () {
 
   test -z "$*" && {
     echo "$FUNCNAME: bad usage (missing arguments)"
-    return 2
+    exit 2
   } >&2
  
   # the command argv ends just before first semicolon
@@ -19,7 +19,7 @@ function check-command () {
 
   if test "$1" != ';'; then
     echo "$FUNCNAME: bad usage (no trailing semicolon for command)" >&2
-    return 2
+    exit 2
   else
     shift
   fi
@@ -32,8 +32,8 @@ function check-command () {
     shift
     
     test "$(type -t "$AUTOPLUG")" = 'function' || {
-      echo "$FUNCNAME: plugin does not exist: '$AUTOPLUG'"
-      return 127
+      echo "$FUNCNAME: plugin not found: '$AUTOPLUG'"
+      exit 127
     } >&2
 
     # the plugin argv ends just before the next "long option" argument
@@ -52,7 +52,7 @@ function check-command () {
 
   test -n "$AUTOPLUG" || {
     echo "$FUNCNAME: invalid usage (no assertions specified)"
-    return 2
+    exit 2
   } >&2
 }
 

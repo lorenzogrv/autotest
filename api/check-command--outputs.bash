@@ -31,13 +31,13 @@ function check-command--outputs () {
     something|anything|error) ;; # don't need all output
     nothing|string|stdin) ("${AUTOCMD[@]}") 1>&4 2>&3 ;;
   esac
-  exec 4>&-
+  #exec 4>&-
 
   local probe diff
   case "$1" in
     something|anything) ("${AUTOCMD[@]}") 2>&3 | read -N 1 ;;
     error)
-      ("${AUTOCMD[@]}") 2>&1 1>&3 | read -N 1 && ! read -N 1 < $stderr
+      ("${AUTOCMD[@]}") 2>&1 1>&4 | read -N 1 && ! read -N 1 < $stdout
     ;;
     nothing) read -N 1 < $stdout || read -N 1 < $stderr; (($?)) ;;
     string) diff="$(< $stdout)"; test "$diff" = "$2" ;;
@@ -64,11 +64,15 @@ function check-command--outputs () {
       diag 1 < $stdout
       #diag-msg 1 "$(cat $stdout)"
     else # last resort: print the character we now is there
-      read -N 1 thing < $stdout && diag-msg 1 "${thing}" 
+      read -N 1 thing < $stdout && diag-msg 1 "$thing"
       #/$'\n'/(newline character)}" >&2
     fi
     n=0
-    diag 2 < $stderr
+    #echo >&2 fuck you man
+    if test "$(cat $stderr)" != ''
+    then
+      diag 2 < $stderr
+    fi
   fi
 
   # teardown logging machinery
