@@ -34,8 +34,9 @@ function only () {
       ;;
     ENOENT) #cases that should fail with code FAIL and diagnose
       only=FAIL
-      CASE $none diag=1 "echo foo" \; --returns zero
-      CASE $none diag=1 unexistant-command \; --returns zero
+      # they are grouped as ENOENT because are triggered by not-found command
+      CASE $none diag=1 diag_err=1 "echo foo" \; --returns zero
+      CASE $none diag=1 diag_err=1 unexistant-command \; --returns zero
       ;;
     OK) #cases that should succed
       CASE $b true \; --returns zero

@@ -16,16 +16,16 @@ function only () {
       CASE $b : \; --outputs string {1..2} #to much string parameters
       ;;
     ENOENT) # cases for unexistant commands
-      # cases that instead fail with code ENOENT (command not found)
       # > this may happen for bad quoted argvs, or unexistant commands
       only=FAIL
+      # cases that instead fail with code ENOENT (command not found)
       # must be reported as FAIL (and include diagnose) because:
       # 1. they output nothing to stdout but there is something on stderr
-      CASE $none diag=1 this-cmd-does-not-exist \; --outputs nothing
-      CASE $none diag=1 "echo foo" \; --outputs nothing
+      CASE $none diag=1 diag_err=1 cmd-does-not-exist \; --outputs nothing
+      CASE $none diag=1 diag_err=1 "echo foo" \; --outputs nothing
       # 2. they output something to stderr but nothing to stdout
-      CASE $none diag=1 this-cmd-does-not-exist \; --outputs something
-      CASE $none diag=1 "echo foo" \; --outputs something
+      CASE $none diag=1 diag_err=1 cmd-does-not-exist \; --outputs something
+      CASE $none diag=1 diag_err=1 "echo foo" \; --outputs something
       ;;
     QUIET) # cases that should fail WITHOUT diagnose present on stderr
       # when command outputs nothing, there is nothing to diagnose
