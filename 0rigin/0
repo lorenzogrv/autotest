@@ -37,7 +37,8 @@ function main () {
   codes=0
   for cases in $(
     MAIN -l | while IFS= read -d \) c; do echo $c; read; done
-  ); do
+  )
+  do
     ( UNIT only=$cases "$1" )
     ((codes+=$?))
     test "$1" = 'halt' && test $codes -gt 0 && break
@@ -85,40 +86,54 @@ function TEST () {
     shift
   done
 
-  # defaults for [key=value] parameters
+  # unit=[UNIT] is mandatory
   test -z "$unit" && {
     EUSAGE "$0 TEST @0rigin: no especified unit '$@'"
     exit 2
   } >&2
-  
-  # preload specified source=file1,fileN on demand
-  if test -n "$source"
-  then
-    for file in ${source//,/ }; do
-      case="for source $(printf %q "$file"),"
-      output="$(source "$file" &>/dev/null)"
-      code=$?
-      refute-output "output"
-      assert-status 0
-      unset -v output code
-      source "$file"
-    done
-    case="after source ${source//,/ and /}, >$(printf ' %q' "$@"),"
-  else
-    case=">$(printf ' %q' "$@"),"
-  fi
 
-  if test $# -gt 0
-  then
-    type="${type:-function}"
-    expect="$type"
-    test "$type" = none && expect=""
-    assert-type-t "$1" "$expect"
-    unset -v expect
-  fi
+  case=">$(printf ' %q' "$@"),"
+
+  # key=value parameter hooks
+  for hook in $(declare -F | cut -d ' ' -f 3 | grep -E "TEST\..+")
+  do
+    $hook "$@"
+  done
 
   unit "$@"
   CODE
+}
+
+function TEST.source () {
+  # hook to preload specified source file(s) on demand
+  # usage: [TEST_FILE] unit=[UNIT] source=[file1,fileN] ..ARGV
+  # instructs TEST() to source [file1,fileN] before unit() run
+  for file in ${source//,/ }; do
+    case="for source $(printf %q "$file"),"
+    output="$(source "$file" &>/dev/null)"
+    code=$?
+    refute-output "output"
+    assert-status 0
+    unset -v output code
+    source "$file"
+  done
+  test -z "$source" && return
+  case="after source ${source//,/ and /}, >$(printf ' %q' "$@"),"
+  :;
+}
+
+function TEST.type () {
+  # hook to assert TEST()'s first ..ARGV parameter has specified type
+  # usage: [TEST_FILE] unit=[UNIT] type=[TYPE:-function] ..ARGV
+  # [TYPE] may be any of those keywords output by `type -t`, or 'none'
+  # usual: defaults to function as it's the most common case
+  # this hook allows catching unexpected runs over commands being files
+  test $# -eq 0 && return
+  type="${type:-function}"
+  expect="$type"
+  test "$type" = none && expect=""
+  assert-type-t "$1" "$expect"
+  unset -v expect
 }
 
 function only () {
@@ -357,6 +372,7 @@ function DUMP () {
 function DIAG () {
   # writes diagnose information to stderr for each variable [NAME] given
   # usage: DIAG [NAME1] ..[NAMEn]
+  # [NAME] values stdin,stdout,stderr,output are prefixed as 0<,1>,2>,&>
   local count dname
   for var in "$@"; do
     count="$(wc -l <<<"${!var}")"
