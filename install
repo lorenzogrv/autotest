@@ -21,6 +21,7 @@ eche "Will install $name to $BIN_PATH"
 
 ln -s "$(dirname "$file")/$name" "$BIN_PATH/$name" \
   || fail "could not create the link to the file"
+echo "installed symlink"
 
 ##
 # vim modeline (see vim +'help modeline')

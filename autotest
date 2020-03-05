@@ -2,78 +2,38 @@
 
 function autotest--root () {
   # outputs the autotest root directory
-  AUTOTEST_ROOT="$(dirname "$(readlink -f "$BASH_SOURCE")")"
+  declare -r AUTOTEST_ROOT="$(dirname "$(readlink -f "$BASH_SOURCE")")"
   autotest--root () { echo "$AUTOTEST_ROOT"; }
   autotest--root
 }
 
-# this is done early because no more source code is need to perform this task
-if test "$0" = "$BASH_SOURCE" && ! (( $# ))
-then
-  # output all autotest old-api source code to stdout
-  find "$(autotest--root)/old-api" -name "*.bash" -type f -exec cat '{}' +
-  exit $?
-fi
-  
-function emsg () { echo "autotest:" "$@"; } >&2 # better than >&2 echo
-function verb () { :; } # meant for debugging
-if test "$1" = '--debug'; then
-  function verb () { echo "@${FUNCNAME[1]}" "$@"; } >&2
-fi
-function fail () {
-  # helper to fail fast
-  code=$(autocode "${1:?'missing exit code'}") || exit
-  emsg "$1: ${2:?'missing message'}"
-  exit $code
-}
-
 if test "$0" = "$BASH_SOURCE"
-then
-  #
-  # assume autotest is being executed
-  #
-  
-  # some subcomands can be run now to speed-up them
+then # assume autotest is being executed
+
+  # backwards compat:
+  # "bare" call outputs all autotest old-api source code to stdout
+  ! (( $# )) && {
+    find "$(autotest--root)/old-api" -name "*.bash" -type f -exec cat '{}' +
+    exit $?
+  }
+  # some subcomands don't need more source code too
   case "$1" in
+    root) autotest--root; exit ;;
     help|-h|--help)
       source "$(autotest--root)/README.sh" "$@";
       exit $?
       ;;
-    root) autotest--root; exit ;;
-  esac
-
-  source "$(autotest--root)/api/autocode.bash"
-  # run autocode subcommand ASAP to speed it up a bit
-  case "$1" in code) shift; autocode "$@"; exit; esac
-
-  source "$(autotest--root)/api/autotext.bash"
-  # this subcommands can be run here to speed' em up a bit
-  case "$*" in
-    -) autotext; exit ;;
-    'report '*)
-      test $# -ge 2 || fail "expecting at least 2 arguments" 2
-      test -f "$2" || fail "'$2' is not a file" 127
-      ## generate report discarding all stderr
-      "$0" "$2" "${@:3}" 2>/dev/null
-      exit $? # preserve report exit status
+    grep)
+      case "$2" in
+        test) egrep --color "^(TEST .+|FAIL .+|PASS|)" ;;
+        todo) egrep --color "^(TEST|FAIL .+|SKIP .+)" ;;
+        *) egrep --color "^(TEST|FAIL .+|CODE [^0])" ;;
+      esac
+      exit
       ;;
-  esac
-
-  # TEST RUNNER USAGE: <FILE> [ARG .. LIST] should be handled here
-  source "$(autotest--root)/api/autoexec.bash"
-  test -f "$1" && { autoexec "$@"; exit $?; }
-
-  # when $1 is not a file neither a subcommand, fail with ENOENT
-  emsg "ENOENT: '$1' is not a subcommand, neither a file"
-  emsg "try '$(basename "$0") help' for ussage information"
-  exit $(autocode ENOENT)
-
-##
-##
-  case "$1" in
     checkup)
-      # TODO define after, this should be refactored
-      # TODO replace this and use 1 file and {brace,expansion} instead?
+      # Be backwards compatible, this is from the old api
+      # TODO this could be refactored, maybe using {brace,expansion}
       find "$(autotest--root)/old-api" -name "*.bash" -type f -exec bash -c '
         file={}
         tool=${file##*/}
@@ -90,14 +50,93 @@ then
       exit $?
       ;;
   esac
+fi
+  
+function emsg () { echo "autotest:" "$@"; } >&2 # better than >&2 echo
+if test "$DEBUG" = 'autotest' && test "$(type -t verb)" != 'function'
+then
+  declare -r DEBUG_ID="$*"
+  function verb () { echo "@${FUNCNAME[1]} '$DEBUG_ID'" "$@"; } >&2
+  verb "verbose debug mode active"
+else
+  function verb () { :; } # meant for debugging
+fi
+
+if test "$0" = "$BASH_SOURCE"
+then
+  #
+  # assume autotest is being executed
+  #
+
+  source "$(autotest--root)/api/autocode.bash"
+  # run autocode subcommand ASAP to speed it up a bit
+  case "$1" in code) shift; autocode "$@"; exit; esac
+
+  function fail () {
+    # helper to fail fast
+    code=$(autocode "${1:?'missing exit code'}") || exit
+    emsg "$1: ${2:?'missing message'}"
+    exit $code
+  }
+
+  source "$(autotest--root)/api/autotext.bash"
+  # this subcommands can be run here to speed' em up a bit
+  case "$*" in
+    '') emsg "EUSAGE: specified empty string as argument 1"; exit 2 ;;
+    -) autotext; exit ;;
+    'report '*)
+      test $# -ge 2 || fail EUSAGE "expecting at least 2 arguments"
+      test -f "$2" || fail ENOENT "'$2' is not a file"
+      test -x "$2" || fail EACCES "'$2' is not executable"
+      ## generate report discarding all stderr
+      "$0" "$2" "${@:3}" 2>/dev/null
+      exit $? # preserve report exit status
+      ;;
+  esac
+
+  # TEST RUNNER USAGE: <FILE> [ARG .. LIST] should be handled here
+  source "$(autotest--root)/api/autoexec.bash"
+  test -f "$1" && { autoexec "$@"; exit $?; }
+
+  # when $1 is not a file neither a subcommand, fail with ENOENT
+  emsg "ENOENT: '$1' is not a subcommand, neither a file"
+  exit 127
 
 else
   #
   # assume autotest is being sourced
   #
-  
-  source "$(autotest--root)/api/autotest.bash"
-  return $? # source should return true, but may not
+  test "$(type -t autocode)" != 'function' && {
+    source "$(autotest--root)/api/autocode.bash"
+    verb "loaded autocode and Error functions"
+  }
+  # for bare "source autotest", whole argv ($*) may match "source autotest"
+  # or even empty string (seems to depend on calling environment)
+  # but when more arguments are provided - ie. "source autotest argument list"
+  # the argv contains only extra arguments - ie. "argument list"
+  # ALSO NOTE: calling source within a function inherits argv
+  verb "$0 sourced autotest with argv '$@'"
+  { test "$*" = "source autotest" || test -z "$*"; } && {
+    source "$(autotest--root)/api/autotest.bash" || return
+    verb "loaded the autotest function"
+    return 0
+  }
+ 
+  test $# -gt 0 && for name in "$@"
+  do
+    # $name usually refers a layer (aka. 0rigins)
+    file="$(autotest--root)/0rigin/$name"
+    # but may reference an api source file
+    test -r "$file" \
+      || file="$(autotest--root)/api/$name.bash"
+    # after all, $name may not exist
+    test -e "$file" || ENOENT "'$name' does not exist" || exit
+    verb "will load file '$file'"
+    source "$file" \
+      || Error $? --trace "source $(printf %q "$2") raised $?" \
+      || return
+  done
+  return 0 # source should return true, but may not
 fi
 
 
